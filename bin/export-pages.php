@@ -1,7 +1,6 @@
 <?php
 /**
  * Exports managed page content from the database back to pages/<slug>.html
- *
  * bin/export-pages.php to run inside the container
  *
  * @package TAAS_Core
