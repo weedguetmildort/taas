@@ -1,0 +1,350 @@
+<!-- wp:html -->
+<style data-wp-block-html="css">
+/* Main Admin Card */
+.admin-portal-container {
+    max-width: 750px;
+    margin: 30px auto;
+    padding: 35px;
+
+    background-color: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+
+    font-family: Arial, sans-serif;
+    color: #222;
+
+    box-sizing: border-box;
+}
+
+
+/* Admin Header */
+.admin-header {
+    margin-bottom: 30px;
+}
+
+.admin-header h2 {
+    font-size: 22px;
+    margin: 0 0 12px;
+    color: #222;
+}
+
+.admin-header p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+
+/* CSV Upload Section */
+.csv-upload-section {
+    padding-bottom: 30px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eeeeee;
+}
+
+.csv-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.csv-upload-section input[type="file"] {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+
+    border: 1px solid #ccc;
+    border-radius: 4px;
+
+    padding: 7px;
+    box-sizing: border-box;
+}
+
+
+/* Orange button matching existing site */
+.admin-button {
+    background-color: #ff7f11;
+    color: white;
+
+    border: none;
+    border-radius: 0;
+
+    padding: 10px 22px;
+
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.admin-button:hover {
+    background-color: #e66f08;
+}
+
+
+/* Current Listings */
+.current-listings h3 {
+    font-size: 18px;
+    margin: 0 0 20px;
+    color: #222;
+}
+
+
+/* Course Table */
+.course-table {
+    width: 100%;
+}
+
+
+/* Individual Rows */
+.course-row {
+    display: grid;
+
+    grid-template-columns:
+        1.2fr
+        1.7fr
+        1fr
+        0.8fr
+        35px;
+
+    align-items: center;
+
+    min-height: 45px;
+
+    padding: 7px 10px;
+
+    background-color: #f2f2f2;
+    border-bottom: 3px solid white;
+
+    font-size: 13px;
+
+    box-sizing: border-box;
+}
+
+
+/* Header Row */
+.course-heading {
+    background-color: white;
+    font-weight: 600;
+    border-bottom: 1px solid #ccc;
+}
+
+
+/* Expand Button */
+.expand-button {
+    background: none;
+    border: none;
+
+    font-size: 13px;
+    color: #555;
+
+    cursor: pointer;
+}
+
+
+/* Hidden Course Details */
+.course-details {
+    display: none;
+
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+
+    padding: 18px;
+
+    background-color: #f7f7f7;
+    border-bottom: 3px solid white;
+
+    font-size: 13px;
+}
+
+.course-details p {
+    margin: 6px 0 0;
+    line-height: 1.4;
+}
+
+
+/* Displayed when expanded */
+.course-details.open {
+    display: grid;
+}
+
+
+/* Mobile */
+@media (max-width: 700px) {
+
+    .admin-portal-container {
+        margin: 20px 10px;
+        padding: 20px;
+    }
+
+    .course-heading {
+        display: none;
+    }
+
+    .course-row {
+        grid-template-columns: 1fr;
+        gap: 5px;
+
+        padding: 15px;
+    }
+
+    .expand-button {
+        text-align: left;
+        padding: 5px 0;
+    }
+
+    .course-details.open {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+</style>
+
+<div class="admin-portal-container">
+
+    <!-- Header / Instructions -->
+    <div class="admin-header">
+        <h2>TA Application Administrator Portal</h2>
+
+        <p>
+            To update courses for TA position listings, submit the most recent
+            CSV file containing the necessary information.
+            All courses will automatically be overwritten by the new listings.
+            Please check that all information is accurate and not duplicated.
+        </p>
+    </div>
+
+
+    <!-- CSV Upload -->
+    <div class="csv-upload-section">
+
+        <label for="course_csv" class="csv-label">
+            Upload Course Listings
+        </label>
+
+        <input type="file" id="course_csv" name="course_csv" accept=".csv">
+
+        <button type="button" class="admin-button">
+            Upload CSV
+        </button>
+
+    </div>
+
+
+    <!-- Current Listings -->
+    <div class="current-listings">
+
+        <h3>Current Listings for &lt;TERM&gt; &lt;YEAR&gt;</h3>
+
+        <div class="course-table">
+
+            <!-- Column Headings -->
+            <div class="course-row course-heading">
+                <div>Instructor Name</div>
+                <div>Course Name</div>
+                <div>Course Number</div>
+                <div>LAB Hours(Weekly)</div>
+                <div></div>
+            </div>
+
+
+            <!-- Example Course 1 -->
+            <div class="course-row">
+                <div>Neha Rani</div>
+                <div>Computer Science Class</div>
+                <div>COPXXXX</div>
+                <div>15</div>
+
+                <button type="button" class="expand-button" onclick="toggleCourse(this)" aria-label="Show course details">
+                    ▼
+                </button>
+            </div>
+
+            <div class="course-details">
+                <div>
+                    <strong>Class Description</strong>
+                    <p>
+                        Course description will appear here.
+                    </p>
+                </div>
+
+                <div>
+                    <strong>Notes</strong>
+                    <p>
+                        Additional course information will appear here.
+                    </p>
+                </div>
+            </div>
+
+
+            <!-- Example Course 2 -->
+            <div class="course-row">
+                <div>Cheryl Resch</div>
+                <div>Intro to Cryptology</div>
+                <div>COPXXXX</div>
+                <div>10</div>
+
+                <button type="button" class="expand-button" onclick="toggleCourse(this)" aria-label="Show course details">
+                    ▼
+                </button>
+            </div>
+
+            <div class="course-details">
+                <div>
+                    <strong>Class Description</strong>
+                    <p>
+                        Course description will appear here.
+                    </p>
+                </div>
+
+                <div>
+                    <strong>Notes</strong>
+                    <p>
+                        Additional course information will appear here.
+                    </p>
+                </div>
+            </div>
+
+
+            <!-- Example Course 3 -->
+            <div class="course-row">
+                <div>TBD</div>
+                <div>Special Topics: Machine Learning</div>
+                <div>COPXXXX</div>
+                <div>TBD</div>
+
+                <button type="button" class="expand-button" onclick="toggleCourse(this)" aria-label="Show course details">
+                    ▼
+                </button>
+            </div>
+
+            <div class="course-details">
+                <div>
+                    <strong>Class Description</strong>
+                    <p>
+                        Class description is class description. This is what is
+                        happening in the class.
+                    </p>
+                </div>
+
+                <div>
+                    <strong>Notes</strong>
+                    <p>
+                        Applicants with &lt;qualification&gt; will be highly
+                        prioritized.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"></h2>
+<!-- /wp:heading -->

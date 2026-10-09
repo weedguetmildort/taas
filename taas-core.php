@@ -28,6 +28,7 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-logger.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-version.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-db.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-auth.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-pages.php';
 
 /**
  * Activate plugin
@@ -50,6 +51,7 @@ function taas_core_activate(): void {
 	}
 
 	TAAS_Auth::register_roles();
+	TAAS_Pages::install();
 	TAAS_DB::set_schema_version( 'core', TAAS_CORE_VERSION );
 	TAAS_Logger::info( 'TAAS Core activated (version ' . TAAS_CORE_VERSION . ').' );
 }

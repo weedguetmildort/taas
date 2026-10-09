@@ -1,0 +1,159 @@
+<div style="
+    max-width: 1000px;
+    margin: 40px auto 60px auto;
+    padding: 45px 55px;
+    background: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.14);
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+">
+
+    <!-- TITLE -->
+    <h2 style="
+        color: #0021A5;
+        font-size: 34px;
+        font-weight: 700;
+        margin: 0 0 50px 0;
+    ">
+        Suggested TA Assignments
+    </h2>
+
+
+    <!-- SECTION -->
+    <h3 style="
+        color: #0021A5;
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 15px 0;
+    ">
+        Clear Matches
+    </h3>
+
+
+    <!-- TABLE -->
+    <table style="
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 45px;
+        font-size: 15px;
+    ">
+
+        <thead>
+            <tr style="border-bottom: 2px solid #cccccc;">
+                <th style="padding: 12px 8px; text-align: center;">Select</th>
+                <th style="padding: 12px 8px; text-align: left;">Rank</th>
+                <th style="padding: 12px 8px; text-align: left;">Name</th>
+                <th style="padding: 12px 8px; text-align: left;">Major</th>
+                <th style="padding: 12px 8px; text-align: left;">GPA</th>
+                <th style="padding: 12px 8px; text-align: left;">Course</th>
+                <th style="padding: 12px 8px; text-align: left;">Taken Class Before</th>
+                <th style="padding: 12px 8px; text-align: left;">TA'd Before</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            <tr style="border-bottom: 1px solid #e5e5e5;">
+                <td style="padding: 13px 8px; text-align: center;">
+                    <input type="checkbox"
+                           name="selected_tas[]"
+                           value="john"
+                           style="width:18px;height:18px;">
+                </td>
+                <td style="padding:13px 8px;font-weight:bold;">#1</td>
+                <td style="padding:13px 8px;">John</td>
+                <td style="padding:13px 8px;">Computer Science</td>
+                <td style="padding:13px 8px;">3.4</td>
+                <td style="padding:13px 8px;">COP6767</td>
+                <td style="padding:13px 8px;">No</td>
+                <td style="padding:13px 8px;">No</td>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #e5e5e5;">
+                <td style="padding: 13px 8px; text-align: center;">
+                    <input type="checkbox"
+                           name="selected_tas[]"
+                           value="emily"
+                           style="width:18px;height:18px;">
+                </td>
+                <td style="padding:13px 8px;font-weight:bold;">#2</td>
+                <td style="padding:13px 8px;">Emily</td>
+                <td style="padding:13px 8px;">Computer Science</td>
+                <td style="padding:13px 8px;">3.8</td>
+                <td style="padding:13px 8px;">COP6767</td>
+                <td style="padding:13px 8px;">Yes</td>
+                <td style="padding:13px 8px;">Yes</td>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #e5e5e5;">
+                <td style="padding: 13px 8px; text-align: center;">
+                    <input type="checkbox"
+                           name="selected_tas[]"
+                           value="aaron"
+                           style="width:18px;height:18px;">
+                </td>
+                <td style="padding:13px 8px;font-weight:bold;">#3</td>
+                <td style="padding:13px 8px;">Aaron</td>
+                <td style="padding:13px 8px;">Computer Science</td>
+                <td style="padding:13px 8px;">3.6</td>
+                <td style="padding:13px 8px;">COP6767</td>
+                <td style="padding:13px 8px;">No</td>
+                <td style="padding:13px 8px;">Yes</td>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #e5e5e5;">
+                <td style="padding: 13px 8px; text-align: center;">
+                    <input type="checkbox"
+                           name="selected_tas[]"
+                           value="lucas"
+                           style="width:18px;height:18px;">
+                </td>
+                <td style="padding:13px 8px;font-weight:bold;">#4</td>
+                <td style="padding:13px 8px;">Lucas</td>
+                <td style="padding:13px 8px;">Computer Science</td>
+                <td style="padding:13px 8px;">3.5</td>
+                <td style="padding:13px 8px;">COP6767</td>
+                <td style="padding:13px 8px;">Yes</td>
+                <td style="padding:13px 8px;">Yes</td>
+            </tr>
+
+        </tbody>
+    </table>
+
+
+    <!-- BUTTONS -->
+    <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        gap:70px;
+        margin-top:20px;
+    ">
+
+        <button type="button" style="
+            background:#8BD450;
+            color:white;
+            border:none;
+            padding:16px 50px;
+            font-size:17px;
+            font-weight:bold;
+            cursor:pointer;
+        ">
+            Accept
+        </button>
+
+        <button type="button" style="
+            background:#FA5757;
+            color:white;
+            border:none;
+            padding:16px 32px;
+            font-size:17px;
+            font-weight:bold;
+            cursor:pointer;
+        ">
+            Manually Select TAs
+        </button>
+
+    </div>
+
+</div>
