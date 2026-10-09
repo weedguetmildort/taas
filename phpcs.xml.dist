@@ -29,11 +29,15 @@
     <!-- Allow raw file reads and error_log() in the version class -->
     <rule ref="WordPress.PHP.DevelopmentFunctions">
 	    <exclude-pattern>/includes/class-taas-version.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-pages.php</exclude-pattern>
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
+        <exclude-pattern>/bin/export-pages.php</exclude-pattern>
     </rule>
     <rule ref="WordPress.WP.AlternativeFunctions">
 	    <exclude-pattern>/includes/class-taas-version.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-pages.php</exclude-pattern>
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
+        <exclude-pattern>/bin/export-pages.php</exclude-pattern>
     </rule>
     <!-- Allow CLI build scripts that never run inside WordPress or a browser -->
     <rule ref="WordPress.Security.EscapeOutput">
