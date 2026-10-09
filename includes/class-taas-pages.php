@@ -29,20 +29,20 @@ class TAAS_Pages {
 	 */
 	private static function definitions(): array {
 		return array(
-			'admin-page' => array(
-				'title' => 'Admin Page(need to figure out parsing csv with php)',
+			'admin-page'               => array(
+				'title'  => 'Admin Page(need to figure out parsing csv with php)',
 				'parent' => null,
 			),
-			'hr-page' => array(
-				'title' => 'HR Page',
+			'hr-page'                  => array(
+				'title'  => 'HR Page',
 				'parent' => null,
 			),
-            'student-application' => array(
-				'title' => 'Student Application',
+			'student-application'      => array(
+				'title'  => 'Student Application',
 				'parent' => null,
 			),
-            'suggested-ta-assignments' => array(
-				'title' => 'Suggested TA Assignments',
+			'suggested-ta-assignments' => array(
+				'title'  => 'Suggested TA Assignments',
 				'parent' => null,
 			),
 		);
@@ -58,7 +58,13 @@ class TAAS_Pages {
 		$path = TAAS_CORE_PATH . self::CONTENT_DIR . $slug . '.html';
 
 		if ( ! file_exists( $path ) ) {
-			TAAS_Logger::warn( 'Page content file missing.', array( 'slug' => $slug, 'path' => $path ) );
+			TAAS_Logger::warn(
+				'Page content file missing.',
+				array(
+					'slug' => $slug,
+					'path' => $path,
+				)
+			);
 			return '';
 		}
 
@@ -122,7 +128,13 @@ class TAAS_Pages {
 
 			$resolved[ $slug ] = $id;
 			self::remember( $slug, $id );
-			TAAS_Logger::info( 'Created page.', array( 'slug' => $slug, 'id' => $id ) );
+			TAAS_Logger::info(
+				'Created page.',
+				array(
+					'slug' => $slug,
+					'id'   => $id,
+				)
+			);
 		}
 
 		// Assign parents now that every ID is known
@@ -246,38 +258,37 @@ class TAAS_Pages {
 		return $missing;
 	}
 
-    /**
-     * Write each managed page's content back to pages/<slug>.html
-     *
-     * @return string[] Slugs whose files changed
-     */
-    public static function export(): array {
-        if ( ! TAAS_Auth::is_local_dev() ) {
-            TAAS_Logger::warn( 'Page export refused outside local dev.' );
-            return array();
-        }
+	/**
+	 * Write each managed page's content back to pages/<slug>.html
+	 *
+	 * @return string[] Slugs whose files changed
+	 */
+	public static function export(): array {
+		if ( ! TAAS_Auth::is_local_dev() ) {
+			TAAS_Logger::warn( 'Page export refused outside local dev.' );
+			return array();
+		}
 
-        $changed = array();
+		$changed = array();
 
-        foreach ( array_keys( self::definitions() ) as $slug ) {
-            $page = get_page_by_path( $slug, OBJECT, 'page' );
+		foreach ( array_keys( self::definitions() ) as $slug ) {
+			$page = get_page_by_path( $slug, OBJECT, 'page' );
 
-            if ( ! $page instanceof WP_Post ) {
-                continue;
-            }
+			if ( ! $page instanceof WP_Post ) {
+				continue;
+			}
 
-            $path    = TAAS_CORE_PATH . self::CONTENT_DIR . $slug . '.html';
-            $current = file_exists( $path ) ? file_get_contents( $path ) : '';
+			$path    = TAAS_CORE_PATH . self::CONTENT_DIR . $slug . '.html';
+			$current = file_exists( $path ) ? file_get_contents( $path ) : '';
 
-            if ( $current === $page->post_content ) {
-                continue;
-            }
+			if ( $current === $page->post_content ) {
+				continue;
+			}
 
-            file_put_contents( $path, $page->post_content );
-            $changed[] = $slug;
-        }
+			file_put_contents( $path, $page->post_content );
+			$changed[] = $slug;
+		}
 
-        return $changed;
-    }
-
+		return $changed;
+	}
 }

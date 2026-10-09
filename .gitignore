@@ -1,2 +1,4 @@
 # environment variable files
 .env
+/vendor
+*.log

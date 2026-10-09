@@ -1,5 +1,11 @@
 <?php
-// bin/export-pages.php to run inside the container
+/**
+ * Exports managed page content from the database back to pages/<slug>.html
+ *
+ * bin/export-pages.php to run inside the container
+ *
+ * @package TAAS_Core
+ */
 require '/var/www/html/wp-load.php';
 $changed = TAAS_Pages::export();
-echo $changed ? "Updated: " . implode( ', ', $changed ) . "\n" : "No changes.\n";
+echo $changed ? 'Updated: ' . implode( ', ', $changed ) . "\n" : "No changes.\n";
