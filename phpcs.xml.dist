@@ -46,6 +46,9 @@
     <rule ref="WordPress.WP.GlobalVariablesOverride">
         <exclude-pattern>/bin/*</exclude-pattern>
     </rule>
+    <rule ref="Squiz.Commenting.FileComment">
+        <exclude-pattern>/bin/*</exclude-pattern>
+    </rule>
 
     <config name="minimum_supported_wp_version" value="6.0"/>
     <config name="testVersion" value="8.2-"/>
