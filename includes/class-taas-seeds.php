@@ -18,7 +18,7 @@ class TAAS_Seeds {
 	private const SEED_DIR = 'seeds/';
 
 	/**
-	 * Decide if a row already exists based on natural key columns per table 
+	 * Decide if a row already exists based on natural key columns per table
 	 *
 	 * @var array<string, string[]>
 	 */
@@ -147,7 +147,7 @@ class TAAS_Seeds {
 
 		$table = TAAS_Schema::table( $bare );
 		$sql   = "SELECT 1 FROM {$table} WHERE " . implode( ' AND ', $where ) . ' LIMIT 1';
-		
+
 		return null !== $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
 	}
 
