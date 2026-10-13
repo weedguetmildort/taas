@@ -30,12 +30,16 @@
     <rule ref="WordPress.PHP.DevelopmentFunctions">
 	    <exclude-pattern>/includes/class-taas-version.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-pages.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
         <exclude-pattern>/bin/export-pages.php</exclude-pattern>
     </rule>
     <rule ref="WordPress.WP.AlternativeFunctions">
 	    <exclude-pattern>/includes/class-taas-version.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-pages.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
         <exclude-pattern>/bin/export-pages.php</exclude-pattern>
     </rule>
@@ -51,6 +55,13 @@
     </rule>
 
     <!-- phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -->
+     <rule ref="WordPress.DB.DirectDatabaseQuery">
+        <exclude-pattern>/includes/class-taas-tables.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
+        <exclude-pattern>/migrations/*</exclude-pattern>
+        <exclude-pattern>/bin/*</exclude-pattern>
+    </rule>
 
     <config name="minimum_supported_wp_version" value="6.0"/>
     <config name="testVersion" value="8.2-"/>
