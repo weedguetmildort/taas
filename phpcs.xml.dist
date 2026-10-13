@@ -75,7 +75,9 @@
         <exclude-pattern>/migrations/*</exclude-pattern>
     </rule>
 
-    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -->
+    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -->
+    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -->
+    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -->
 
     <config name="minimum_supported_wp_version" value="7.0"/>
     <config name="testVersion" value="8.2-"/>

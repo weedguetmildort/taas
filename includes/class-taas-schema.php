@@ -15,7 +15,7 @@ class TAAS_Schema {
 	/**
 	 * Hold the authored SQL, relative to the plugin root
 	 */
-	private const SNAPSHOT_DIR = 'snapshots/';
+	private const SQL_DIR = 'sql/';
 
 	/**
 	 * Hold a placeholder until replaced with the real table prefix at load time
@@ -60,7 +60,7 @@ class TAAS_Schema {
 			return self::$names;
 		}
 
-		$sql = self::read( 'tables.sql' );
+		$sql = self::read( 'schema.sql' );
 
 		preg_match_all(
 			'/CREATE\s+TABLE\s+' . preg_quote( self::PLACEHOLDER, '/' ) . '(\w+)/i',
@@ -167,8 +167,8 @@ class TAAS_Schema {
 			return array();
 		}
 
-		// Strip line comments
-		$sql = (string) preg_replace( '/^\s*--.*$/m', '', $sql );
+		// Strip full-line and trailing comments
+		$sql = (string) preg_replace( '/(^|\s)--(\s.*)?$/m', '', $sql );
 
 		$sql = str_replace( self::PLACEHOLDER, self::prefix(), $sql );
 

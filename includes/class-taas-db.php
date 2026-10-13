@@ -13,6 +13,11 @@ defined( 'ABSPATH' ) || exit;
 class TAAS_DB {
 
 	/**
+	 * Create namespace for tables owned by taas-core
+	 */
+	public const NS_CORE = 'taas_core_';
+
+	/**
 	 * Create namespace for tables owned by taas-onboarding
 	 */
 	public const NS_ONBOARDING = 'taas_onb_';
