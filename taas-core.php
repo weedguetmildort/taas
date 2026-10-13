@@ -29,6 +29,7 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-version.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-db.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-auth.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-pages.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-schema.php';
 
 /**
  * Activate plugin

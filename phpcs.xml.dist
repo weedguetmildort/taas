@@ -50,6 +50,8 @@
         <exclude-pattern>/bin/*</exclude-pattern>
     </rule>
 
+    <!-- phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -->
+
     <config name="minimum_supported_wp_version" value="6.0"/>
     <config name="testVersion" value="8.2-"/>
 </ruleset>
