@@ -1,0 +1,111 @@
+{
+  "professors": [
+    { "professor_ufid": "10000001", "professor_name": "Dr. Alice Nguyen", "professor_email": "anguyen@ufl.edu" },
+    { "professor_ufid": "10000002", "professor_name": "Dr. Marcus Reed", "professor_email": "mreed@ufl.edu" }
+  ],
+  "students": [
+    { "student_ufid": "20000001", "student_name": "Jordan Blake", "student_email": "jblake@ufl.edu" },
+    { "student_ufid": "20000002", "student_name": "Priya Raman", "student_email": "praman@ufl.edu" },
+    { "student_ufid": "20000003", "student_name": "Sam Ortiz", "student_email": "sortiz@ufl.edu" }
+  ],
+  "student_profiles": [
+    {
+      "student_ufid": "20000001",
+      "phone": "3525550101",
+      "admitted_semester": "Fall 2025",
+      "available_hours": 20,
+      "college_status": 2,
+      "resume_url": "https://example.com/resume/jblake",
+      "has_ta_experience": 1,
+      "country_code": "US",
+      "additional_info": "Prefers morning lab sections."
+    },
+    {
+      "student_ufid": "20000002",
+      "phone": "3525550102",
+      "admitted_semester": "Spring 2026",
+      "available_hours": 10,
+      "college_status": 3,
+      "toefl_score": 108,
+      "has_ta_experience": 0,
+      "eap5836_status": 1,
+      "eap5837_status": 3,
+      "country_code": "IN"
+    },
+    {
+      "student_ufid": "20000003",
+      "admitted_semester": "Fall 2026",
+      "college_status": 1,
+      "has_ta_experience": 0,
+      "country_code": "US"
+    }
+  ],
+  "academic_background": [
+    { "student_ufid": "20000001", "university": "University of Florida", "degree_type": 2, "major": "Computer Science", "grad_date": "2025-05-01", "gpa": 3.72 },
+    { "student_ufid": "20000002", "university": "IIT Madras", "degree_type": 2, "major": "Electrical Engineering", "grad_date": "2024-06-01", "gpa": 3.91 },
+    { "student_ufid": "20000002", "university": "University of Florida", "degree_type": 3, "major": "Computer Science", "grad_date": "2026-12-01", "gpa": 3.85 },
+    { "student_ufid": "20000003", "university": "Santa Fe College", "degree_type": 1, "major": "Computer Science", "grad_date": "2025-12-01", "gpa": 3.40 }
+  ],
+  "courses": [
+    {
+      "course_id": "COP3502-1234",
+      "course_code": "COP3502",
+      "course_name": "Programming Fundamentals 1",
+      "course_description": "Introduction to programming and problem solving.",
+      "course_notes": "Needs TAs comfortable running lab sections.",
+      "sections": 3,
+      "weekly_hours": 20,
+      "lab_hours": 2,
+      "enrollment": 280,
+      "max_enrollment": 300,
+      "professor_ufid": "10000001"
+    },
+    {
+      "course_id": "CDA3101-5678",
+      "course_code": "CDA3101",
+      "course_name": "Introduction to Computer Organization",
+      "course_description": "Machine level representation and processor design.",
+      "sections": 2,
+      "weekly_hours": 10,
+      "lab_hours": 1,
+      "enrollment": 140,
+      "max_enrollment": 160,
+      "professor_ufid": "10000002"
+    }
+  ],
+  "applications": [
+    {
+      "student_ufid": "20000001",
+      "applied_course_code": "COP3502-1234",
+      "has_taken_course": 1,
+      "student_statement": "I tutored this course content for two semesters.",
+      "student_preference_rank": 1,
+      "professor_preference_rank": 1,
+      "match_status": 1
+    },
+    {
+      "student_ufid": "20000001",
+      "applied_course_code": "CDA3101-5678",
+      "has_taken_course": 1,
+      "student_preference_rank": 2,
+      "match_status": 1
+    },
+    {
+      "student_ufid": "20000002",
+      "applied_course_code": "CDA3101-5678",
+      "has_taken_course": 0,
+      "student_statement": "Strong hardware background from my BS.",
+      "student_preference_rank": 1,
+      "professor_preference_rank": 1,
+      "match_status": 1
+    },
+    {
+      "student_ufid": "20000003",
+      "applied_course_code": "COP3502-1234",
+      "has_taken_course": 1,
+      "student_preference_rank": 1,
+      "professor_preference_rank": 2,
+      "match_status": 1
+    }
+  ]
+}
