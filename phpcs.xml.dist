@@ -63,6 +63,8 @@
         <exclude-pattern>/bin/*</exclude-pattern>
     </rule>
 
+    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -->
+
     <config name="minimum_supported_wp_version" value="6.0"/>
     <config name="testVersion" value="8.2-"/>
 </ruleset>

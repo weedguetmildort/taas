@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Apply the schema defined in sql/
  */
-class TAAS_Tables {
+class TAAS_Schema {
 
 	/**
 	 * Hold the authored SQL, relative to the plugin root
@@ -18,12 +18,12 @@ class TAAS_Tables {
 	private const SNAPSHOT_DIR = 'snapshots/';
 
 	/**
-	 * Placeholder replaced with the real table prefix at load time
+	 * Hold a placeholder until replaced with the real table prefix at load time
 	 */
 	private const PLACEHOLDER = '{prefix}';
 
 	/**
-	 * Cached bare table names, in the order they appear in schema.sql
+	 * Set up cached bare table names, in the order they appear in schema.sql
 	 *
 	 * @var string[]|null
 	 */
@@ -114,7 +114,7 @@ class TAAS_Tables {
 	/**
 	 * Add the foreign keys and checks in sql/constraints.sql
 	 *
-	 * @return int Number of constraints added.
+	 * @return int Number of constraints added
 	 */
 	public static function apply_constraints(): int {
 		global $wpdb;
@@ -155,15 +155,10 @@ class TAAS_Tables {
 	}
 
 	/**
-	 * Reads a SQL file, strips comments, substitutes the prefix, and splits
-	 * it into statements.
+	 * Read a SQL file, strips comments, substitutes the prefix, and splits it into statements
 	 *
-	 * Splitting on semicolons is naive: it would break if a default value or
-	 * a string literal contained one. Fine for schema definitions, worth
-	 * knowing before adding anything exotic.
-	 *
-	 * @param string $file File name inside sql/.
-	 * @return string[] Statements, without trailing semicolons.
+	 * @param string $file File name inside sql/
+	 * @return string[] Statements, without trailing semicolons
 	 */
 	private static function statements( string $file ): array {
 		$sql = self::read( $file );
@@ -172,7 +167,7 @@ class TAAS_Tables {
 			return array();
 		}
 
-		// Strip line comments.
+		// Strip line comments
 		$sql = (string) preg_replace( '/^\s*--.*$/m', '', $sql );
 
 		$sql = str_replace( self::PLACEHOLDER, self::prefix(), $sql );
@@ -183,10 +178,10 @@ class TAAS_Tables {
 	}
 
 	/**
-	 * Reads a file from sql/.
+	 * Read a file from sql/
 	 *
-	 * @param string $file File name.
-	 * @return string Contents, or '' if missing.
+	 * @param string $file File name
+	 * @return string Contents, or '' if missing
 	 */
 	private static function read( string $file ): string {
 		$path = TAAS_CORE_PATH . self::SQL_DIR . $file;
@@ -196,17 +191,16 @@ class TAAS_Tables {
 			return '';
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$contents = file_get_contents( $path );
 
 		return false === $contents ? '' : $contents;
 	}
 
 	/**
-	 * Extracts the constraint name from an ALTER TABLE ... ADD CONSTRAINT.
+	 * Extract the constraint name from an ALTER TABLE ... ADD CONSTRAINT
 	 *
-	 * @param string $sql Statement.
-	 * @return string Name, or '' if not found.
+	 * @param string $sql Statement
+	 * @return string Name, or '' if not found
 	 */
 	private static function constraint_name( string $sql ): string {
 		if ( preg_match( '/ADD\s+CONSTRAINT\s+`?(\w+)`?/i', $sql, $matches ) ) {
@@ -217,18 +211,14 @@ class TAAS_Tables {
 	}
 
 	/**
-	 * Whether a named constraint exists anywhere in this database.
+	 * Check whether a named constraint exists anywhere in this database
 	 *
-	 * Constraint names are unique per schema in MySQL, so the table does not
-	 * need checking too.
-	 *
-	 * @param string $name Constraint name.
+	 * @param string $name Constraint name
 	 * @return bool
 	 */
 	private static function constraint_exists( string $name ): bool {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$found = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
@@ -241,9 +231,9 @@ class TAAS_Tables {
 	}
 
 	/**
-	 * Whether a table exists.
+	 * Whether a table exists
 	 *
-	 * @param string $bare Bare table name.
+	 * @param string $bare Bare table name
 	 * @return bool
 	 */
 	public static function exists( string $bare ): bool {
@@ -251,16 +241,13 @@ class TAAS_Tables {
 
 		$table = self::table( $bare );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
 		return $found === $table;
 	}
 
 	/**
-	 * Returns row counts keyed by bare table name.
-	 *
-	 * Missing tables report -1 so they are distinguishable from empty ones.
+	 * Return row counts keyed by bare table name
 	 *
 	 * @return array<string, int>
 	 */
@@ -277,7 +264,6 @@ class TAAS_Tables {
 
 			$table = self::table( $bare );
 
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$counts[ $bare ] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 		}
 
