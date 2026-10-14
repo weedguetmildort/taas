@@ -11,6 +11,11 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_local_password}
     volumes:
       - db_data:/var/lib/mysql
+    ports:
+      - target: 3306
+        published: "${DB_PORT}"
+        host_ip: "${DB_HOST}"
+        protocol: tcp
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD:-root_local_password}"]
       interval: 5s
