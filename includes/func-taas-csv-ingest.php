@@ -3,17 +3,24 @@
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 // Load Composer dependencies
-require __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
-// Load .env variables
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
-$dotenv->load();
+// Bootstrap WordPress
+require_once '/var/www/html/wp-load.php';
 
-$dbhost = $_ENV['DB_HOST'];
-$dbport = $_ENV['DB_PORT'];
-$dbname = $_ENV['DB_NAME'];
-$username = $_ENV['DB_USER'];
-$password = $_ENV['DB_PASSWORD'];
+// Ensure the plugin has loaded TAAS_Schema
+if (!class_exists('TAAS_Schema')) {
+    throw new RuntimeException(
+        'TAAS_Schema is not loaded. Check that the TAAS plugin is active.'
+    );
+}
+
+// Use WordPress's existing database connection
+global $wpdb;
+
+// Get table names using the project's schema class
+$professors = TAAS_Schema::table('professors');
+$courses = TAAS_Schema::table('courses');
 
 // Read CSV or XLSX rows
 function readCourseRows(string $filePath): Generator
@@ -48,24 +55,22 @@ function readCourseRows(string $filePath): Generator
         try {
             // Read the first worksheet
             $worksheet = $spreadsheet->getSheet(0);
-
-            // Row 1 contains column headers
             $lastRow = $worksheet->getHighestDataRow();
 
             for ($rowNumber = 2; $rowNumber <= $lastRow; $rowNumber++) {
-                // Read columns A through H
-                $row = $worksheet
-                    ->rangeToArray(
-                        "A{$rowNumber}:H{$rowNumber}",
-                        null,
-                        true,
-                        false
-                    )[0];
+                $row = $worksheet->rangeToArray(
+                    "A{$rowNumber}:H{$rowNumber}",
+                    null,
+                    true,
+                    false
+                )[0];
 
                 // Skip empty rows
                 if (count(array_filter(
                     $row,
-                    fn($value) => $value !== null && trim((string)$value) !== ''
+                    fn($value) =>
+                        $value !== null &&
+                        trim((string)$value) !== ''
                 )) === 0) {
                     continue;
                 }
@@ -84,17 +89,9 @@ function readCourseRows(string $filePath): Generator
 }
 
 try {
-    // Connect to the database
-    $pdo = new PDO(
-        "mysql:host=$dbhost;port=$dbport;dbname=$dbname",
-        $username,
-        $password,
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]
-    );
-
     echo "Connected to database!\n";
+    echo "Professors table: {$professors}\n";
+    echo "Courses table: {$courses}\n";
 
     // Get CSV or XLSX file path
     $filePath = trim(readline(
@@ -107,43 +104,31 @@ try {
         );
     }
 
-    // Find an existing professor
-    $findProfessorStmt = $pdo->prepare(
-        "SELECT professor_ufid
-        FROM professors
-        WHERE professor_name = :professor_name
-            AND professor_email = :professor_email"
-    );
-
-    // Insert a new professor
-    $insertProfessorStmt = $pdo->prepare(
-        "INSERT INTO professors
-        (professor_ufid, professor_name, professor_email)
-        VALUES
-        (:professor_ufid, :professor_name, :professor_email)"
-    );
-
-    // Insert a new course
-    $insertCourseStmt = $pdo->prepare(
-        "INSERT INTO courses
-        (id, course_code, course_name, sections,
-            lab_hours, enrollment, max_enrollment, professor_ufid)
-        VALUES
-        (:id, :course_code, :course_name, :sections,
-            :lab_hours, :enrollment, :max_enrollment, :professor_ufid)"
-    );
-
     // Start a transaction
-    $pdo->beginTransaction();
+    $result = $wpdb->query("START TRANSACTION");
+
+    if ($result === false) {
+        throw new RuntimeException(
+            "Could not start transaction: " . $wpdb->last_error
+        );
+    }
 
     // Find the next available IDs
-    $nextProfessorId = (int) $pdo->query(
-        "SELECT COALESCE(MAX(professor_ufid), 0) + 1 FROM professors"
-    )->fetchColumn();
+    $nextProfessorId = (int) $wpdb->get_var(
+        "SELECT COALESCE(MAX(professor_ufid), 0) + 1
+        FROM {$professors}"
+    );
 
-    $nextCourseId = (int) $pdo->query(
-        "SELECT COALESCE(MAX(id), 0) + 1 FROM courses"
-    )->fetchColumn();
+    $nextCourseId = (int) $wpdb->get_var(
+        "SELECT COALESCE(MAX(course_id), 0) + 1
+        FROM {$courses}"
+    );
+
+    if ($wpdb->last_error !== '') {
+        throw new RuntimeException(
+            "Could not retrieve next IDs: " . $wpdb->last_error
+        );
+    }
 
     $courseCount = 0;
     $professorCount = 0;
@@ -171,54 +156,96 @@ try {
         );
 
         // Check if professor exists
-        $findProfessorStmt->execute([
-            ':professor_name' => $professorName,
-            ':professor_email' => $professorEmail
-        ]);
+        $professorId = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT professor_ufid
+                FROM {$professors}
+                WHERE professor_name = %s
+                    AND professor_email = %s",
+                $professorName,
+                $professorEmail
+            )
+        );
 
-        $professorId = $findProfessorStmt->fetchColumn();
+        if ($wpdb->last_error !== '') {
+            throw new RuntimeException(
+                "Error finding professor: " . $wpdb->last_error
+            );
+        }
 
         // If professor doesn't exist, create one
-        if ($professorId === false) {
+        if ($professorId === null) {
             $professorId = $nextProfessorId;
 
-            $insertProfessorStmt->execute([
-                ':professor_ufid' => $professorId,
-                ':professor_name' => $professorName,
-                ':professor_email' => $professorEmail
-            ]);
+            $result = $wpdb->insert(
+                $professors,
+                [
+                    'professor_ufid' => $professorId,
+                    'professor_name' => $professorName,
+                    'professor_email' => $professorEmail
+                ],
+                ['%s', '%s', '%s']
+            );
+
+            if ($result === false) {
+                throw new RuntimeException(
+                    "Error inserting professor: " . $wpdb->last_error
+                );
+            }
 
             $nextProfessorId++;
             $professorCount++;
         }
 
         // Insert course with the correct professor ID
-        $insertCourseStmt->execute([
-            ':id' => $nextCourseId,
-            ':course_code' => $courseCode,
-            ':course_name' => $courseName,
-            ':sections' => $sections,
-            ':lab_hours' => $labHours,
-            ':enrollment' => $enrollment,
-            ':max_enrollment' => $maxEnrollment,
-            ':professor_ufid' => $professorId
-        ]);
+        $result = $wpdb->insert(
+            $courses,
+            [
+                'course_id' => $nextCourseId,
+                'course_code' => $courseCode,
+                'course_name' => $courseName,
+                'sections' => $sections,
+                'lab_hours' => $labHours,
+                'enrollment' => $enrollment,
+                'max_enrollment' => $maxEnrollment,
+                'professor_ufid' => $professorId
+            ],
+            [
+                '%s', // course_id
+                '%s', // course_code
+                '%s', // course_name
+                '%d', // sections
+                '%d', // lab_hours
+                '%d', // enrollment
+                '%d', // max_enrollment
+                '%s'  // professor_ufid
+            ]
+        );
+
+        if ($result === false) {
+            throw new RuntimeException(
+                "Error inserting course: " . $wpdb->last_error
+            );
+        }
 
         $nextCourseId++;
         $courseCount++;
     }
 
     // Save all inserts
-    $pdo->commit();
+    if ($wpdb->query("COMMIT") === false) {
+        throw new RuntimeException(
+            "Error committing transaction: " . $wpdb->last_error
+        );
+    }
 
     echo "Import completed successfully!\n";
-    echo "New professors added: $professorCount\n";
-    echo "Courses added: $courseCount\n";
+    echo "New professors added: {$professorCount}\n";
+    echo "Courses added: {$courseCount}\n";
 
 } catch (Throwable $e) {
-    if (isset($pdo) && $pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
+    // Roll back any uncommitted inserts
+    $wpdb->query("ROLLBACK");
 
     fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
     exit(1);
