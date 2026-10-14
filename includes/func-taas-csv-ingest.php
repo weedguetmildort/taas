@@ -1,252 +1,211 @@
 <?php
+/**
+ * Import courses and their professors from a CSV or XLSX file
+ *
+ * @package TAAS_Core
+ */
+
+defined( 'ABSPATH' ) || exit;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-// Load Composer dependencies
-require_once __DIR__ . '/../vendor/autoload.php';
+/**
+ * Yield each data row of a CSV or XLSX file, skipping the header and empty rows
+ *
+ * @param string $file_path Path to a .csv or .xlsx file
+ * @return Generator<int, array> Raw cell values, columns A through H
+ * @throws RuntimeException If the CSV cannot be opened.
+ * @throws InvalidArgumentException If the file type is not supported.
+ */
+function taas_read_course_rows( string $file_path ): Generator {
+	$extension = strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) );
 
-// Bootstrap WordPress
-require_once '/var/www/html/wp-load.php';
+	if ( 'csv' === $extension ) {
+		$file = fopen( $file_path, 'r' );
 
-// Ensure the plugin has loaded TAAS_Schema
-if (!class_exists('TAAS_Schema')) {
-    throw new RuntimeException(
-        'TAAS_Schema is not loaded. Check that the TAAS plugin is active.'
-    );
+		if ( false === $file ) {
+			throw new RuntimeException( 'Cannot open CSV file.' );
+		}
+
+		try {
+			// Skip header
+			fgetcsv( $file );
+
+			while ( true ) {
+				$row = fgetcsv( $file );
+
+				if ( false === $row ) {
+					break;
+				}
+
+				if ( array( null ) === $row ) {
+					continue;
+				}
+
+				yield $row;
+			}
+		} finally {
+			fclose( $file );
+		}
+	} elseif ( 'xlsx' === $extension ) {
+		$spreadsheet = IOFactory::load( $file_path );
+
+		try {
+			// Read the first worksheet, row 1 holds the headers
+			$worksheet = $spreadsheet->getSheet( 0 );
+			$last_row  = $worksheet->getHighestDataRow();
+
+			for ( $row_number = 2; $row_number <= $last_row; $row_number++ ) {
+				$row = $worksheet->rangeToArray( "A{$row_number}:H{$row_number}", null, true, false )[0];
+
+				// Skip empty rows
+				$filled = array_filter(
+					$row,
+					fn( $value ) => null !== $value && '' !== trim( (string) $value )
+				);
+
+				if ( empty( $filled ) ) {
+					continue;
+				}
+
+				yield $row;
+			}
+		} finally {
+			$spreadsheet->disconnectWorksheets();
+		}
+	} else {
+		throw new InvalidArgumentException( 'Unsupported file type. Please use .csv or .xlsx.' );
+	}
 }
 
-// Use WordPress's existing database connection
-global $wpdb;
+/**
+ * Import every course in a file, creating professors that do not exist yet
+ *
+ * Runs in a single transaction, so a failure on any row saves nothing.
+ *
+ * @param string $file_path Path to a .csv or .xlsx file
+ * @return array{professors: int, courses: int} Rows inserted, keyed by table
+ * @throws RuntimeException If the file is unreadable, a row is invalid, or a query fails.
+ * @throws Throwable Any other failure, rethrown after rolling back.
+ */
+function taas_import_courses( string $file_path ): array {
+	global $wpdb;
 
-// Get table names using the project's schema class
-$professors = TAAS_Schema::table('professors');
-$courses = TAAS_Schema::table('courses');
+	if ( ! is_file( $file_path ) || ! is_readable( $file_path ) ) {
+		throw new RuntimeException( 'File does not exist or cannot be read.' );
+	}
 
-// Read CSV or XLSX rows
-function readCourseRows(string $filePath): Generator
-{
-    $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+	$professors = TAAS_Schema::table( 'professors' );
+	$courses    = TAAS_Schema::table( 'courses' );
+	$counts     = array(
+		'professors' => 0,
+		'courses'    => 0,
+	);
 
-    if ($extension === 'csv') {
-        $file = fopen($filePath, 'r');
+	try {
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+			throw new RuntimeException( 'Could not start transaction: ' . $wpdb->last_error );
+		}
 
-        if ($file === false) {
-            throw new RuntimeException("Cannot open CSV file.");
-        }
+		// Find the next available IDs
+		$next_professor_id = (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COALESCE(MAX(professor_ufid), 0) + 1 FROM %i', $professors )
+		);
 
-        try {
-            // Skip header
-            fgetcsv($file);
+		$next_course_id = (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COALESCE(MAX(course_id), 0) + 1 FROM %i', $courses )
+		);
 
-            while (($row = fgetcsv($file)) !== false) {
-                if ($row === [null]) {
-                    continue;
-                }
+		if ( '' !== $wpdb->last_error ) {
+			throw new RuntimeException( 'Could not retrieve next IDs: ' . $wpdb->last_error );
+		}
 
-                yield $row;
-            }
-        } finally {
-            fclose($file);
-        }
+		foreach ( taas_read_course_rows( $file_path ) as $row ) {
+			if ( 8 !== count( $row ) ) {
+				throw new RuntimeException( 'Invalid row: expected 8 columns, got ' . count( $row ) );
+			}
 
-    } elseif ($extension === 'xlsx') {
-        $spreadsheet = IOFactory::load($filePath);
+			list(
+				$course_code,
+				$lab_hours,
+				$course_name,
+				$enrollment,
+				$max_enrollment,
+				$sections,
+				$professor_name,
+				$professor_email
+			) = array_map(
+				fn( $value ) => trim( (string) ( $value ?? '' ) ),
+				$row
+			);
 
-        try {
-            // Read the first worksheet
-            $worksheet = $spreadsheet->getSheet(0);
-            $lastRow = $worksheet->getHighestDataRow();
+			$professor_id = $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT professor_ufid FROM %i WHERE professor_name = %s AND professor_email = %s',
+					$professors,
+					$professor_name,
+					$professor_email
+				)
+			);
 
-            for ($rowNumber = 2; $rowNumber <= $lastRow; $rowNumber++) {
-                $row = $worksheet->rangeToArray(
-                    "A{$rowNumber}:H{$rowNumber}",
-                    null,
-                    true,
-                    false
-                )[0];
+			if ( '' !== $wpdb->last_error ) {
+				throw new RuntimeException( 'Error finding professor: ' . $wpdb->last_error );
+			}
 
-                // Skip empty rows
-                if (count(array_filter(
-                    $row,
-                    fn($value) =>
-                        $value !== null &&
-                        trim((string)$value) !== ''
-                )) === 0) {
-                    continue;
-                }
+			// Create the professor if they do not exist yet
+			if ( null === $professor_id ) {
+				$professor_id = $next_professor_id;
 
-                yield $row;
-            }
-        } finally {
-            $spreadsheet->disconnectWorksheets();
-        }
+				$result = $wpdb->insert(
+					$professors,
+					array(
+						'professor_ufid'  => $professor_id,
+						'professor_name'  => $professor_name,
+						'professor_email' => $professor_email,
+					),
+					array( '%s', '%s', '%s' )
+				);
 
-    } else {
-        throw new InvalidArgumentException(
-            "Unsupported file type. Please use .csv or .xlsx."
-        );
-    }
-}
+				if ( false === $result ) {
+					throw new RuntimeException( 'Error inserting professor: ' . $wpdb->last_error );
+				}
 
-try {
-    echo "Connected to database!\n";
-    echo "Professors table: {$professors}\n";
-    echo "Courses table: {$courses}\n";
+				++$next_professor_id;
+				++$counts['professors'];
+			}
 
-    // Get CSV or XLSX file path
-    $filePath = trim(readline(
-        "Enter the path to your CSV or XLSX file: "
-    ));
+			$result = $wpdb->insert(
+				$courses,
+				array(
+					'course_id'      => $next_course_id,
+					'course_code'    => $course_code,
+					'course_name'    => $course_name,
+					'sections'       => $sections,
+					'lab_hours'      => $lab_hours,
+					'enrollment'     => $enrollment,
+					'max_enrollment' => $max_enrollment,
+					'professor_ufid' => $professor_id,
+				),
+				array( '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s' )
+			);
 
-    if (!is_file($filePath) || !is_readable($filePath)) {
-        throw new RuntimeException(
-            "File does not exist or cannot be read."
-        );
-    }
+			if ( false === $result ) {
+				throw new RuntimeException( 'Error inserting course: ' . $wpdb->last_error );
+			}
 
-    // Start a transaction
-    $result = $wpdb->query("START TRANSACTION");
+			++$next_course_id;
+			++$counts['courses'];
+		}
 
-    if ($result === false) {
-        throw new RuntimeException(
-            "Could not start transaction: " . $wpdb->last_error
-        );
-    }
+		if ( false === $wpdb->query( 'COMMIT' ) ) {
+			throw new RuntimeException( 'Error committing transaction: ' . $wpdb->last_error );
+		}
+	} catch ( Throwable $e ) {
+		$wpdb->query( 'ROLLBACK' );
+		throw $e;
+	}
 
-    // Find the next available IDs
-    $nextProfessorId = (int) $wpdb->get_var(
-        "SELECT COALESCE(MAX(professor_ufid), 0) + 1
-        FROM {$professors}"
-    );
+	TAAS_Logger::info( 'Courses imported.', $counts );
 
-    $nextCourseId = (int) $wpdb->get_var(
-        "SELECT COALESCE(MAX(course_id), 0) + 1
-        FROM {$courses}"
-    );
-
-    if ($wpdb->last_error !== '') {
-        throw new RuntimeException(
-            "Could not retrieve next IDs: " . $wpdb->last_error
-        );
-    }
-
-    $courseCount = 0;
-    $professorCount = 0;
-
-    // Read each row from CSV or XLSX
-    foreach (readCourseRows($filePath) as $row) {
-        if (count($row) !== 8) {
-            throw new RuntimeException(
-                "Invalid row: expected 8 columns, got " . count($row)
-            );
-        }
-
-        [
-            $courseCode,
-            $labHours,
-            $courseName,
-            $enrollment,
-            $maxEnrollment,
-            $sections,
-            $professorName,
-            $professorEmail
-        ] = array_map(
-            fn($value) => trim((string)($value ?? '')),
-            $row
-        );
-
-        // Check if professor exists
-        $professorId = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT professor_ufid
-                FROM {$professors}
-                WHERE professor_name = %s
-                    AND professor_email = %s",
-                $professorName,
-                $professorEmail
-            )
-        );
-
-        if ($wpdb->last_error !== '') {
-            throw new RuntimeException(
-                "Error finding professor: " . $wpdb->last_error
-            );
-        }
-
-        // If professor doesn't exist, create one
-        if ($professorId === null) {
-            $professorId = $nextProfessorId;
-
-            $result = $wpdb->insert(
-                $professors,
-                [
-                    'professor_ufid' => $professorId,
-                    'professor_name' => $professorName,
-                    'professor_email' => $professorEmail
-                ],
-                ['%s', '%s', '%s']
-            );
-
-            if ($result === false) {
-                throw new RuntimeException(
-                    "Error inserting professor: " . $wpdb->last_error
-                );
-            }
-
-            $nextProfessorId++;
-            $professorCount++;
-        }
-
-        // Insert course with the correct professor ID
-        $result = $wpdb->insert(
-            $courses,
-            [
-                'course_id' => $nextCourseId,
-                'course_code' => $courseCode,
-                'course_name' => $courseName,
-                'sections' => $sections,
-                'lab_hours' => $labHours,
-                'enrollment' => $enrollment,
-                'max_enrollment' => $maxEnrollment,
-                'professor_ufid' => $professorId
-            ],
-            [
-                '%s', // course_id
-                '%s', // course_code
-                '%s', // course_name
-                '%d', // sections
-                '%d', // lab_hours
-                '%d', // enrollment
-                '%d', // max_enrollment
-                '%s'  // professor_ufid
-            ]
-        );
-
-        if ($result === false) {
-            throw new RuntimeException(
-                "Error inserting course: " . $wpdb->last_error
-            );
-        }
-
-        $nextCourseId++;
-        $courseCount++;
-    }
-
-    // Save all inserts
-    if ($wpdb->query("COMMIT") === false) {
-        throw new RuntimeException(
-            "Error committing transaction: " . $wpdb->last_error
-        );
-    }
-
-    echo "Import completed successfully!\n";
-    echo "New professors added: {$professorCount}\n";
-    echo "Courses added: {$courseCount}\n";
-
-} catch (Throwable $e) {
-    // Roll back any uncommitted inserts
-    $wpdb->query("ROLLBACK");
-
-    fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
-    exit(1);
+	return $counts;
 }

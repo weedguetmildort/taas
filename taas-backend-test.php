@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TAAS Backend Test
- * Description: Testing ground for backend implementation and functionality.
+ * Description: Testing ground for backend implementation and functionality
  * Version: 1.0
  *
  * @package TAAS_Backend_Test
@@ -48,7 +48,6 @@ function taas_backend_test_activate(): void {
 
 	TAAS_Auth::register_roles();
 	TAAS_Pages::install();
-	TAAS_DB::set_schema_version( 'core', TAAS_BACKEND_TEST_VERSION );
 	TAAS_Logger::info( 'TAAS Backend Test activated (version ' . TAAS_BACKEND_TEST_VERSION . ').' );
 }
 register_activation_hook( __FILE__, 'taas_backend_test_activate' );
@@ -79,26 +78,3 @@ function taas_backend_test_init(): void {
 	do_action( 'taas_backend_test_loaded' );
 }
 add_action( 'plugins_loaded', 'taas_backend_test_init' );
-
-/**
- * Warn admin if a dependent plugin is active without TAAS Core
- *
- * @return void
- */
-function taas_backend_test_admin_notices(): void {
-	if ( ! TAAS_Auth::is_local_dev() ) {
-		return;
-	}
-
-	echo '<div class="notice notice-info"><p><strong>TAAS Backend Test:</strong> ';
-	echo esc_html__( 'Local development mode is ON. Authentication is mocked.', 'taas-backend-test' );
-	echo ' ' . esc_html( sprintf( 'Current mock role: %s', TAAS_Auth::local_dev_role() ) );
-	echo '</p></div>';
-}
-add_action( 'admin_notices', 'taas_backend_test_admin_notices' );
-add_action( 'admin_notices', array( 'TAAS_Version', 'admin_notice' ) );
-
-/*
- * Add the TAAS panel to Tools > Site Health > Info
- */
-add_filter( 'debug_information', array( 'TAAS_Version', 'site_health_panel' ) );
