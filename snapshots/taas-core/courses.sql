@@ -1,0 +1,18 @@
+CREATE TABLE `{prefix}courses` (
+  `course_id` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `course_code` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `course_name` varchar(255) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `course_description` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `course_notes` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `sections` int DEFAULT NULL,
+  `weekly_hours` int DEFAULT NULL,
+  `lab_hours` int NOT NULL DEFAULT '0',
+  `enrollment` int NOT NULL DEFAULT '0',
+  `max_enrollment` int NOT NULL DEFAULT '0',
+  `professor_ufid` varchar(8) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  PRIMARY KEY (`course_id`),
+  KEY `course_code` (`course_code`),
+  KEY `professor_ufid` (`professor_ufid`),
+  CONSTRAINT `fk_courses_professor` FOREIGN KEY (`professor_ufid`) REFERENCES `{prefix}professors` (`professor_ufid`),
+  CONSTRAINT `chk_courses_lab_hours` CHECK (((`lab_hours` >= 0) and (`lab_hours` <= 2)))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci

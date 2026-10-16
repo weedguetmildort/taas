@@ -15,19 +15,32 @@ define( 'TAAS_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_CORE_URL', plugin_dir_url( __FILE__ ) );
 
 /*
- * Composer autoloader
- */
-if ( file_exists( TAAS_CORE_PATH . 'vendor/autoload.php' ) ) {
-	require_once TAAS_CORE_PATH . 'vendor/autoload.php';
-}
-
-/*
  * Explicit requires
  */
 require_once TAAS_CORE_PATH . 'includes/class-taas-logger.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-version.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-db.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-auth.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-pages.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-schema.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-migrations.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-seeds.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-snapshots.php';
+require_once TAAS_CORE_PATH . 'includes/func-taas-csv-ingest.php';
+
+/**
+ * Apply the database schema and any pending migrations
+ *
+ * @return void
+ */
+function taas_core_install(): void {
+	TAAS_Auth::register_roles();
+	TAAS_Pages::install();
+	TAAS_Schema::install();
+	TAAS_Migrations::run( 'core', TAAS_CORE_PATH . 'migrations/' );
+	TAAS_DB::set_schema_version( 'core', TAAS_CORE_VERSION );
+	TAAS_DB::set_fingerprint( 'core', TAAS_DB::fingerprint( TAAS_CORE_PATH ) );
+}
 
 /**
  * Activate plugin
@@ -49,11 +62,52 @@ function taas_core_activate(): void {
 		);
 	}
 
-	TAAS_Auth::register_roles();
-	TAAS_DB::set_schema_version( 'core', TAAS_CORE_VERSION );
+	taas_core_install();
+
+	// Demo rows are for local development only, never the server.
+	if ( TAAS_Auth::is_local_dev() ) {
+		TAAS_Seeds::import( 'demo-data.json' );
+	}
+
 	TAAS_Logger::info( 'TAAS Core activated (version ' . TAAS_CORE_VERSION . ').' );
 }
 register_activation_hook( __FILE__, 'taas_core_activate' );
+
+/**
+ * Run the installer after an update, since activation does not re-fire
+ *
+ * @return void
+ */
+function taas_core_upgrade(): void {
+	if ( ! is_admin() ) {
+		return;
+	}
+
+	$fingerprint = TAAS_DB::fingerprint( TAAS_CORE_PATH );
+
+	if ( ! TAAS_DB::needs_upgrade( 'core', TAAS_CORE_VERSION, $fingerprint ) ) {
+		return;
+	}
+
+	// Another request on another node is already installing; let it finish
+	if ( ! TAAS_DB::acquire_install_lock( 'core' ) ) {
+		return;
+	}
+
+	try {
+		TAAS_Logger::info(
+			'Upgrading from ' . TAAS_DB::get_schema_version( 'core' ) . ' to ' . TAAS_CORE_VERSION . '.',
+			array(
+				'stored_fingerprint'  => TAAS_DB::get_fingerprint( 'core' ),
+				'current_fingerprint' => $fingerprint,
+			)
+		);
+		taas_core_install();
+	} finally {
+		TAAS_DB::release_install_lock( 'core' );
+	}
+}
+add_action( 'admin_init', 'taas_core_upgrade' );
 
 /**
  * Deactivate plugin
@@ -76,14 +130,14 @@ function taas_core_init(): void {
 	/**
 	 * Fire once TAAS Core is loaded and its helpers are available
 	 *
-	 * @since 0.1.0
+	 * @since 0.7.8.8.2
 	 */
 	do_action( 'taas_core_loaded' );
 }
 add_action( 'plugins_loaded', 'taas_core_init' );
 
 /**
- * Warn admin if a dependent plugin is active without TAAS Core
+ * Show a notice when local development mode is on
  *
  * @return void
  */

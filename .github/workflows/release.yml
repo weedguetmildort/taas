@@ -9,85 +9,31 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build and draft release
-    runs-on: ubuntu-latest
+  release:
+    name: Draft Release
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up PHP 8.2
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           coverage: none
-          tools: composer:v2
 
       - name: Verify version matches the tag
         run: php bin/check-version.php "${{ github.ref_name }}"
 
-      - name: Install production dependencies
-        run: composer install --no-dev --optimize-autoloader --no-progress --no-interaction
-
-      - name: Compute the full version
-        id: version
-        run: |
-          BASELINE="${GITHUB_REF_NAME#v}"
-          BUILD="${{ github.run_number }}"
-          echo "full=${BASELINE}.${BUILD}" >> "$GITHUB_OUTPUT"
-          echo "Building ${BASELINE}.${BUILD}"
-
-      - name: Inject the build number
-        env:
-          FULL: ${{ steps.version.outputs.full }}
-        run: |
-          # Rewrite the trailing .0 build segment in both places it appears.
-          sed -i -E "s/^( \* Version: +).*/\1${FULL}/" taas-core.php
-          sed -i -E "s/(define\( 'TAAS_CORE_VERSION', ')[^']*(' \);)/\1${FULL}\2/" taas-core.php
-          grep -n "Version:\|TAAS_CORE_VERSION" taas-core.php
-
-      - name: Stage the plugin folder
-        env:
-          FULL: ${{ steps.version.outputs.full }}
-        run: |
-          # WordPress expects the plugin folder nested inside the zip, so the
-          # archive root must be taas-core/, not the files loose.
-          mkdir -p build/taas-core
-          rsync -a ./ build/taas-core/ \
-            --exclude '.git' \
-            --exclude '.github' \
-            --exclude 'build' \
-            --exclude 'tests' \
-            --exclude 'bin' \
-            --exclude 'node_modules' \
-            --exclude '.env' \
-            --exclude '.env.example' \
-            --exclude 'docker-compose.yml' \
-            --exclude 'phpunit.xml.dist' \
-            --exclude 'phpcs.xml.dist' \
-            --exclude 'composer.json' \
-            --exclude 'composer.lock' \
-            --exclude '.phpunit.result.cache' \
-            --exclude '*.zip'
-          cd build
-          zip -rq "taas-core-${FULL}.zip" taas-core
-          sha256sum "taas-core-${FULL}.zip" > "taas-core-${FULL}.zip.sha256"
-          ls -la
-
-      - name: Upload the build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: taas-core-${{ steps.version.outputs.full }}
-          path: |
-            build/*.zip
-            build/*.sha256
-
+      # Prod deploys by checking out the tag, so there is nothing to build or
+      # upload. The release exists to label the tag and record what changed.
       - name: Create a draft release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          name: ${{ steps.version.outputs.full }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
           body: |
             **Severity:** _set one before publishing_ — `breaking` / `feature` / `fix`
 
@@ -96,20 +42,20 @@ jobs:
 
             | | |
             |---|---|
-            | Version | `${{ steps.version.outputs.full }}` |
+            | Tag | `${{ github.ref_name }}` |
             | Baseline | WordPress 7.x, PHP 8.x, MySQL 8.x, Apache 2.x |
-            | Build | `${{ github.run_number }}` |
-
-            ### Changes
-
-            _summarise here_
 
             ### Deploying
 
-            1. Download `taas-core-${{ steps.version.outputs.full }}.zip` below
-            2. Verify the checksum against the `.sha256` file
-            3. Upload via Plugins → Add New → Upload Plugin on `taas.cise.ufl.edu`
-            4. Notify IT if Sucuri flags the file change
-          files: |
-            build/*.zip
-            build/*.sha256
+            On `az1-apacheint-prod01.server.ufl.edu`:
+
+            ```sh
+            cd /h/cnswww-taas.cise/taas.cise.ufl.edu
+            git fetch --tags
+            git status --short    # must print nothing
+            git checkout ${{ github.ref_name }}
+            ```
+
+            Never run `git clean -x` on the server: the ignored files are
+            WordPress core, `wp-config.php`, uploads and third-party plugins.
+            Notify IT before deploying so Sucuri's file-change alerts are expected.

@@ -2,7 +2,9 @@
 <ruleset name="TAAS Core">
     <description>Coding standards for the TAAS plugins.</description>
 
-    <file>.</file>
+    <file>htdocs/wp-content/plugins</file>
+    <file>bin</file>
+    <file>tests</file>
 
     <exclude-pattern>/vendor/*</exclude-pattern>
     <exclude-pattern>/node_modules/*</exclude-pattern>
@@ -24,17 +26,33 @@
         <!-- Allow normal aligment -->
         <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
     </rule>
-    <rule ref="WordPress-Core"/>
-    <rule ref="WordPress-Docs"/>
+
     <!-- Allow raw file reads and error_log() in the version class -->
     <rule ref="WordPress.PHP.DevelopmentFunctions">
 	    <exclude-pattern>/includes/class-taas-version.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-pages.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-snapshots.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-migrations.php</exclude-pattern>
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
+        <exclude-pattern>/bin/export-pages.php</exclude-pattern>
     </rule>
+
     <rule ref="WordPress.WP.AlternativeFunctions">
 	    <exclude-pattern>/includes/class-taas-version.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-pages.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-snapshots.php</exclude-pattern>
+        <exclude-pattern>/includes/func-taas-csv-ingest.php</exclude-pattern>
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
+        <exclude-pattern>/bin/export-pages.php</exclude-pattern>
+        <exclude-pattern>/bin/import-courses.php</exclude-pattern>
+        <!-- Tests run without WordPress, so WP_Filesystem is unavailable -->
+        <exclude-pattern>/tests/*</exclude-pattern>
     </rule>
+
     <!-- Allow CLI build scripts that never run inside WordPress or a browser -->
     <rule ref="WordPress.Security.EscapeOutput">
         <exclude-pattern>/bin/*</exclude-pattern>
@@ -42,7 +60,39 @@
     <rule ref="WordPress.WP.GlobalVariablesOverride">
         <exclude-pattern>/bin/*</exclude-pattern>
     </rule>
+    <rule ref="Squiz.Commenting.FileComment">
+        <exclude-pattern>/bin/*</exclude-pattern>
+    </rule>
 
-    <config name="minimum_supported_wp_version" value="6.0"/>
+     <rule ref="WordPress.DB.DirectDatabaseQuery">
+        <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-snapshots.php</exclude-pattern>
+        <exclude-pattern>/includes/func-taas-csv-ingest.php</exclude-pattern>
+        <exclude-pattern>/migrations/*</exclude-pattern>
+        <exclude-pattern>/bin/*</exclude-pattern>
+    </rule>
+
+    <!-- Allow the row types module to keep its enums and value objects together -->
+    <rule ref="Generic.Files.OneObjectStructurePerFile">
+        <exclude-pattern>/includes/class-taas-types.php</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.Files.FileName.InvalidClassFileName">
+        <exclude-pattern>/includes/class-taas-types.php</exclude-pattern>
+    </rule>
+
+    <!-- Table names and DDL to be prepared placeholders -->
+    <rule ref="WordPress.DB.PreparedSQL">
+        <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
+        <exclude-pattern>/includes/class-taas-snapshots.php</exclude-pattern>
+        <exclude-pattern>/migrations/*</exclude-pattern>
+    </rule>
+
+    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -->
+    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -->
+    <!-- phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -->
+
+    <config name="minimum_supported_wp_version" value="7.0"/>
     <config name="testVersion" value="8.2-"/>
 </ruleset>

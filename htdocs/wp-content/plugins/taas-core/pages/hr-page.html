@@ -1,0 +1,638 @@
+<!-- wp:html -->
+<style data-wp-block-html="css">
+/* MAIN WHITE CARD */
+
+.hr-portal-container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 35px;
+
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+
+    font-family: Arial, sans-serif;
+    color: #222;
+
+    box-sizing: border-box;
+}
+
+
+/* HEADER */
+
+.hr-header {
+    margin-bottom: 35px;
+}
+
+.hr-header h2 {
+    font-size: 22px;
+    margin: 0 0 12px;
+}
+
+.hr-header p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+
+/* APPLICANT SECTION */
+
+.applicants-section h3 {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+
+/* TABLE */
+
+.applicant-table {
+    width: 100%;
+}
+
+.applicant-row {
+    display: grid;
+
+    grid-template-columns:
+        1.3fr
+        1fr
+        0.9fr
+        0.6fr
+        1.2fr
+        1.8fr;
+
+    align-items: center;
+
+    min-height: 52px;
+
+    padding: 8px 10px;
+
+    background: #f5f5f5;
+
+    border-bottom: 3px solid white;
+    border-left: 4px solid transparent;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+    box-sizing: border-box;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+
+/* Hover */
+
+.applicant-row:not(.applicant-heading):hover {
+    background: #eeeeee;
+}
+
+
+/* SELECTED APPLICANT */
+
+.applicant-row.selected {
+    background: #e8f1f8;
+    border-left: 4px solid #2271b1;
+}
+
+
+/* TABLE HEADER */
+
+.applicant-heading {
+    background: white;
+
+    font-weight: 600;
+
+    border-left: 4px solid transparent;
+    border-bottom: 1px solid #ccc;
+
+    cursor: default;
+}
+
+
+/* VIEW BUTTON */
+
+.view-button {
+    background: none;
+
+    border: 1px solid #aaa;
+    border-radius: 3px;
+
+    padding: 5px 10px;
+
+    font-size: 12px;
+
+    cursor: pointer;
+}
+
+.view-button:hover {
+    background: #e5e5e5;
+}
+
+
+/* APPROVE / REJECT */
+
+.decision-options {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.decision-options label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    font-size: 12px;
+
+    cursor: pointer;
+}
+
+.approve-option input {
+    accent-color: #2e8540;
+}
+
+.reject-option input {
+    accent-color: #c62828;
+}
+
+
+/* EXPANDED APPLICATION */
+
+.application-details {
+    display: none;
+
+    padding: 20px 25px;
+
+    background: #fafafa;
+
+    border-left: 4px solid #2271b1;
+    border-bottom: 3px solid white;
+}
+
+.application-details.open {
+    display: block;
+}
+
+.application-details h4 {
+    margin: 0 0 18px;
+
+    font-size: 16px;
+}
+
+
+/* APPLICATION INFORMATION */
+
+.application-info-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 20px;
+}
+
+.application-info-grid span,
+.application-notes span {
+    display: block;
+
+    font-size: 11px;
+    color: #666;
+
+    margin-bottom: 4px;
+}
+
+.application-info-grid strong {
+    font-size: 13px;
+}
+
+
+/* NOTES */
+
+.application-notes {
+    margin-top: 20px;
+}
+
+.application-notes p {
+    font-size: 13px;
+
+    margin: 5px 0 0;
+
+    line-height: 1.4;
+}
+
+
+/* SAVE BUTTON */
+
+.save-section {
+    margin-top: 25px;
+
+    text-align: center;
+}
+
+.save-button {
+    width: 100%;
+
+    padding: 11px 20px;
+
+    background: #ff7f11;
+    color: white;
+
+    border: none;
+
+    font-size: 14px;
+
+    cursor: pointer;
+}
+
+.save-button:hover {
+    background: #e66f08;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 850px) {
+
+    .hr-portal-container {
+        margin: 20px 10px;
+        padding: 20px;
+    }
+
+    .applicant-heading {
+        display: none;
+    }
+
+    .applicant-row {
+        grid-template-columns: 1fr;
+
+        gap: 8px;
+
+        padding: 15px;
+    }
+
+    .application-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+</style>
+
+<script data-wp-block-html="js">
+<script>
+
+function selectApplicant(row) {
+
+    // Remove selection from all other applicants
+    document
+        .querySelectorAll(".applicant-row")
+        .forEach(function(item) {
+            item.classList.remove("selected");
+        });
+
+    // Highlight clicked applicant
+    row.classList.add("selected");
+}
+
+
+function toggleApplication(event, button) {
+
+    // Prevent button click from interfering
+    // with the row selection
+    event.stopPropagation();
+
+    const row = button.closest(".applicant-row");
+    const details = row.nextElementSibling;
+
+    // Select this applicant
+    document
+        .querySelectorAll(".applicant-row")
+        .forEach(function(item) {
+            item.classList.remove("selected");
+        });
+
+    row.classList.add("selected");
+
+
+    // Close other applications
+    document
+        .querySelectorAll(".application-details")
+        .forEach(function(item) {
+
+            if (item !== details) {
+                item.classList.remove("open");
+            }
+
+        });
+
+
+    // Open/close this application
+    details.classList.toggle("open");
+
+
+    if (details.classList.contains("open")) {
+        button.textContent = "Hide";
+    } else {
+        button.textContent = "View";
+    }
+}
+
+</script>
+</script>
+
+<div class="hr-portal-container">
+
+    <div class="hr-header">
+        <h2>TA Application HR Portal</h2>
+
+        <p>
+            Below is an overview of the current TA applicants.
+            Select an applicant to review their application and
+            approve or reject their application.
+        </p>
+    </div>
+
+
+    <div class="applicants-section">
+
+        <h3>Current Applicants for &lt;TERM&gt; &lt;YEAR&gt;</h3>
+
+        <div class="applicant-table">
+
+            <!-- Table Header -->
+            <div class="applicant-row applicant-heading">
+                <div>Applicant Name</div>
+                <div>View Application</div>
+                <div>UFID</div>
+                <div>GPA</div>
+                <div>USA Country of Origin?</div>
+                <div>Decision</div>
+            </div>
+
+
+            <!-- APPLICANT 1 -->
+            <div class="applicant-row"
+                 onclick="selectApplicant(this)">
+
+                <div>Jane Doe</div>
+
+                <div>
+                    <button
+                        type="button"
+                        class="view-button"
+                        onclick="toggleApplication(event, this)"
+                    >
+                        View
+                    </button>
+                </div>
+
+                <div>12345678</div>
+
+                <div>3.7</div>
+
+                <div>Yes</div>
+
+                <div class="decision-options">
+
+                    <label class="approve-option">
+                        <input
+                            type="radio"
+                            name="decision_12345678"
+                            value="approve"
+                        >
+                        Approve
+                    </label>
+
+                    <label class="reject-option">
+                        <input
+                            type="radio"
+                            name="decision_12345678"
+                            value="reject"
+                        >
+                        Reject
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- Expanded Application -->
+            <div class="application-details">
+
+                <h4>Jane Doe — Application</h4>
+
+                <div class="application-info-grid">
+
+                    <div>
+                        <span>UFID</span>
+                        <strong>12345678</strong>
+                    </div>
+
+                    <div>
+                        <span>GPA</span>
+                        <strong>3.7</strong>
+                    </div>
+
+                    <div>
+                        <span>Hours Available</span>
+                        <strong>10–15 hours</strong>
+                    </div>
+
+                    <div>
+                        <span>Course Preference #1</span>
+                        <strong>Course data</strong>
+                    </div>
+
+                    <div>
+                        <span>Course Preference #2</span>
+                        <strong>Course data</strong>
+                    </div>
+
+                    <div>
+                        <span>Course Preference #3</span>
+                        <strong>Course data</strong>
+                    </div>
+
+                </div>
+
+                <div class="application-notes">
+                    <span>Additional Information</span>
+
+                    <p>
+                        Applicant information will appear here once the
+                        application is connected to the database.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- APPLICANT 2 -->
+            <div class="applicant-row"
+                 onclick="selectApplicant(this)">
+
+                <div>John Smith</div>
+
+                <div>
+                    <button
+                        type="button"
+                        class="view-button"
+                        onclick="toggleApplication(event, this)"
+                    >
+                        View
+                    </button>
+                </div>
+
+                <div>11223344</div>
+
+                <div>4.0</div>
+
+                <div>No</div>
+
+                <div class="decision-options">
+
+                    <label class="approve-option">
+                        <input
+                            type="radio"
+                            name="decision_11223344"
+                            value="approve"
+                        >
+                        Approve
+                    </label>
+
+                    <label class="reject-option">
+                        <input
+                            type="radio"
+                            name="decision_11223344"
+                            value="reject"
+                        >
+                        Reject
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- Expanded Application -->
+            <div class="application-details">
+
+                <h4>John Smith — Application</h4>
+
+                <div class="application-info-grid">
+
+                    <div>
+                        <span>UFID</span>
+                        <strong>11223344</strong>
+                    </div>
+
+                    <div>
+                        <span>GPA</span>
+                        <strong>4.0</strong>
+                    </div>
+
+                    <div>
+                        <span>Hours Available</span>
+                        <strong>5–10 hours</strong>
+                    </div>
+
+                    <div>
+                        <span>English Proficiency</span>
+                        <strong>Score data</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- APPLICANT 3 -->
+            <div class="applicant-row"
+                 onclick="selectApplicant(this)">
+
+                <div>Leonardo Rey</div>
+
+                <div>
+                    <button
+                        type="button"
+                        class="view-button"
+                        onclick="toggleApplication(event, this)"
+                    >
+                        View
+                    </button>
+                </div>
+
+                <div>12123432</div>
+
+                <div>3.8</div>
+
+                <div>Yes</div>
+
+                <div class="decision-options">
+
+                    <label class="approve-option">
+                        <input
+                            type="radio"
+                            name="decision_12123432"
+                            value="approve"
+                        >
+                        Approve
+                    </label>
+
+                    <label class="reject-option">
+                        <input
+                            type="radio"
+                            name="decision_12123432"
+                            value="reject"
+                        >
+                        Reject
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- Expanded Application -->
+            <div class="application-details">
+
+                <h4>Leonardo Rey — Application</h4>
+
+                <div class="application-info-grid">
+
+                    <div>
+                        <span>UFID</span>
+                        <strong>12123432</strong>
+                    </div>
+
+                    <div>
+                        <span>GPA</span>
+                        <strong>3.8</strong>
+                    </div>
+
+                    <div>
+                        <span>Hours Available</span>
+                        <strong>10–15 hours</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="save-section">
+
+            <button type="button" class="save-button">
+                Save Changes
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<!-- /wp:html -->

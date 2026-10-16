@@ -1,0 +1,851 @@
+<!-- wp:html -->
+<style data-wp-block-html="css">
+.form-container {
+ padding: 30px;
+ box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+ width: 100%;
+ max-width: 720px;
+ display: flex;
+ justify-content: center;
+ align-content: center;
+ margin: auto auto;
+}
+
+form {
+ display: grid;
+ grid-gap: 20px;
+}
+
+.form-title p {
+ font-size: 1.5rem;
+ text-align: center;
+ font-weight: 600;
+}
+
+form-group {
+ display: flex;
+ grid-gap: 6px;
+}
+
+label {
+ font-size: 0.75rem;
+ font-weight: 500;
+}
+
+input,
+select {
+ width: 100%;
+ font-size: 1rem;
+ border: 1px solid #d2d2d2;
+ border-radius: 6px;
+ outline: none;
+}
+
+input: focus,
+select: focus {
+ border-color: 1px solid #e1e1e1;
+ box-shadow: 0 0 0 3px;
+}
+
+.submit-button {
+ background-color: #F5801D;
+ color: #ffffff;
+ border: none;
+ border-radius: none;
+ padding: 8px;
+ font-size: 1rem;
+ font-weight: 500;
+ margin-top: 20px;
+ transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+ background-color: #E8710C;
+}
+</style>
+
+<div class="form-container">
+<!-- Submit to "update student info" endpoint? -->
+<form action="" method="POST">
+
+<!-- Nonce field protects against cross-site request forgery -->
+<!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
+
+<div class="form-title">
+<p>Student Information</p>
+</div>
+    
+<div class="form-group">
+<label for="fname">First Name</label>
+<input type="text" name="fname" id="fname" required="">
+</div>
+
+<div class="form-group">
+<label for="lname">Last Name</label>
+<input type="text" name="lname" id="lname" required="">
+</div>
+
+<div class="form-group">
+<label for="ufid">UFID</label>
+<input type="text" inputmode="numeric" length="8" name="ufid" id="ufid" required="">
+</div>
+
+<div class="form-group">
+<label for="ufemail">UF Email</label>
+<input type="email" pattern="^[a-zA-Z0-9._%+-]+@ufl\.edu$" name="ufemail&quot;" id="ufemail" required="">
+</div>
+
+<div class="form-group">
+<label for="lname">Country of Origin</label>
+<input type="text" name="origin" id="origin" required="">
+</div>
+
+<label for="options">Semester you started UF</label>
+[dynamic_semester]
+
+<label for="options">Current College Status</label>
+<select name="options" id="options">
+  <option value="item1">Masters</option>
+  <option value="item2" selected="">Graduate</option>
+  <option value="item3">PhD</option>
+</select>
+
+
+<div class="form-group">
+<label for="phone">Phone Number</label>
+<input type="text" inputmode="numeric" name="phone" id="phone" required="">
+</div>
+
+    
+    <button type="submit" name="submit_user_input" class="submit-button">Submit Info</button>
+</form></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<style data-wp-block-html="css">
+.form-container {
+ padding: 30px;
+ box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+ width: 100%;
+ max-width: 720px;
+ display: flex;
+ justify-content: center;
+ align-content: center;
+ margin: auto auto;
+}
+
+form {
+ display: grid;
+ grid-gap: 20px;
+}
+
+.form-title p {
+ font-size: 1.5rem;
+ text-align: center;
+ font-weight: 600;
+}
+
+form-group {
+ display: flex;
+ grid-gap: 6px;
+}
+
+label {
+ font-size: 0.75rem;
+ font-weight: 500;
+}
+
+input,
+select {
+ width: 100%;
+ font-size: 1rem;
+ border: 1px solid #d2d2d2;
+ border-radius: 6px;
+ outline: none;
+}
+
+input: focus,
+select: focus {
+ border-color: 1px solid #e1e1e1;
+ box-shadow: 0 0 0 3px;
+}
+
+.submit-button {
+ background-color: #F5801D;
+ color: #ffffff;
+ border: none;
+ border-radius: none;
+ padding: 8px;
+ font-size: 1rem;
+ font-weight: 500;
+ margin-top: 20px;
+ transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+ background-color: #E8710C;
+}
+</style>
+
+<div class="form-container">
+<!-- Submit to "update student info" endpoint? -->
+<form action="" method="POST">
+
+<!-- Nonce field protects against cross-site request forgery -->
+<!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
+
+<div class="form-title">
+<p>Academic Background</p>
+</div>
+    
+<div class="form-group">
+<label for="fname">Undergraduate University</label>
+<input type="text" name="university" id="university" required="">
+</div>
+
+<div class="form-group">
+<label for="lname">Undergraduate Major</label>
+<input type="text" name="major" id="major" required="">
+</div>
+
+
+<div class="form-group">
+<label for="degType">Degree Type</label>
+<input type="text" name="degType" id="degType" required="">
+</div>
+
+<div class="form-group">
+<label for="card-expiry">Graduation Date (MM/YYYY):</label>
+<input type="text" id="gradDate" name="gradDate" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])\/[0-9]{4}" title="Please enter a valid date in MM/YYYY format" maxlength="7" required="">
+</div>
+
+<div class="form-group">
+<label for="gpa">GPA (out of 4.0):</label>
+<input type="number" id="gpa" name="gpa" min="0.0" max="4.0" step="0.01" placeholder="4.00" required="">
+</div>
+    
+<button type="submit" name="submit_user_input" class="submit-button">Submit</button>
+</form></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<style data-wp-block-html="css">
+.form-container {
+ padding: 30px;
+ box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+ width: 100%;
+ max-width: 720px;
+ justify: center;
+}
+
+form {
+ display: grid;
+ grid-gap: 20px;
+}
+
+form-group {
+ display: flex;
+ grid-gap: 6px;
+}
+
+label {
+ font-size: 0.75rem;
+ font-weight: 500;
+}
+
+input,
+select {
+ width: 100%;
+ font-size: 1rem;
+ border: 1px solid #d2d2d2;
+ border-radius: 6px;
+ outline: none;
+}
+
+input: focus,
+select: focus {
+ border-color: 1px solid #e1e1e1;
+ box-shadow: 0 0 0 3px;
+}
+
+.submit-button {
+ background-color: #F5801D;
+ color: #ffffff;
+ border: none;
+ border-radius: none;
+ padding: 8px;
+ font-size: 1rem;
+ font-weight: 500;
+ margin-top: 20px;
+ transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+ background-color: #E8710C;
+}
+</style>
+
+<div class="form-container">
+<!-- Submit to "update student info" endpoint? -->
+<form action="" method="POST">
+
+<!-- Nonce field protects against cross-site request forgery -->
+<!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
+
+<div class="form-title">
+<p>PhD Student Eligibility</p>
+</div>
+    
+<div class=" form-group"="">
+<label for="options">Please enter your course status for EAP5836</label>
+<select name="options" id="options">
+  <option value="item1">Taken at UF</option>
+  <option value="item2" selected="">Currently Taking</option>
+  <option value="item3">Not Taken</option>
+<option value="item1" 4="">Taken at different University</option>
+</select>
+</div>
+
+<div class="form-group">
+<label for="options">Please enter your course status for EAP5837</label>
+<select name="options" id="options">
+  <option value="item1">Taken at UF</option>
+  <option value="item2" selected="">Currently Taking</option>
+  <option value="item3">Not Taken</option>
+<option value="item1" 4="">Taken at different University</option>
+</select>
+</div>
+
+    
+    <button type="submit" name="submit_user_input" class="submit-button">Submit Info</button>
+</form></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<style data-wp-block-html="css">
+.form-container {
+ padding: 30px;
+ box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+ width: 100%;
+ max-width: 720px;
+ justify: center;
+}
+
+form {
+ display: grid;
+ grid-gap: 20px;
+}
+
+form-group {
+ display: flex;
+ grid-gap: 6px;
+}
+
+label {
+ font-size: 0.75rem;
+ font-weight: 500;
+}
+
+input,
+select {
+ width: 100%;
+ font-size: 1rem;
+ border: 1px solid #d2d2d2;
+ border-radius: 6px;
+ outline: none;
+}
+
+input: focus,
+select: focus {
+ border-color: 1px solid #e1e1e1;
+ box-shadow: 0 0 0 3px;
+}
+
+.submit-button {
+ background-color: #F5801D;
+ color: #ffffff;
+ border: none;
+ border-radius: none;
+ padding: 8px;
+ font-size: 1rem;
+ font-weight: 500;
+ margin-top: 20px;
+ transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+ background-color: #E8710C;
+}
+</style>
+
+<div class="form-container">
+
+    <!-- Submit to "update student info" endpoint? -->
+    <form action="" method="POST" enctype="multipart/form-data">
+
+        <!-- Nonce field protects against cross-site request forgery -->
+        <!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
+
+<div class="form-title">
+<p>Additional Information</p>
+</div>
+
+        <div class="form-group">
+            <label for="taHours">
+                How many hours a week do you plan to TA for?
+            </label>
+
+            <select name="taHours" id="taHours" required="">
+                <option value="" disabled="" selected="">Select hours</option>
+                <option value="10">10 hours</option>
+                <option value="20">20 hours</option>
+            </select>
+        </div>
+
+
+
+        <div class="form-group">
+            <label for="englishScore">
+                IF APPLICABLE, enter your SPEAK and/or your TOEFL iBT score
+            </label>
+
+            <select name="englishScore" id="englishScore">
+                <option value="" selected="">Not Applicable</option>
+
+                <!-- SPEAK SCORES -->
+                <optgroup label="SPEAK">
+                    <option value="SPEAK-20">SPEAK: 20</option>
+                    <option value="SPEAK-25">SPEAK: 25</option>
+                    <option value="SPEAK-30">SPEAK: 30</option>
+                    <option value="SPEAK-35">SPEAK: 35</option>
+                    <option value="SPEAK-40">SPEAK: 40</option>
+                    <option value="SPEAK-45">SPEAK: 45</option>
+                    <option value="SPEAK-50">SPEAK: 50</option>
+                    <option value="SPEAK-55">SPEAK: 55</option>
+                    <option value="SPEAK-60">SPEAK: 60</option>
+                </optgroup>
+
+                <!-- TOEFL SCORES -->
+                <optgroup label="TOEFL iBT">
+                    <option value="TOEFL-6.0">TOEFL: 6.0</option>
+                    <option value="TOEFL-5.5">TOEFL: 5.5</option>
+                    <option value="TOEFL-5.0">TOEFL: 5.0</option>
+                    <option value="TOEFL-4.5">TOEFL: 4.5</option>
+                    <option value="TOEFL-4.0">TOEFL: 4.0</option>
+                    <option value="TOEFL-3.5">TOEFL: 3.5</option>
+                    <option value="TOEFL-3.0">TOEFL: 3.0</option>
+                    <option value="TOEFL-2.5">TOEFL: 2.5</option>
+                    <option value="TOEFL-2.0">TOEFL: 2.0</option>
+                    <option value="TOEFL-1.5">TOEFL: 1.5</option>
+                    <option value="TOEFL-1.0">TOEFL: 1.0</option>
+                </optgroup>
+            </select>
+        </div>
+
+
+        <!-- ADDITIONAL INFORMATION -->
+        <div class="form-group">
+            <label for="additionalInfo">
+                If you would like to add anything else about yourself that you
+                think would be fit for the professor to be aware of.
+                *Note* if you have any travel plans during the semester,
+                please enter the days that you are going to be away here.
+            </label>
+
+            <textarea name="additionalInfo" id="additionalInfo" rows="6"></textarea>
+        </div>
+
+
+        <!-- RESUME -->
+        <div class="form-group">
+            <label for="resume">
+                OPTIONAL: If you would like to include your resume,
+                please attach it below.
+            </label>
+
+            <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx">
+        </div>
+
+
+        <!-- SAVE BUTTON -->
+        <button type="submit" name="submit_user_input" class="submit-button">
+            SAVE CHANGES
+        </button>
+
+    </form>
+
+</div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<style data-wp-block-html="css">
+/* Main white card - matches the Role Specific section */
+.course-preferences-container {
+    max-width: 750px;
+    margin: 30px auto;
+    padding: 35px;
+
+    background-color: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+
+    font-family: Arial, sans-serif;
+    color: #222;
+}
+
+
+/* Instructions at top */
+.course-preferences-header {
+    margin-bottom: 30px;
+}
+
+.course-preferences-header h2 {
+    font-size: 22px;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.course-preferences-header p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 7px 0;
+}
+
+.required-message {
+    font-weight: bold;
+}
+
+
+/* Each course preference */
+.course-preference {
+    margin-bottom: 35px;
+}
+
+.preference-number {
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.preference-content {
+    width: 100%;
+}
+
+
+/* Course label */
+.course-label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+
+/* Regular white dropdown - matches existing form */
+.course-select {
+    width: 100%;
+    height: 35px;
+
+    padding: 4px 8px;
+
+    background-color: #ffffff;
+    color: #222;
+
+    border: 1px solid #ccc;
+    border-radius: 4px;
+
+    font-size: 14px;
+
+    box-sizing: border-box;
+}
+
+.course-select:focus {
+    border-color: #777;
+    outline: none;
+}
+
+
+/* Highest / lowest rank indicator */
+.rank-label {
+    font-size: 12px;
+    font-weight: normal;
+    color: #666;
+    margin-left: 5px;
+}
+
+
+/* Radio button section */
+.course-history {
+    border: none;
+    padding: 0;
+    margin: 15px 0 0;
+}
+
+.course-history legend {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.course-history label {
+    display: block;
+    font-size: 14px;
+    margin: 7px 0;
+    cursor: pointer;
+}
+
+.course-history input[type="radio"] {
+    margin-right: 7px;
+}
+
+
+/* Space between preference sections */
+.course-preference:not(:last-child) {
+    padding-bottom: 25px;
+    border-bottom: 1px solid #eeeeee;
+}
+
+
+/* Mobile */
+@media (max-width: 600px) {
+    .course-preferences-container {
+        padding: 20px;
+        margin: 20px 10px;
+    }
+}
+</style>
+
+<div class="course-preferences-container">
+
+
+
+    <div class="course-preferences-header">
+        <h2>Course Preferences</h2>
+        <p>
+            In this section, please select 5 course preferences for which you
+            would like to work as a TA/Grader/Peer Mentor.
+        </p>
+
+        <p>
+            Your first selection will be considered your
+            <strong>highest-ranked preference</strong>, with each following
+            selection decreasing in rank.
+        </p>
+
+        <p>
+            Selecting the same course multiple times will not increase your
+            chances of being selected for that course.
+        </p>
+
+        <p class="required-message">
+            Please select at least 1 of 5 preferences.
+        </p>
+    </div>
+
+
+    <!-- Preference 1 -->
+    <div class="course-preference">
+
+        <div class="preference-number">1.</div>
+
+        <div class="preference-content">
+
+            <label for="course_preference_1" class="course-label">
+                1st Course Preference
+                <span class="rank-label">Highest Rank</span>
+            </label>
+
+            <select name="course_preference_1" id="course_preference_1" class="course-select" required="">
+                <option value="" selected="" disabled="">Select first course</option>
+
+                <!-- Course options will be added later -->
+            </select>
+
+            <fieldset class="course-history">
+                <legend>Have you taken the course listed above at UF?</legend>
+
+                <label>
+                    <input type="radio" name="course_history_1" value="no">
+                    No
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_1" value="similar">
+                    Taken similar course outside of UF
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_1" value="yes">
+                    Yes
+                </label>
+            </fieldset>
+
+        </div>
+    </div>
+
+
+    <!-- Preference 2 -->
+    <div class="course-preference">
+
+        <div class="preference-number">2.</div>
+
+        <div class="preference-content">
+
+            <label for="course_preference_2" class="course-label">
+                2nd Course Preference
+            </label>
+
+            <select name="course_preference_2" id="course_preference_2" class="course-select">
+                <option value="" selected="">Select second course</option>
+            </select>
+
+            <fieldset class="course-history">
+                <legend>Have you taken the course listed above at UF?</legend>
+
+                <label>
+                    <input type="radio" name="course_history_2" value="no">
+                    No
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_2" value="similar">
+                    Taken similar course outside of UF
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_2" value="yes">
+                    Yes
+                </label>
+            </fieldset>
+
+        </div>
+    </div>
+
+
+    <!-- Preference 3 -->
+    <div class="course-preference">
+
+        <div class="preference-number">3.</div>
+
+        <div class="preference-content">
+
+            <label for="course_preference_3" class="course-label">
+                3rd Course Preference
+            </label>
+
+            <select name="course_preference_3" id="course_preference_3" class="course-select">
+                <option value="" selected="">Select third course</option>
+            </select>
+
+            <fieldset class="course-history">
+                <legend>Have you taken the course listed above at UF?</legend>
+
+                <label>
+                    <input type="radio" name="course_history_3" value="no">
+                    No
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_3" value="similar">
+                    Taken similar course outside of UF
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_3" value="yes">
+                    Yes
+                </label>
+            </fieldset>
+
+        </div>
+    </div>
+
+
+    <!-- Preference 4 -->
+    <div class="course-preference">
+
+        <div class="preference-number">4.</div>
+
+        <div class="preference-content">
+
+            <label for="course_preference_4" class="course-label">
+                4th Course Preference
+            </label>
+
+            <select name="course_preference_4" id="course_preference_4" class="course-select">
+                <option value="" selected="">Select fourth course</option>
+            </select>
+
+            <fieldset class="course-history">
+                <legend>Have you taken the course listed above at UF?</legend>
+
+                <label>
+                    <input type="radio" name="course_history_4" value="no">
+                    No
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_4" value="similar">
+                    Taken similar course outside of UF
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_4" value="yes">
+                    Yes
+                </label>
+            </fieldset>
+
+        </div>
+    </div>
+
+
+    <!-- Preference 5 -->
+    <div class="course-preference">
+
+        <div class="preference-number">5.</div>
+
+        <div class="preference-content">
+
+            <label for="course_preference_5" class="course-label">
+                5th Course Preference
+                <span class="rank-label lowest">Lowest Rank</span>
+            </label>
+
+            <select name="course_preference_5" id="course_preference_5" class="course-select">
+                <option value="" selected="">Select fifth course</option>
+            </select>
+
+            <fieldset class="course-history">
+                <legend>Have you taken the course listed above at UF?</legend>
+
+                <label>
+                    <input type="radio" name="course_history_5" value="no">
+                    No
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_5" value="similar">
+                    Taken similar course outside of UF
+                </label>
+
+                <label>
+                    <input type="radio" name="course_history_5" value="yes">
+                    Yes
+                </label>
+            </fieldset>
+
+        </div>
+    </div></div>
+<!-- /wp:html -->
+
+<!-- wp:buttons {"layout":{"type":"flex","verticalAlignment":"stretch"}} -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button"></a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->
+
+<!-- wp:buttons {"layout":{"type":"flex","verticalAlignment":"stretch","justifyContent":"center"}} -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button">SUBMIT APPLICATION</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->

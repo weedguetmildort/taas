@@ -1,2 +1,6 @@
 # environment variable files
 .env
+/vendor
+*.log
+/real-data
+.phpunit.cache/

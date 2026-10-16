@@ -11,6 +11,11 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_local_password}
     volumes:
       - db_data:/var/lib/mysql
+    ports:
+      - target: 3306
+        published: "${DB_PORT:-3307}"
+        host_ip: "${DB_BIND_IP:-127.0.0.1}"
+        protocol: tcp
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD:-root_local_password}"]
       interval: 5s
@@ -39,13 +44,16 @@ services:
         define( 'SCRIPT_DEBUG', true );
         define( 'TAAS_LOCAL_DEV', true );
         define( 'TAAS_LOCAL_DEV_USER', '${TAAS_LOCAL_DEV_USER:-student}' );
+      WORDPRESS_DEBUG: 1
     volumes:
       - wp_data:/var/www/html
-      - .:/var/www/html/wp-content/plugins/taas-core
-      # Uncomment each of these once the sibling repo exists
-      # - ../taas-onboarding:/var/www/html/wp-content/plugins/taas-onboarding
-      # - ../taas-matching:/var/www/html/wp-content/plugins/taas-matching
-      # - ../taas-frontend:/var/www/html/wp-content/plugins/taas-frontend
+      - ./htdocs/wp-content/plugins/taas-core:/var/www/html/wp-content/plugins/taas-core
+      # Uncomment each of these once the plugin exists
+      # - ./htdocs/wp-content/plugins/taas-onboarding:/var/www/html/wp-content/plugins/taas-onboarding
+      # - ./htdocs/wp-content/plugins/taas-matching:/var/www/html/wp-content/plugins/taas-matching
+      # - ./htdocs/wp-content/plugins/taas-frontend:/var/www/html/wp-content/plugins/taas-frontend
+      # Repo root, outside the web root, for bin/, vendor/ and snapshots/
+      - .:/var/www/taas
 
 volumes:
   db_data:
