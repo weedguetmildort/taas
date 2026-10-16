@@ -39,6 +39,7 @@ function taas_core_install(): void {
 	TAAS_Schema::install();
 	TAAS_Migrations::run( 'core', TAAS_CORE_PATH . 'migrations/' );
 	TAAS_DB::set_schema_version( 'core', TAAS_CORE_VERSION );
+	TAAS_DB::set_fingerprint( 'core', TAAS_DB::fingerprint( TAAS_CORE_PATH ) );
 }
 
 /**
@@ -82,12 +83,29 @@ function taas_core_upgrade(): void {
 		return;
 	}
 
-	if ( ! TAAS_DB::needs_upgrade( 'core', TAAS_CORE_VERSION ) ) {
+	$fingerprint = TAAS_DB::fingerprint( TAAS_CORE_PATH );
+
+	if ( ! TAAS_DB::needs_upgrade( 'core', TAAS_CORE_VERSION, $fingerprint ) ) {
 		return;
 	}
 
-	TAAS_Logger::info( 'Upgrading from ' . TAAS_DB::get_schema_version( 'core' ) . ' to ' . TAAS_CORE_VERSION . '.' );
-	taas_core_install();
+	// Another request on another node is already installing; let it finish
+	if ( ! TAAS_DB::acquire_install_lock( 'core' ) ) {
+		return;
+	}
+
+	try {
+		TAAS_Logger::info(
+			'Upgrading from ' . TAAS_DB::get_schema_version( 'core' ) . ' to ' . TAAS_CORE_VERSION . '.',
+			array(
+				'stored_fingerprint'  => TAAS_DB::get_fingerprint( 'core' ),
+				'current_fingerprint' => $fingerprint,
+			)
+		);
+		taas_core_install();
+	} finally {
+		TAAS_DB::release_install_lock( 'core' );
+	}
 }
 add_action( 'admin_init', 'taas_core_upgrade' );
 

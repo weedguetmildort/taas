@@ -49,6 +49,8 @@
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
         <exclude-pattern>/bin/export-pages.php</exclude-pattern>
         <exclude-pattern>/bin/import-courses.php</exclude-pattern>
+        <!-- Tests run without WordPress, so WP_Filesystem is unavailable -->
+        <exclude-pattern>/tests/*</exclude-pattern>
     </rule>
 
     <!-- Allow CLI build scripts that never run inside WordPress or a browser -->

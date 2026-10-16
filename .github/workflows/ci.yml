@@ -7,8 +7,37 @@ on:
     branches: [main]
 
 jobs:
+  # Filter inside the workflow rather than with on.paths, so a skipped run
+  # still reports a status and never blocks a required check on a docs-only PR.
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-26.04
+    outputs:
+      php: ${{ steps.filter.outputs.php }}
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            php:
+              - 'htdocs/wp-content/plugins/taas-*/**'
+              - 'bin/**'
+              - 'tests/**'
+              - 'composer.json'
+              - 'composer.lock'
+              - 'phpcs.xml.dist'
+              - 'phpunit.xml.dist'
+              - '.github/workflows/ci.yml'
+
   test:
     name: Lint/Test
+    needs: changes
+    if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-26.04
 
     steps:
@@ -32,7 +61,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: vendor
-          key: ${{ runner.os }}-php82-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-php82-${{ hashFiles('composer.lock') }}
           restore-keys: ${{ runner.os }}-php82-
 
       - name: Install dependencies

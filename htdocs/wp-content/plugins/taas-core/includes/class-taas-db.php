@@ -33,6 +33,11 @@ class TAAS_DB {
 	private const SCHEMA_OPTION_PREFIX = 'taas_schema_version_';
 
 	/**
+	 * Create option key prefix for stored schema fingerprints
+	 */
+	private const FINGERPRINT_OPTION_PREFIX = 'taas_schema_fingerprint_';
+
+	/**
 	 * Build a fully prefixed table name
 	 *
 	 * @param string $name One of the NS_* constants
@@ -117,13 +122,117 @@ class TAAS_DB {
 	}
 
 	/**
-	 * Whether a stored schema is older than the given version
+	 * Hash every file the installer reads, so any schema change is detected
+	 *
+	 * Covers the contents of sql/schema.sql and sql/constraints.sql, plus the
+	 * names of migrations and page files. Names suffice for those two, because
+	 * the migration runner tracks by filename and pages are adopted by slug.
+	 *
+	 * @param string $plugin_path Plugin root directory
+	 * @return string SHA-256 hex digest
+	 */
+	public static function fingerprint( string $plugin_path ): string {
+		$plugin_path = rtrim( $plugin_path, '/\\' ) . '/';
+		$parts       = array();
+
+		foreach ( array( 'sql/schema.sql', 'sql/constraints.sql' ) as $file ) {
+			$path    = $plugin_path . $file;
+			$parts[] = $file . ':' . ( is_file( $path ) ? (string) hash_file( 'sha256', $path ) : 'missing' );
+		}
+
+		foreach ( array( 'migrations/*.php', 'pages/*.html' ) as $pattern ) {
+			$files = glob( $plugin_path . $pattern );
+			$names = array_map( 'basename', false === $files ? array() : $files );
+			sort( $names, SORT_STRING );
+			$parts[] = $pattern . ':' . implode( ',', $names );
+		}
+
+		return hash( 'sha256', implode( "\n", $parts ) );
+	}
+
+	/**
+	 * Read the stored schema fingerprint for a component
+	 *
+	 * @param string $component Short component key
+	 * @return string Stored fingerprint, or '' if never installed
+	 */
+	public static function get_fingerprint( string $component ): string {
+		return (string) get_option( self::FINGERPRINT_OPTION_PREFIX . $component, '' );
+	}
+
+	/**
+	 * Store the schema fingerprint for a component
+	 *
+	 * @param string $component Short component key
+	 * @param string $fingerprint Value from fingerprint()
+	 * @return void
+	 */
+	public static function set_fingerprint( string $component, string $fingerprint ): void {
+		update_option( self::FINGERPRINT_OPTION_PREFIX . $component, $fingerprint, false );
+	}
+
+	/**
+	 * Whether the installer needs to run
+	 *
+	 * True when the code version is newer than the stored one, or when the
+	 * schema files differ from the last install. Deploys check out a tag with
+	 * the build segment at 0, so the fingerprint is what catches a new
+	 * migration or column; the version still catches non-file changes such as
+	 * roles. Running when nothing changed is harmless, since every install
+	 * step is idempotent.
 	 *
 	 * @param string $component Short component key
 	 * @param string $version Version to compare against
-	 * @return bool True if a migration is needed
+	 * @param string $fingerprint Current value from fingerprint(), or '' to skip that check
+	 * @return bool True if the installer should run
 	 */
-	public static function needs_upgrade( string $component, string $version ): bool {
-		return version_compare( self::get_schema_version( $component ), $version, '<' );
+	public static function needs_upgrade( string $component, string $version, string $fingerprint = '' ): bool {
+		if ( version_compare( self::get_schema_version( $component ), $version, '<' ) ) {
+			return true;
+		}
+
+		return '' !== $fingerprint && self::get_fingerprint( $component ) !== $fingerprint;
+	}
+
+	/**
+	 * Take the install lock without waiting
+	 *
+	 * Uses a MySQL named lock, so it holds across all web nodes sharing the
+	 * database, and MySQL frees it when the request's connection closes, even
+	 * after a fatal error. The name is hashed with the database name and table
+	 * prefix because the MySQL server is shared with other sites.
+	 *
+	 * @param string $component Short component key
+	 * @return bool True if this request now holds the lock
+	 */
+	public static function acquire_install_lock( string $component ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a lock must never be cached
+		return '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, 0 )', self::lock_name( $component ) ) );
+	}
+
+	/**
+	 * Release the install lock
+	 *
+	 * @param string $component Short component key
+	 * @return void
+	 */
+	public static function release_install_lock( string $component ): void {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a lock must never be cached
+		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', self::lock_name( $component ) ) );
+	}
+
+	/**
+	 * Build a server-wide unique lock name, within MySQL's 64-character limit
+	 *
+	 * @param string $component Short component key
+	 * @return string Lock name
+	 */
+	private static function lock_name( string $component ): string {
+		global $wpdb;
+		return 'taas_install_' . md5( DB_NAME . '|' . $wpdb->prefix . '|' . $component );
 	}
 }

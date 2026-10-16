@@ -76,7 +76,8 @@ return function ( wpdb $wpdb ): void {
 
 - Keep the migration and `sql/schema.sql` in agreement.
 
-- A version bump ships with every migration.
+- No version bump needed. Adding a file changes the schema fingerprint, and
+  the installer runs on the next wp-admin load after deploy.
 
 - There is no rollback.
 
@@ -85,14 +86,12 @@ return function ( wpdb $wpdb ): void {
 ## Checking state
 
 ```
-docker compose exec wordpress php \
-  /var/www/html/wp-content/plugins/taas-core/bin/db-status.php
+docker compose exec wordpress php /var/www/taas/bin/db-status.php
 ```
 
-Shows applied and pending migrations. After running one, snapshot the result
-and read the diff:
+Shows applied and pending migrations, and whether the fingerprint says an
+upgrade is due. After running one, snapshot the result and read the diff:
 
 ```
-docker compose exec wordpress php \
-  /var/www/html/wp-content/plugins/taas-core/bin/export-schema.php
+docker compose exec wordpress php /var/www/taas/bin/export-schema.php
 ```

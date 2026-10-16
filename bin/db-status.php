@@ -50,3 +50,11 @@ $pending = TAAS_Migrations::pending( 'core', $dir );
 echo '  applied: ' . ( $applied ? implode( ', ', $applied ) : 'none' ) . "\n";
 echo '  pending: ' . ( $pending ? implode( ', ', $pending ) : 'none' ) . "\n";
 echo '  schema version: ' . TAAS_DB::get_schema_version( 'core' ) . "\n";
+
+$stored  = TAAS_DB::get_fingerprint( 'core' );
+$current = TAAS_DB::fingerprint( TAAS_CORE_PATH );
+
+echo "\nFingerprint\n";
+echo '  stored:  ' . ( '' === $stored ? 'none' : $stored ) . "\n";
+echo '  current: ' . $current . "\n";
+echo '  upgrade: ' . ( TAAS_DB::needs_upgrade( 'core', TAAS_CORE_VERSION, $current ) ? 'pending, runs on next wp-admin load' : 'up to date' ) . "\n";

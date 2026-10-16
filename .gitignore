@@ -3,3 +3,4 @@
 /vendor
 *.log
 /real-data
+.phpunit.cache/
