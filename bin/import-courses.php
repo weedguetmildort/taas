@@ -24,11 +24,11 @@ if ( '' === $file ) {
 
 try {
 	// Ask user for course term
-    $course_term = trim( readline( 'Enter course term (e.g. Fall 2026): ' ) );
+	$course_term = trim( readline( 'Enter course term (e.g. Fall 2026): ' ) );
 
-    if ( '' === $course_term ) {
-        throw new RuntimeException( 'Course term cannot be empty.' );
-    }
+	if ( '' === $course_term ) {
+		throw new RuntimeException( 'Course term cannot be empty.' );
+	}
 
 	$counts = taas_import_courses( $file, $course_term );
 } catch ( Throwable $e ) {

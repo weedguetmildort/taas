@@ -22,6 +22,9 @@ enum TAAS_College_Status: int {
 	case Masters   = 2;
 	case Phd       = 3;
 
+	/**
+	 * Human-readable name for display.
+	 */
 	public function label(): string {
 		return match ( $this ) {
 			self::Undergrad => 'Undergraduate',
@@ -40,6 +43,9 @@ enum TAAS_Degree_Type: int {
 	case MS  = 3;
 	case Phd = 4;
 
+	/**
+	 * Human-readable name for display.
+	 */
 	public function label(): string {
 		return match ( $this ) {
 			self::AA  => 'AA',
@@ -59,6 +65,9 @@ enum TAAS_Course_Taken_Status: int {
 	case Taking          = 3;
 	case Not_Taken       = 4;
 
+	/**
+	 * Human-readable name for display.
+	 */
 	public function label(): string {
 		return match ( $this ) {
 			self::Taken_At_UF     => 'Taken at UF',
@@ -78,6 +87,9 @@ enum TAAS_Match_Status: int {
 	case Rejected  = 3;
 	case Withdrawn = 4;
 
+	/**
+	 * Human-readable name for display.
+	 */
 	public function label(): string {
 		return match ( $this ) {
 			self::Pending   => 'Pending',
@@ -174,20 +186,20 @@ final class TAAS_Cast {
 	/**
 	 * Convert a raw integer column into a backed enum case, or null for NULL.
 	 *
-	 * @param string $enum  Backed enum class name, e.g. TAAS_Match_Status::class.
-	 * @param mixed  $value Raw column value.
+	 * @param string $enum_class Backed enum class name, e.g. TAAS_Match_Status::class.
+	 * @param mixed  $value      Raw column value.
 	 * @return BackedEnum|null
 	 * @throws UnexpectedValueException If the value is not a case of the enum.
 	 */
-	public static function enum_or_null( string $enum, mixed $value ): ?BackedEnum {
+	public static function enum_or_null( string $enum_class, mixed $value ): ?BackedEnum {
 		if ( null === $value ) {
 			return null;
 		}
 
-		$case = $enum::tryFrom( (int) $value );
+		$case = $enum_class::tryFrom( (int) $value );
 
 		if ( null === $case ) {
-			throw new UnexpectedValueException( sprintf( 'Invalid %s value: %s.', $enum, (string) $value ) );
+			throw new UnexpectedValueException( sprintf( 'Invalid %s value: %s.', esc_html( $enum_class ), esc_html( (string) $value ) ) );
 		}
 
 		return $case;
@@ -218,7 +230,7 @@ final class TAAS_Guard {
 	 */
 	public static function ufid( string $field, string $value ): void {
 		if ( '' === $value || strlen( $value ) > 8 ) {
-			throw new InvalidArgumentException( sprintf( '%s must be 1-8 characters.', $field ) );
+			throw new InvalidArgumentException( sprintf( '%s must be 1-8 characters.', esc_html( $field ) ) );
 		}
 	}
 
@@ -255,7 +267,7 @@ final class TAAS_Guard {
 	 */
 	public static function rank( string $field, ?int $value ): void {
 		if ( null !== $value && $value < 1 ) {
-			throw new InvalidArgumentException( sprintf( '%s must be 1 or greater.', $field ) );
+			throw new InvalidArgumentException( sprintf( '%s must be 1 or greater.', esc_html( $field ) ) );
 		}
 	}
 }
@@ -276,6 +288,14 @@ final class TAAS_Guard {
  */
 final class TAAS_Professor {
 
+	/**
+	 * Create a professor row.
+	 *
+	 * @param string $professor_ufid  UFID, 1-8 characters.
+	 * @param string $professor_name  Full name.
+	 * @param string $professor_email Email address.
+	 * @throws InvalidArgumentException If the UFID is invalid.
+	 */
 	public function __construct(
 		public readonly string $professor_ufid,
 		public readonly string $professor_name,
@@ -318,6 +338,14 @@ final class TAAS_Professor {
  */
 final class TAAS_Student {
 
+	/**
+	 * Create a student row.
+	 *
+	 * @param string $student_ufid  UFID, 1-8 characters.
+	 * @param string $student_name  Full name.
+	 * @param string $student_email Email address.
+	 * @throws InvalidArgumentException If the UFID is invalid.
+	 */
 	public function __construct(
 		public readonly string $student_ufid,
 		public readonly string $student_name,
@@ -360,6 +388,23 @@ final class TAAS_Student {
  */
 final class TAAS_Student_Profile {
 
+	/**
+	 * Create a student profile row.
+	 *
+	 * @param string                        $student_ufid      UFID, 1-8 characters.
+	 * @param string|null                   $phone             Phone number.
+	 * @param string|null                   $admitted_semester Semester admitted, e.g. Fall 2024.
+	 * @param int|null                      $available_hours   Weekly hours available; null means not yet provided, distinct from 0.
+	 * @param TAAS_College_Status|null      $college_status    Undergraduate, master's or PhD.
+	 * @param string|null                   $resume_url        Link to the resume.
+	 * @param int|null                      $toefl_score       TOEFL score, if taken.
+	 * @param bool                          $has_ta_experience Whether the student has been a TA before.
+	 * @param TAAS_Course_Taken_Status|null $eap5836_status    EAP 5836 status.
+	 * @param TAAS_Course_Taken_Status|null $eap5837_status    EAP 5837 status.
+	 * @param string|null                   $country_code      ISO 3166-1 alpha-2 code.
+	 * @param string|null                   $additional_info   Free-text notes from the student.
+	 * @throws InvalidArgumentException If the UFID or country code is invalid.
+	 */
 	public function __construct(
 		public readonly string $student_ufid,
 		public readonly ?string $phone = null,
@@ -430,6 +475,19 @@ final class TAAS_Student_Profile {
  */
 final class TAAS_Academic_Background {
 
+	/**
+	 * Create an academic background row.
+	 *
+	 * @param int|null          $background_id Auto-increment id; null on a new, unsaved record.
+	 * @param string            $student_ufid  UFID, 1-8 characters.
+	 * @param string            $university    University name.
+	 * @param TAAS_Degree_Type  $degree_type   Degree earned.
+	 * @param DateTimeImmutable $grad_date     Graduation date, first of the month.
+	 * @param string|null       $major         Major; may hold several, e.g. "Computer Science, Business".
+	 * @param string|null       $minor         Minor.
+	 * @param float|null        $gpa           GPA, 0.00-4.00.
+	 * @throws InvalidArgumentException If the UFID or GPA is invalid.
+	 */
 	public function __construct(
 		public readonly ?int $background_id,
 		public readonly string $student_ufid,
@@ -508,6 +566,22 @@ final class TAAS_Academic_Background {
  */
 final class TAAS_Course {
 
+	/**
+	 * Create a course row.
+	 *
+	 * @param string      $course_id          Course section number.
+	 * @param string      $course_code        Course code, e.g. COP3502.
+	 * @param string      $course_name        Course title.
+	 * @param string      $professor_ufid     Instructor's UFID, 1-8 characters.
+	 * @param string|null $course_description Catalog description.
+	 * @param string|null $course_notes       Internal notes.
+	 * @param int|null    $sections           Number of sections.
+	 * @param int|null    $weekly_hours       Total TA hours required, from the staffing formula.
+	 * @param int         $lab_hours          Lab hours per week.
+	 * @param int         $enrollment         Current enrollment.
+	 * @param int         $max_enrollment     Enrollment cap.
+	 * @throws InvalidArgumentException If the professor UFID is invalid.
+	 */
 	public function __construct(
 		public readonly string $course_id, // Course section number.
 		public readonly string $course_code,
@@ -574,6 +648,19 @@ final class TAAS_Course {
  */
 final class TAAS_Application {
 
+	/**
+	 * Create an application row.
+	 *
+	 * @param int|null          $application_id            Auto-increment id; null on a new, unsaved record.
+	 * @param string            $student_ufid              Applicant's UFID, 1-8 characters.
+	 * @param string            $applied_course_id         Course section applied for.
+	 * @param bool              $has_taken_course          Whether the student has taken the course.
+	 * @param string|null       $student_statement         Statement of interest.
+	 * @param int|null          $student_preference_rank   Student's ranking of this course, 1 or greater.
+	 * @param int|null          $professor_preference_rank Professor's ranking of this student, 1 or greater.
+	 * @param TAAS_Match_Status $match_status              Matching outcome.
+	 * @throws InvalidArgumentException If the UFID or a rank is invalid.
+	 */
 	public function __construct(
 		public readonly ?int $application_id,
 		public readonly string $student_ufid,
@@ -624,7 +711,7 @@ final class TAAS_Application {
 	public function to_row(): array {
 		$row = array(
 			'student_ufid'              => $this->student_ufid,
-			'applied_course_id'       => $this->applied_course_id,
+			'applied_course_id'         => $this->applied_course_id,
 			'has_taken_course'          => $this->has_taken_course ? 1 : 0,
 			'student_statement'         => $this->student_statement,
 			'student_preference_rank'   => $this->student_preference_rank,

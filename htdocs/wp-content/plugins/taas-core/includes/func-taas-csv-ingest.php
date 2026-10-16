@@ -84,6 +84,7 @@ function taas_read_course_rows( string $file_path ): Generator {
  * Runs in a single transaction, so a failure on any row saves nothing.
  *
  * @param string $file_path Path to a .csv or .xlsx file
+ * @param string $course_term Term the courses belong to, e.g. Fall 2026
  * @return array{professors: int, courses: int} Rows inserted, keyed by table
  * @throws RuntimeException If the file is unreadable, a row is invalid, or a query fails.
  * @throws Throwable Any other failure, rethrown after rolling back.
@@ -95,12 +96,12 @@ function taas_import_courses( string $file_path, string $course_term ): array {
 		throw new RuntimeException( 'File does not exist or cannot be read.' );
 	}
 
-    // TODO: course_term should come from an input field from the frontend page that the admin specifies
-    $course_term = trim( $course_term );
+	// TODO: course_term should come from an input field from the frontend page that the admin specifies
+	$course_term = trim( $course_term );
 
-    if ( '' === $course_term ) {
-        throw new RuntimeException( 'Course term cannot be empty.' );
-    }
+	if ( '' === $course_term ) {
+		throw new RuntimeException( 'Course term cannot be empty.' );
+	}
 
 	$professors = TAAS_Schema::table( 'professors' );
 	$courses    = TAAS_Schema::table( 'courses' );
@@ -134,7 +135,7 @@ function taas_import_courses( string $file_path, string $course_term ): array {
 
 			list(
 				$course_code,
-                $ufo,
+				$ufo,
 				$lab_hours,
 				$course_name,
 				$enrollment,
@@ -185,8 +186,8 @@ function taas_import_courses( string $file_path, string $course_term ): array {
 				$courses,
 				array(
 					'course_id'      => $next_course_id,
-                    'course_term'    => $course_term,
-                    'ufo'            => $ufo,
+					'course_term'    => $course_term,
+					'ufo'            => $ufo,
 					'course_code'    => $course_code,
 					'course_name'    => $course_name,
 					'lab_hours'      => $lab_hours,

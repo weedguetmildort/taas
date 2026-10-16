@@ -71,6 +71,14 @@
         <exclude-pattern>/bin/*</exclude-pattern>
     </rule>
 
+    <!-- Allow the row types module to keep its enums and value objects together -->
+    <rule ref="Generic.Files.OneObjectStructurePerFile">
+        <exclude-pattern>/includes/class-taas-types.php</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.Files.FileName.InvalidClassFileName">
+        <exclude-pattern>/includes/class-taas-types.php</exclude-pattern>
+    </rule>
+
     <!-- Table names and DDL to be prepared placeholders -->
     <rule ref="WordPress.DB.PreparedSQL">
         <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
