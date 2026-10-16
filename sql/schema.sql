@@ -58,6 +58,8 @@ CREATE TABLE {prefix}courses (
 	course_id varchar(20) NOT NULL,                     -- course section number
 	course_code varchar(20) NOT NULL,
 	course_name varchar(255) NOT NULL,
+	course_term varchar(20) NOT NULL,
+	ufo varchar(20) NOT NULL,
 	course_description varchar(1000) DEFAULT NULL,
 	course_notes varchar(1000) DEFAULT NULL,
 	sections int DEFAULT NULL,
