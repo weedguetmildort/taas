@@ -43,9 +43,10 @@ jobs:
           FULL: ${{ steps.version.outputs.full }}
         run: |
           # Rewrite the trailing .0 build segment in both places it appears.
-          sed -i -E "s/^( \* Version: +).*/\1${FULL}/" taas-core.php
-          sed -i -E "s/(define\( 'TAAS_CORE_VERSION', ')[^']*(' \);)/\1${FULL}\2/" taas-core.php
-          grep -n "Version:\|TAAS_CORE_VERSION" taas-core.php
+          PLUGIN_FILE=htdocs/wp-content/plugins/taas-core/taas-core.php
+          sed -i -E "s/^( \* Version: +).*/\1${FULL}/" "$PLUGIN_FILE"
+          sed -i -E "s/(define\( 'TAAS_CORE_VERSION', ')[^']*(' \);)/\1${FULL}\2/" "$PLUGIN_FILE"
+          grep -n "Version:\|TAAS_CORE_VERSION" "$PLUGIN_FILE"
 
       - name: Stage the plugin folder
         env:
@@ -54,22 +55,8 @@ jobs:
           # WordPress expects the plugin folder nested inside the zip, so the
           # archive root must be taas-core/, not the files loose.
           mkdir -p build/taas-core
-          rsync -a ./ build/taas-core/ \
-            --exclude '.git' \
-            --exclude '.github' \
-            --exclude 'build' \
-            --exclude 'tests' \
-            --exclude 'bin' \
-            --exclude 'node_modules' \
-            --exclude '.env' \
-            --exclude '.env.example' \
-            --exclude 'docker-compose.yml' \
-            --exclude 'phpunit.xml.dist' \
-            --exclude 'phpcs.xml.dist' \
-            --exclude 'composer.json' \
-            --exclude 'composer.lock' \
-            --exclude '.phpunit.result.cache' \
-            --exclude '*.zip'
+          # Dev tooling now lives at the repo root, so the plugin folder ships as-is.
+          rsync -a htdocs/wp-content/plugins/taas-core/ build/taas-core/
           cd build
           zip -rq "taas-core-${FULL}.zip" taas-core
           sha256sum "taas-core-${FULL}.zip" > "taas-core-${FULL}.zip.sha256"

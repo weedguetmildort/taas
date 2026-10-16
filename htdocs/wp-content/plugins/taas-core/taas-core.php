@@ -15,13 +15,6 @@ define( 'TAAS_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_CORE_URL', plugin_dir_url( __FILE__ ) );
 
 /*
- * Composer autoloader
- */
-if ( file_exists( TAAS_CORE_PATH . 'vendor/autoload.php' ) ) {
-	require_once TAAS_CORE_PATH . 'vendor/autoload.php';
-}
-
-/*
  * Explicit requires
  */
 require_once TAAS_CORE_PATH . 'includes/class-taas-logger.php';

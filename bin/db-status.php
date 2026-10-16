@@ -6,6 +6,10 @@
  * @package TAAS_Core
  */
 
+if ( 'cli' !== PHP_SAPI ) {
+	exit( 1 );
+}
+
 require '/var/www/html/wp-load.php';
 
 global $wpdb;

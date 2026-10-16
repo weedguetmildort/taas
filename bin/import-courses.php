@@ -2,11 +2,17 @@
 /**
  * Import courses and professors from a CSV or XLSX file
  *
- * Run inside the container: php bin/import-courses.php <path-to-file>
+ * Run inside the container: php /var/www/taas/bin/import-courses.php <path-to-file>
  *
  * @package TAAS_Core
  */
 
+if ( 'cli' !== PHP_SAPI ) {
+	exit( 1 );
+}
+
+// PhpSpreadsheet lives in the repo-root vendor, not in the plugin
+require dirname( __DIR__ ) . '/vendor/autoload.php';
 require '/var/www/html/wp-load.php';
 
 $file = $argv[1] ?? '';

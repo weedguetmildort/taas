@@ -13,11 +13,6 @@ defined( 'ABSPATH' ) || exit;
 class TAAS_Snapshots {
 
 	/**
-	 * Directory holding snapshots, relative to the plugin root
-	 */
-	private const SNAPSHOT_DIR = 'snapshots/';
-
-	/**
 	 * Write a snapshot per table (Local development only)
 	 *
 	 * @return string[] Bare table names whose snapshot changed
@@ -30,7 +25,13 @@ class TAAS_Snapshots {
 			return array();
 		}
 
-		$dir = TAAS_CORE_PATH . self::SNAPSHOT_DIR;
+		// Defined by bin/export-schema.php, since snapshots live outside the plugin
+		if ( ! defined( 'TAAS_SNAPSHOT_DIR' ) ) {
+			TAAS_Logger::warn( 'Snapshot export needs TAAS_SNAPSHOT_DIR. Run bin/export-schema.php.' );
+			return array();
+		}
+
+		$dir = trailingslashit( TAAS_SNAPSHOT_DIR );
 
 		if ( ! is_dir( $dir ) && ! wp_mkdir_p( $dir ) ) {
 			TAAS_Logger::error( 'Could not create snapshots directory.', array( 'dir' => $dir ) );

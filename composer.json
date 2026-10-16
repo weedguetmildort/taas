@@ -16,7 +16,7 @@
     },
     "autoload": {
         "classmap": [
-            "includes/"
+            "htdocs/wp-content/plugins/taas-core/includes/"
         ]
     },
     "config": {

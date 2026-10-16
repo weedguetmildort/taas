@@ -2,7 +2,9 @@
 <ruleset name="TAAS Core">
     <description>Coding standards for the TAAS plugins.</description>
 
-    <file>.</file>
+    <file>htdocs/wp-content/plugins</file>
+    <file>bin</file>
+    <file>tests</file>
 
     <exclude-pattern>/vendor/*</exclude-pattern>
     <exclude-pattern>/node_modules/*</exclude-pattern>
@@ -61,7 +63,6 @@
     </rule>
 
      <rule ref="WordPress.DB.DirectDatabaseQuery">
-        <exclude-pattern>/includes/class-taas-tables.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-snapshots.php</exclude-pattern>

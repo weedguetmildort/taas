@@ -5,8 +5,14 @@
  * @package TAAS_Core
  */
 
-$plugin_file = dirname( __DIR__ ) . '/taas-core.php';
-$version_file = dirname( __DIR__ ) . '/includes/class-taas-version.php';
+if ( 'cli' !== PHP_SAPI ) {
+	exit( 1 );
+}
+
+$plugin_dir = dirname( __DIR__ ) . '/htdocs/wp-content/plugins/taas-core';
+
+$plugin_file = $plugin_dir . '/taas-core.php';
+$version_file = $plugin_dir . '/includes/class-taas-version.php';
 
 $version_errors = array();
 

@@ -15,13 +15,6 @@ define( 'TAAS_BACKEND_TEST_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_BACKEND_TEST_URL', plugin_dir_url( __FILE__ ) );
 
 /*
- * Composer autoloader
- */
-if ( file_exists( TAAS_BACKEND_TEST_PATH . 'vendor/autoload.php' ) ) {
-	require_once TAAS_BACKEND_TEST_PATH . 'vendor/autoload.php';
-}
-
-/*
  * Explicit requires
  */
 require_once TAAS_BACKEND_TEST_PATH . 'includes/func-taas-csv-ingest.php';
