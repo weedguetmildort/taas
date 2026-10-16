@@ -78,15 +78,15 @@ CREATE TABLE {prefix}courses (
 -- and eventual match outcome).
 CREATE TABLE {prefix}applications (
 	application_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-	student_ufid varchar(16) NOT NULL,
-	applied_course_code varchar(20) NOT NULL,             -- links applicant to course
+	student_ufid varchar(8) NOT NULL,
+	applied_course_id varchar(20) NOT NULL,             -- links applicant to course
 	has_taken_course tinyint(1) NOT NULL DEFAULT 0,
 	student_statement varchar(500) DEFAULT NULL,
 	student_preference_rank int DEFAULT NULL,           -- how the student ranks this course among their applications
 	professor_preference_rank int DEFAULT NULL,         -- how the professor ranks this applicant among theirs
 	match_status tinyint unsigned NOT NULL DEFAULT 1,   -- 1 = pending, 2 = matched, 3 = rejected, 4 = withdrawn (bind to PHP enum)
 	PRIMARY KEY  (application_id),
-	UNIQUE KEY student_course (student_ufid,applied_course_code),
-	KEY applied_course_code (applied_course_code),
+	UNIQUE KEY student_course (student_ufid,applied_course_id),
+	KEY applied_course_id (applied_course_id),
 	KEY match_status (match_status)
 );

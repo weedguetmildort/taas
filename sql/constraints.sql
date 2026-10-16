@@ -30,7 +30,7 @@ ALTER TABLE {prefix}applications
 -- But not their course: deleting a course with applications should fail
 ALTER TABLE {prefix}applications
 	ADD CONSTRAINT fk_applications_course
-	FOREIGN KEY (applied_course_code) REFERENCES {prefix}courses(course_id);
+	FOREIGN KEY (applied_course_id) REFERENCES {prefix}courses(course_id);
 
 -- GPA on a 4.00 scale, or not yet provided
 ALTER TABLE {prefix}academic_background
