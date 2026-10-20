@@ -1,0 +1,53 @@
+<main class="ta-apps" id="ta-apps">
+  <header>
+    <p class="ta-apps-eyebrow">TA Applications<span id="ta-apps-progress"></span></p>
+    <h1 id="ta-course-title">Loading course…</h1>
+    <p class="ta-apps-intro">Review the applicants for this course, rank your top 5 choices, add any special requests, and submit to the administrator for approval. If you teach more than one course, you will be taken to the next one after you submit.</p>
+  </header>
+
+  <section class="ta-apps-card" aria-label="Search and filters">
+    <div class="ta-apps-search">
+      <label for="ta-search-name">
+        Search Applicants
+        <input id="ta-search-name" type="search" placeholder="John Doe..." autocomplete="off">
+      </label>
+      <label for="ta-filter">
+        Add Filters
+        <select id="ta-filter">
+          <option value="">No filter</option>
+          <option value="recommended">Recommended only</option>
+          <option value="taken">Taken class before</option>
+          <option value="notTaken">Not taken class before</option>
+          <option value="ta">TA'd before</option>
+          <option value="notTa">Not TA'd before</option>
+          <option value="gpa35">GPA 3.5 or higher</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="ta-apps-card" aria-labelledby="ta-all-heading">
+    <h2 id="ta-all-heading">All Applicants</h2>
+    <p class="ta-apps-help">Applicants marked <span class="ta-apps-badge">Recommended</span> were suggested by the matching algorithm. Click <strong>Add to ranking</strong> to place someone in your top 5, or click a row to read their full application.</p>
+    <div id="ta-all" class="ta-apps-table-host">Loading applicants…</div>
+  </section>
+
+  <section class="ta-apps-card" aria-labelledby="ta-rank-heading">
+    <div class="ta-apps-heading-row">
+      <h2 id="ta-rank-heading">Your Ranking</h2>
+      <p class="ta-apps-counter" id="ta-rank-counter" aria-live="polite"></p>
+    </div>
+    <p class="ta-apps-help">Your #1 choice goes at the top. Use the arrows to reorder or the × to remove someone.</p>
+    <ol class="ta-apps-ranking" id="ta-ranking"></ol>
+  </section>
+
+  <section class="ta-apps-card" aria-labelledby="ta-requests-heading">
+    <h2 id="ta-requests-heading">Special Requests</h2>
+    <p class="ta-apps-help">Optional. Tell the administrator anything else you would like considered, such as a specific student, scheduling needs, or other notes.</p>
+    <label class="ta-apps-sr" for="ta-requests">Special requests</label>
+    <textarea id="ta-requests" rows="6" maxlength="1500" placeholder="Type your special requests here..."></textarea>
+    <p class="ta-apps-count" id="ta-requests-count">0 / 1500</p>
+  </section>
+
+  <div class="ta-apps-submit">
+    <p class="ta-apps-message" id="ta-apps-message"
