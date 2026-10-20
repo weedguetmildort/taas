@@ -28,6 +28,22 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-seeds.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-snapshots.php';
 require_once TAAS_CORE_PATH . 'includes/func-taas-csv-ingest.php';
 
+/*
+ * Types: enums and helpers first, then the row classes that depend on them.
+ */
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-college-status.php';
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-degree-type.php';
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-course-taken-status.php';
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-match-status.php';
+require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-cast.php';
+require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-guard.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-professor.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-student.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-student-profile.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-academic-background.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-course.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-application.php';
+
 /**
  * Apply the database schema and any pending migrations
  *
