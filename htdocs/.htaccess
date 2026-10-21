@@ -1,0 +1,64 @@
+# Enabling fast-cgi (FCGI) 20200227 <allan@ufl.edu> to mitigate load issues
+RemoveHandler .php
+AddType application/x-httpd-php .php
+Action  application/x-httpd-php /cgi-bin/php.fcgi
+
+
+# BEGIN Shibboleth
+# The directives (lines) between "BEGIN Shibboleth" and "END Shibboleth" are
+# dynamically generated, and should only be modified via WordPress filters.
+# Any changes to the directives between these markers will be overwritten.
+<IfModule mod_shib>
+AuthType shibboleth
+Require shibboleth
+</IfModule>
+<IfModule mod_shib.c>
+AuthType shibboleth
+Require shibboleth
+</IfModule>
+<IfModule mod_shib.cpp>
+AuthType shibboleth
+Require shibboleth
+</IfModule>
+# END Shibboleth
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/Shibboleth\.sso
+RewriteRule ^ - [L]
+</IfModule>
+
+
+
+# BEGIN WordPress
+# The directives (lines) between "BEGIN WordPress" and "END WordPress" are
+# dynamically generated, and should only be modified via WordPress filters.
+# Any changes to the directives between these markers will be overwritten.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+
+# END WordPress
+
+# disallow access to common files that leak info
+<FilesMatch "^(readme\.html|license\.txt|wp-config-sample\.php)$">
+	Require all denied
+</FilesMatch>
+
+# block XML-RPC
+<Files "xmlrpc.php">
+	Require all denied
+</Files>
+
+<Files "wp-config.php">
+	order allow,deny
+	deny from all
+</Files>
+
+
