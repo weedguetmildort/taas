@@ -9,12 +9,19 @@ declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Data access for one table.
+ * Data access centered on one table.
  *
  * A repository is the only place that talks to $wpdb for its table. It takes
  * and returns the typed row classes (TAAS_Course and so on), so callers never
  * handle raw rows or SQL. Each subclass names its table, primary key and row
  * class; everything else is shared.
+ *
+ * A query that joins other tables still lives here, on the repository of the
+ * table the result is about. Build it with $wpdb->prepare() and run it through
+ * select_rows(), which returns plain arrays because a joined row no longer
+ * matches any single row class. Reads that span tables without a join are done
+ * by a controller calling several repositories; writes that span tables are
+ * wrapped in TAAS_Transaction::run().
  *
  * Failed queries throw RuntimeException, matching the CSV importer. A missing
  * row is not a failure: find() returns null.
@@ -221,6 +228,29 @@ abstract class TAAS_Repository {
 		$this->check_error();
 
 		return array_map( array( $this, 'hydrate' ), (array) $rows );
+	}
+
+	/**
+	 * Run an already-prepared SELECT and return the raw rows.
+	 *
+	 * For joins and aggregates, whose rows do not fit one row class. Callers
+	 * must build the query with $wpdb->prepare() (use %i for table and column
+	 * names, TAAS_Schema::table() for table names) so no request input is
+	 * concatenated into SQL. Keep it a read: writes go through insert(),
+	 * update() and delete().
+	 *
+	 * @param string $prepared_sql Complete SELECT, already passed through $wpdb->prepare().
+	 * @return array<int, array<string, mixed>> Rows as column => value arrays. Values are strings.
+	 * @throws RuntimeException If the query fails.
+	 */
+	protected function select_rows( string $prepared_sql ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( $prepared_sql, ARRAY_A );
+
+		$this->check_error();
+
+		return (array) $rows;
 	}
 
 	/**

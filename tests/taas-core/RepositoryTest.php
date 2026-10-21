@@ -19,6 +19,54 @@ if ( ! function_exists( 'esc_html' ) ) {
 	}
 }
 
+if ( ! defined( 'ARRAY_A' ) ) {
+	// WordPress defines this; repositories pass it to $wpdb reads.
+	define( 'ARRAY_A', 'ARRAY_A' );
+}
+
+/**
+ * Repository with a public door onto select_rows(), as a join method would use it
+ */
+class TAAS_Join_Test_Repository extends TAAS_Repository {
+
+	/**
+	 * Bare table name
+	 *
+	 * @return string
+	 */
+	protected function bare_table(): string {
+		return 'courses';
+	}
+
+	/**
+	 * Primary key column
+	 *
+	 * @return string
+	 */
+	protected function primary_key(): string {
+		return 'course_id';
+	}
+
+	/**
+	 * Row class
+	 *
+	 * @return string
+	 */
+	protected function row_class(): string {
+		return TAAS_Course::class;
+	}
+
+	/**
+	 * Run a prepared query through select_rows()
+	 *
+	 * @param string $sql Prepared SELECT.
+	 * @return array
+	 */
+	public function joined( string $sql ): array {
+		return $this->select_rows( $sql );
+	}
+}
+
 /**
  * Minimal $wpdb that records what repositories ask of it
  */
@@ -122,6 +170,31 @@ class TAAS_Fake_Wpdb {
 	public function get_results( $query ) {
 		$this->sql = $query;
 		return $this->rows;
+	}
+
+	/**
+	 * Every statement passed to query(), in order
+	 *
+	 * @var string[]
+	 */
+	public $queries = array();
+
+	/**
+	 * Statement query() should fail on, or null for none
+	 *
+	 * @var string|null
+	 */
+	public $fail_query = null;
+
+	/**
+	 * Record a raw statement such as START TRANSACTION
+	 *
+	 * @param string $sql Statement.
+	 * @return int|false
+	 */
+	public function query( $sql ) {
+		$this->queries[] = $sql;
+		return $sql === $this->fail_query ? false : 0;
 	}
 
 	/**
@@ -297,6 +370,104 @@ class RepositoryTest extends TestCase {
 
 		$this->assertArrayNotHasKey( 'student_ufid', $this->db->write['data'] );
 		$this->assertSame( array( 'student_ufid' => '12345678' ), $this->db->write['where'] );
+	}
+
+	/**
+	 * A join comes back as plain arrays, not row objects
+	 */
+	public function test_select_rows_returns_raw_arrays(): void {
+		$this->db->rows = array( array( 'course_id' => '12345', 'student_name' => 'Ada' ) );
+
+		$rows = ( new TAAS_Join_Test_Repository() )->joined( 'SELECT 1' );
+
+		$this->assertSame( array( array( 'course_id' => '12345', 'student_name' => 'Ada' ) ), $rows );
+		$this->assertSame( 'SELECT 1', $this->db->sql );
+	}
+
+	/**
+	 * A failed join surfaces as an exception
+	 */
+	public function test_select_rows_throws_on_database_error(): void {
+		$this->db->last_error = 'syntax error';
+
+		$this->expectException( RuntimeException::class );
+		( new TAAS_Join_Test_Repository() )->joined( 'SELECT 1' );
+	}
+
+	/**
+	 * A transaction that finishes cleanly commits and returns the callback's value
+	 */
+	public function test_transaction_commits_on_success(): void {
+		$result = TAAS_Transaction::run( static fn() => 'done' );
+
+		$this->assertSame( 'done', $result );
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->db->queries );
+	}
+
+	/**
+	 * A throwing callback rolls back and the exception still reaches the caller
+	 */
+	public function test_transaction_rolls_back_and_rethrows(): void {
+		try {
+			TAAS_Transaction::run(
+				static function () {
+					throw new RuntimeException( 'second insert failed' );
+				}
+			);
+			$this->fail( 'Expected the exception to propagate.' );
+		} catch ( RuntimeException $e ) {
+			$this->assertSame( 'second insert failed', $e->getMessage() );
+		}
+
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->db->queries );
+	}
+
+	/**
+	 * A nested transaction joins the outer one and only the outer commits
+	 */
+	public function test_transaction_nested_commits_once(): void {
+		TAAS_Transaction::run( static fn() => TAAS_Transaction::run( static fn() => null ) );
+
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->db->queries );
+	}
+
+	/**
+	 * After a rollback the next transaction starts fresh
+	 */
+	public function test_transaction_is_reusable_after_failure(): void {
+		try {
+			TAAS_Transaction::run(
+				static function () {
+					throw new RuntimeException( 'boom' );
+				}
+			);
+		} catch ( RuntimeException $e ) {
+			unset( $e );
+		}
+
+		$this->db->queries = array();
+		TAAS_Transaction::run( static fn() => null );
+
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->db->queries );
+	}
+
+	/**
+	 * If the transaction cannot start, the callback never runs
+	 */
+	public function test_transaction_start_failure_skips_callback(): void {
+		$this->db->fail_query = 'START TRANSACTION';
+		$ran                  = false;
+
+		try {
+			TAAS_Transaction::run(
+				static function () use ( &$ran ) {
+					$ran = true;
+				}
+			);
+			$this->fail( 'Expected a RuntimeException.' );
+		} catch ( RuntimeException $e ) {
+			$this->assertFalse( $ran );
+		}
 	}
 
 	/**

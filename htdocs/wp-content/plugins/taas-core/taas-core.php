@@ -48,12 +48,29 @@ require_once TAAS_CORE_PATH . 'includes/types/class-taas-application.php';
  * Repositories layer for direct DB access.
  */
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-repository.php';
+require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-transaction.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-professor-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-profile-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-academic-background-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-course-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-repository.php';
+
+/*
+ * RESTful API controllers.
+ */
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-resource-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-status-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-profile-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-academic-background-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-course-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
+
+TAAS_REST::init();
 
 /**
  * Apply the database schema and any pending migrations
