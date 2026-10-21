@@ -29,7 +29,7 @@ jobs:
       # Prod deploys by checking out the tag, so there is nothing to build or
       # upload. The release exists to label the tag and record what changed.
       - name: Create a draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           name: ${{ github.ref_name }}
