@@ -7,221 +7,8 @@
 
 use PHPUnit\Framework\TestCase;
 
-if ( ! function_exists( 'esc_html' ) ) {
-	/**
-	 * Stand-in for the WordPress escaper, which tests run without.
-	 *
-	 * @param string $text Text to escape.
-	 * @return string
-	 */
-	function esc_html( $text ) {
-		return htmlspecialchars( (string) $text );
-	}
-}
-
-if ( ! defined( 'ARRAY_A' ) ) {
-	// WordPress defines this; repositories pass it to $wpdb reads.
-	define( 'ARRAY_A', 'ARRAY_A' );
-}
-
-/**
- * Repository with a public door onto select_rows(), as a join method would use it
- */
-class TAAS_Join_Test_Repository extends TAAS_Repository {
-
-	/**
-	 * Bare table name
-	 *
-	 * @return string
-	 */
-	protected function bare_table(): string {
-		return 'courses';
-	}
-
-	/**
-	 * Primary key column
-	 *
-	 * @return string
-	 */
-	protected function primary_key(): string {
-		return 'course_id';
-	}
-
-	/**
-	 * Row class
-	 *
-	 * @return string
-	 */
-	protected function row_class(): string {
-		return TAAS_Course::class;
-	}
-
-	/**
-	 * Run a prepared query through select_rows()
-	 *
-	 * @param string $sql Prepared SELECT.
-	 * @return array
-	 */
-	public function joined( string $sql ): array {
-		return $this->select_rows( $sql );
-	}
-}
-
-/**
- * Minimal $wpdb that records what repositories ask of it
- */
-class TAAS_Fake_Wpdb {
-
-	/**
-	 * Table prefix
-	 *
-	 * @var string
-	 */
-	public $prefix = 'wp_';
-
-	/**
-	 * Error message the next check will see
-	 *
-	 * @var string
-	 */
-	public $last_error = '';
-
-	/**
-	 * Id of the last auto-increment insert
-	 *
-	 * @var int
-	 */
-	public $insert_id = 0;
-
-	/**
-	 * Row get_row() returns
-	 *
-	 * @var array|null
-	 */
-	public $row = null;
-
-	/**
-	 * Rows get_results() returns
-	 *
-	 * @var array
-	 */
-	public $rows = array();
-
-	/**
-	 * Value insert() returns
-	 *
-	 * @var int|false
-	 */
-	public $insert_result = 1;
-
-	/**
-	 * SQL passed to the last read
-	 *
-	 * @var string
-	 */
-	public $sql = '';
-
-	/**
-	 * Arguments passed to the last write
-	 *
-	 * @var array
-	 */
-	public $write = array();
-
-	/**
-	 * Substitute %i, %s and %d the way $wpdb->prepare() does
-	 *
-	 * @param string $query SQL with placeholders.
-	 * @param mixed  ...$args Values, in order.
-	 * @return string
-	 */
-	public function prepare( $query, ...$args ) {
-		return preg_replace_callback(
-			'/%[isd]/',
-			static function ( $m ) use ( &$args ) {
-				$value = array_shift( $args );
-				return match ( $m[0] ) {
-					'%i' => '`' . $value . '`',
-					'%s' => "'" . $value . "'",
-					default => (string) (int) $value,
-				};
-			},
-			$query
-		);
-	}
-
-	/**
-	 * Record the query and return the canned row
-	 *
-	 * @param string $query SQL.
-	 * @return array|null
-	 */
-	public function get_row( $query ) {
-		$this->sql = $query;
-		return $this->row;
-	}
-
-	/**
-	 * Record the query and return the canned rows
-	 *
-	 * @param string $query SQL.
-	 * @return array
-	 */
-	public function get_results( $query ) {
-		$this->sql = $query;
-		return $this->rows;
-	}
-
-	/**
-	 * Every statement passed to query(), in order
-	 *
-	 * @var string[]
-	 */
-	public $queries = array();
-
-	/**
-	 * Statement query() should fail on, or null for none
-	 *
-	 * @var string|null
-	 */
-	public $fail_query = null;
-
-	/**
-	 * Record a raw statement such as START TRANSACTION
-	 *
-	 * @param string $sql Statement.
-	 * @return int|false
-	 */
-	public function query( $sql ) {
-		$this->queries[] = $sql;
-		return $sql === $this->fail_query ? false : 0;
-	}
-
-	/**
-	 * Record the insert
-	 *
-	 * @param string $table Table name.
-	 * @param array  $data Column => value.
-	 * @return int|false
-	 */
-	public function insert( $table, $data ) {
-		$this->write = compact( 'table', 'data' );
-		return $this->insert_result;
-	}
-
-	/**
-	 * Record the update
-	 *
-	 * @param string $table Table name.
-	 * @param array  $data Column => value.
-	 * @param array  $where Column => value.
-	 * @return int
-	 */
-	public function update( $table, $data, $where ) {
-		$this->write = compact( 'table', 'data', 'where' );
-		return 1;
-	}
-}
+require_once dirname( __DIR__ ) . '/support/class-taas-join-test-repository.php';
+require_once dirname( __DIR__ ) . '/support/class-taas-fake-wpdb.php';
 
 /**
  * Check repositories build the right queries and hydrate the right types
@@ -376,11 +163,18 @@ class RepositoryTest extends TestCase {
 	 * A join comes back as plain arrays, not row objects
 	 */
 	public function test_select_rows_returns_raw_arrays(): void {
-		$this->db->rows = array( array( 'course_id' => '12345', 'student_name' => 'Ada' ) );
+		$expected = array(
+			array(
+				'course_id'    => '12345',
+				'student_name' => 'Ada',
+			),
+		);
+
+		$this->db->rows = $expected;
 
 		$rows = ( new TAAS_Join_Test_Repository() )->joined( 'SELECT 1' );
 
-		$this->assertSame( array( array( 'course_id' => '12345', 'student_name' => 'Ada' ) ), $rows );
+		$this->assertSame( $expected, $rows );
 		$this->assertSame( 'SELECT 1', $this->db->sql );
 	}
 

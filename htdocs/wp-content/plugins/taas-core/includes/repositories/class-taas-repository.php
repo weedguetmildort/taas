@@ -246,6 +246,7 @@ abstract class TAAS_Repository {
 	protected function select_rows( string $prepared_sql ): array {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Callers pass SQL already built with $wpdb->prepare(), see the docblock.
 		$rows = $wpdb->get_results( $prepared_sql, ARRAY_A );
 
 		$this->check_error();

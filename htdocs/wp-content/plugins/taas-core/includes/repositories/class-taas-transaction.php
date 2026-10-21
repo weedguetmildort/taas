@@ -43,8 +43,8 @@ final class TAAS_Transaction {
 	 *
 	 * @param callable $work Callback that does the writes.
 	 * @return mixed Whatever the callback returns.
-	 * @throws RuntimeException If the transaction cannot be started or committed.
-	 * @throws Throwable        Anything the callback throws, after rollback.
+	 * @throws Throwable Anything the callback throws, after rollback, or a
+	 *                   RuntimeException if the transaction cannot be started or committed.
 	 */
 	public static function run( callable $work ): mixed {
 		global $wpdb;
@@ -86,6 +86,7 @@ final class TAAS_Transaction {
 	private static function execute( string $statement ): void {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Private, only ever called with the literals above; no input reaches it.
 		if ( false === $wpdb->query( $statement ) ) {
 			throw new RuntimeException( esc_html( $statement . ' failed: ' . $wpdb->last_error ) );
 		}
