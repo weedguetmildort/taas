@@ -1,6 +1,26 @@
-# environment variable files
+# Root main ignore
+/cgi-bin/
+/logs/
+
+# Root keep .htaccess and wp-content/
+/htdocs/*
+!/htdocs/.htaccess
+!/htdocs/wp-content/
+
+# wp-content/ keep plugins/ only
+/htdocs/wp-content/*
+!/htdocs/wp-content/plugins/
+
+# plugins/ keep the TAAS plugins only
+/htdocs/wp-content/plugins/*
+!/htdocs/wp-content/plugins/taas-core/
+
+# Sensitive files
+wp-config.php
 .env
-/vendor
 *.log
+
+# Local tooling and data
+/vendor/
 /real-data
 .phpunit.cache/
