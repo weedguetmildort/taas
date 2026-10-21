@@ -28,7 +28,7 @@ class TAAS_Seeds {
 		'student_profiles'    => array( 'student_ufid' ),
 		'academic_background' => array( 'student_ufid', 'university', 'degree_type' ),
 		'courses'             => array( 'course_id' ),
-		'applications'        => array( 'student_ufid', 'applied_course_code' ),
+		'applications'        => array( 'student_ufid', 'applied_course_id' ),
 	);
 
 	/**

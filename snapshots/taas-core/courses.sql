@@ -2,6 +2,8 @@ CREATE TABLE `{prefix}courses` (
   `course_id` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `course_code` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `course_name` varchar(255) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `course_term` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `ufo` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `course_description` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `course_notes` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `sections` int DEFAULT NULL,

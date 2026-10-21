@@ -76,7 +76,7 @@
   "applications": [
     {
       "student_ufid": "20000001",
-      "applied_course_code": "COP3502-1234",
+      "applied_course_id":"COP3502-1234",
       "has_taken_course": 1,
       "student_statement": "I tutored this course content for two semesters.",
       "student_preference_rank": 1,
@@ -85,14 +85,14 @@
     },
     {
       "student_ufid": "20000001",
-      "applied_course_code": "CDA3101-5678",
+      "applied_course_id":"CDA3101-5678",
       "has_taken_course": 1,
       "student_preference_rank": 2,
       "match_status": 1
     },
     {
       "student_ufid": "20000002",
-      "applied_course_code": "CDA3101-5678",
+      "applied_course_id":"CDA3101-5678",
       "has_taken_course": 0,
       "student_statement": "Strong hardware background from my BS.",
       "student_preference_rank": 1,
@@ -101,7 +101,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_code": "COP3502-1234",
+      "applied_course_id":"COP3502-1234",
       "has_taken_course": 1,
       "student_preference_rank": 1,
       "professor_preference_rank": 2,
