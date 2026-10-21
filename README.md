@@ -47,6 +47,37 @@ docker compose exec wordpress php /var/www/taas/bin/import-courses.php /var/www/
 `real-data/` is gitignored, for real course files that must never be committed.
 Course import runs locally only; the server has no `vendor/`.
 
+### UF theme
+
+UF's Mercury theme and the plugins it needs ship as one archive,
+`dev/ufl-assets.tar.gz`. `docker compose up -d` unpacks it before WordPress
+starts (the `ufl-assets` service), and skips that when the archive has not
+changed. Prod is unaffected: there, these folders stay untracked.
+
+```
+htdocs/wp-content/themes/ufl-main-uni/              Mercury (parent)
+htdocs/wp-content/themes/ufl-main-uni-child-main/   Mercury Child (active on the site)
+htdocs/wp-content/plugins/advanced-custom-fields/   required by the child theme
+htdocs/wp-content/plugins/ufl-block/                UF blocks used in page content
+htdocs/wp-content/plugins/section-nav/              section navigation template
+```
+
+After the first `up`, activate the three plugins in wp-admin, and only then
+switch to Mercury Child (it calls ACF).
+
+The unpacked folders are gitignored and overwritten whenever the archive
+changes, so don't edit them. If they drift from the server, rebuild the
+archive (Git Bash on Windows; macOS needs `brew install gnu-tar`), then
+commit `dev/ufl-assets.tar.gz` in a PR:
+
+```sh
+bin/pack-ufl-assets.sh --server   # pull fresh copies from prod over SSH
+bin/pack-ufl-assets.sh            # or pack the local copies as they are
+```
+
+The same content always produces the same bytes, so rebuilding without real
+changes leaves the archive untouched.
+
 ## Checks
 
 The same steps CI runs:

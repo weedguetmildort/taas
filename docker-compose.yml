@@ -22,6 +22,40 @@ services:
       timeout: 5s
       retries: 20
 
+  # Unpacks dev/ufl-assets.tar.gz (UF theme and plugins) into the gitignored
+  # htdocs/wp-content paths mounted into wordpress, before it starts. Skips
+  # when the archive is unchanged; bin/pack-ufl-assets.sh rebuilds it.
+  ufl-assets:
+    image: alpine:3.20
+    container_name: taas-ufl-assets
+    volumes:
+      - ./dev:/assets:ro
+      - ./htdocs/wp-content:/wp-content
+    command:
+      - sh
+      - -ec
+      - |
+        archive=/assets/ufl-assets.tar.gz
+        marker=/wp-content/.ufl-assets.sha256
+        dirs="themes/ufl-main-uni themes/ufl-main-uni-child-main plugins/advanced-custom-fields plugins/ufl-block plugins/section-nav"
+        if [ ! -f "$$archive" ]; then
+          echo "No $$archive, skipping"
+          exit 0
+        fi
+        sum=$$(sha256sum "$$archive" | cut -d ' ' -f 1)
+        if [ "$$(cat "$$marker" 2>/dev/null)" = "$$sum" ] && [ -f /wp-content/themes/ufl-main-uni-child-main/style.css ]; then
+          echo "UF assets up to date"
+          exit 0
+        fi
+        # Empty the folders rather than removing them: they are bind-mount sources
+        for d in $$dirs; do
+          mkdir -p "/wp-content/$$d"
+          find "/wp-content/$$d" -mindepth 1 -delete
+        done
+        tar -xzf "$$archive" -C /wp-content
+        echo "$$sum" > "$$marker"
+        echo "UF assets unpacked"
+
   wordpress:
     image: wordpress:7.1-php8.2-apache
     container_name: taas-wp
@@ -29,6 +63,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      ufl-assets:
+        condition: service_completed_successfully
     ports:
       - "${WP_PORT:-8080}:80"
     environment:
@@ -52,6 +88,12 @@ services:
       # - ./htdocs/wp-content/plugins/taas-onboarding:/var/www/html/wp-content/plugins/taas-onboarding
       # - ./htdocs/wp-content/plugins/taas-matching:/var/www/html/wp-content/plugins/taas-matching
       # - ./htdocs/wp-content/plugins/taas-frontend:/var/www/html/wp-content/plugins/taas-frontend
+      # UF theme and the plugins it needs: gitignored local copies (see README)
+      - ./htdocs/wp-content/themes/ufl-main-uni:/var/www/html/wp-content/themes/ufl-main-uni
+      - ./htdocs/wp-content/themes/ufl-main-uni-child-main:/var/www/html/wp-content/themes/ufl-main-uni-child-main
+      - ./htdocs/wp-content/plugins/advanced-custom-fields:/var/www/html/wp-content/plugins/advanced-custom-fields
+      - ./htdocs/wp-content/plugins/ufl-block:/var/www/html/wp-content/plugins/ufl-block
+      - ./htdocs/wp-content/plugins/section-nav:/var/www/html/wp-content/plugins/section-nav
       # Repo root, outside the web root, for bin/, vendor/ and snapshots/
       - .:/var/www/taas
 
