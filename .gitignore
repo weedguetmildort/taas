@@ -1,6 +1,7 @@
 # Root main ignore
 /cgi-bin/
 /logs/
+/mysql_credentials
 
 # Root keep .htaccess and wp-content/
 /htdocs/*
