@@ -24,7 +24,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	/**
 	 * Permission callback for the read routes.
 	 *
-	 * Only requires user to be authenticated, rather than HR permissions.
+	 * Only requires user to be authenticated, rather than admin permissions.
 	 *
 	 * @return callable Returns true or WP_Error when called.
 	 */
