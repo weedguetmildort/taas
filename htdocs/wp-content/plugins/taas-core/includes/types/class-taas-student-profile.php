@@ -23,24 +23,30 @@ final class TAAS_Student_Profile {
 	 * @param string|null                   $phone             Phone number.
 	 * @param string|null                   $admitted_semester Semester admitted, e.g. Fall 2024.
 	 * @param int|null                      $available_hours   Weekly hours available; null means not yet provided, distinct from 0.
-	 * @param TAAS_College_Status|null      $college_status    Undergraduate, master's or PhD.
+	 * @param string|null                   $major             Most recent or applicable major; may hold several.
+	 * @param float|null                    $gpa               Most current GPA, 0.00-4.00.
+	 * @param TAAS_Enrollment_Status|null   $enrollment_status Program the student is in now; null means not yet provided.
 	 * @param string|null                   $resume_url        Link to the resume.
-	 * @param int|null                      $toefl_score       TOEFL score, if taken.
+	 * @param int|null                      $toefl_ibt_score   TOEFL iBT score, if taken.
+	 * @param DateTimeImmutable|null        $toefl_ibt_date    Date the TOEFL iBT was taken.
 	 * @param bool                          $has_ta_experience Whether the student has been a TA before.
 	 * @param TAAS_Course_Taken_Status|null $eap5836_status    EAP 5836 status.
 	 * @param TAAS_Course_Taken_Status|null $eap5837_status    EAP 5837 status.
 	 * @param string|null                   $country_code      ISO 3166-1 alpha-2 code.
-	 * @param string|null                   $additional_info   Free-text notes from the student.
-	 * @throws InvalidArgumentException If the UFID or country code is invalid.
+	 * @param string|null                   $additional_info   Notes from the student for professors and HR.
+	 * @throws InvalidArgumentException If the UFID, GPA or country code is invalid.
 	 */
 	public function __construct(
 		public readonly string $student_ufid,
 		public readonly ?string $phone = null,
 		public readonly ?string $admitted_semester = null,
 		public readonly ?int $available_hours = null, // null = not yet provided, distinct from 0.
-		public readonly ?TAAS_College_Status $college_status = null,
+		public readonly ?string $major = null,
+		public readonly ?float $gpa = null,
+		public readonly ?TAAS_Enrollment_Status $enrollment_status = null,
 		public readonly ?string $resume_url = null,
-		public readonly ?int $toefl_score = null,
+		public readonly ?int $toefl_ibt_score = null,
+		public readonly ?DateTimeImmutable $toefl_ibt_date = null,
 		public readonly bool $has_ta_experience = false,
 		public readonly ?TAAS_Course_Taken_Status $eap5836_status = null,
 		public readonly ?TAAS_Course_Taken_Status $eap5837_status = null,
@@ -48,6 +54,7 @@ final class TAAS_Student_Profile {
 		public readonly ?string $additional_info = null,
 	) {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
+		TAAS_Guard::gpa( $gpa );
 		TAAS_Guard::country_code( $country_code );
 	}
 
@@ -64,9 +71,12 @@ final class TAAS_Student_Profile {
 			phone: TAAS_Cast::string_or_null( $r['phone'] ?? null ),
 			admitted_semester: TAAS_Cast::string_or_null( $r['admitted_semester'] ?? null ),
 			available_hours: TAAS_Cast::int_or_null( $r['available_hours'] ?? null ),
-			college_status: TAAS_Cast::enum_or_null( TAAS_College_Status::class, $r['college_status'] ?? null ),
+			major: TAAS_Cast::string_or_null( $r['major'] ?? null ),
+			gpa: TAAS_Cast::float_or_null( $r['gpa'] ?? null ),
+			enrollment_status: TAAS_Cast::enum_or_null( TAAS_Enrollment_Status::class, $r['enrollment_status'] ?? null ),
 			resume_url: TAAS_Cast::string_or_null( $r['resume_url'] ?? null ),
-			toefl_score: TAAS_Cast::int_or_null( $r['toefl_score'] ?? null ),
+			toefl_ibt_score: TAAS_Cast::int_or_null( $r['toefl_ibt_score'] ?? null ),
+			toefl_ibt_date: TAAS_Cast::date_or_null( $r['toefl_ibt_date'] ?? null ),
 			has_ta_experience: TAAS_Cast::bool( $r['has_ta_experience'] ?? 0 ),
 			eap5836_status: TAAS_Cast::enum_or_null( TAAS_Course_Taken_Status::class, $r['eap5836_status'] ?? null ),
 			eap5837_status: TAAS_Cast::enum_or_null( TAAS_Course_Taken_Status::class, $r['eap5837_status'] ?? null ),
@@ -86,9 +96,12 @@ final class TAAS_Student_Profile {
 			'phone'             => $this->phone,
 			'admitted_semester' => $this->admitted_semester,
 			'available_hours'   => $this->available_hours,
-			'college_status'    => $this->college_status?->value,
+			'major'             => $this->major,
+			'gpa'               => $this->gpa,
+			'enrollment_status' => $this->enrollment_status?->value,
 			'resume_url'        => $this->resume_url,
-			'toefl_score'       => $this->toefl_score,
+			'toefl_ibt_score'   => $this->toefl_ibt_score,
+			'toefl_ibt_date'    => $this->toefl_ibt_date?->format( 'Y-m-d' ),
 			'has_ta_experience' => $this->has_ta_experience ? 1 : 0,
 			'eap5836_status'    => $this->eap5836_status?->value,
 			'eap5837_status'    => $this->eap5837_status?->value,

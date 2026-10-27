@@ -51,6 +51,19 @@ final class TAAS_Guard {
 	}
 
 	/**
+	 * Check that a year fits a MySQL YEAR column.
+	 *
+	 * @param string $field Column name, used in the error message.
+	 * @param int    $value Four-digit year.
+	 * @throws InvalidArgumentException If the year is outside 1901-2155.
+	 */
+	public static function year( string $field, int $value ): void {
+		if ( $value < 1901 || $value > 2155 ) {
+			throw new InvalidArgumentException( sprintf( '%s must be between 1901 and 2155.', esc_html( $field ) ) );
+		}
+	}
+
+	/**
 	 * Check that a preference rank is 1 or greater, or null.
 	 *
 	 * @param string   $field Column name, used in the error message.

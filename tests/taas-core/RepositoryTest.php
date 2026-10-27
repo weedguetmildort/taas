@@ -54,17 +54,23 @@ class RepositoryTest extends TestCase {
 	 */
 	public function test_find_returns_hydrated_entity(): void {
 		$this->db->row = array(
-			'course_id'      => '12345',
-			'course_code'    => 'COP3502',
-			'course_name'    => 'Programming 1',
-			'professor_ufid' => '87654321',
-			'enrollment'     => '30',
+			'course_id'       => '12345',
+			'course_code'     => 'COP3502',
+			'course_name'     => 'Programming 1',
+			'course_semester' => '1',
+			'course_year'     => '2026',
+			'is_online'       => '1',
+			'professor_ufid'  => '87654321',
+			'enrollment'      => '30',
 		);
 
 		$course = ( new TAAS_Course_Repository() )->find( '12345' );
 
 		$this->assertInstanceOf( TAAS_Course::class, $course );
 		$this->assertSame( 30, $course->enrollment );
+		$this->assertSame( TAAS_Semester::Fall, $course->course_semester );
+		$this->assertSame( 2026, $course->course_year );
+		$this->assertTrue( $course->is_online );
 		$this->assertSame(
 			"SELECT * FROM `wp_taas_core_courses` WHERE `course_id` = '12345'",
 			$this->db->sql
@@ -116,6 +122,31 @@ class RepositoryTest extends TestCase {
 		$this->assertCount( 1, $applications );
 		$this->assertSame( 7, $applications[0]->application_id );
 		$this->assertStringContainsString( "`student_ufid` = '12345678'", $this->db->sql );
+	}
+
+	/**
+	 * A term lookup matches both semester and year, joined with AND
+	 */
+	public function test_find_by_term_filters_on_semester_and_year(): void {
+		$this->db->rows = array(
+			array(
+				'course_id'       => '12345',
+				'course_code'     => 'COP3502',
+				'course_name'     => 'Programming 1',
+				'course_semester' => '3',
+				'course_year'     => '2026',
+				'professor_ufid'  => '87654321',
+			),
+		);
+
+		$courses = ( new TAAS_Course_Repository() )->find_by_term( TAAS_Semester::Summer_A, 2026 );
+
+		$this->assertCount( 1, $courses );
+		$this->assertSame( 'Summer A 2026', $courses[0]->term_label() );
+		$this->assertSame(
+			"SELECT * FROM `wp_taas_core_courses` WHERE `course_semester` = '3' AND `course_year` = '2026' ORDER BY `course_id`",
+			$this->db->sql
+		);
 	}
 
 	/**

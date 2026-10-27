@@ -26,14 +26,17 @@ CREATE TABLE {prefix}student_profiles (
 	phone varchar(15) DEFAULT NULL,
 	admitted_semester varchar(20) DEFAULT NULL,
 	available_hours int DEFAULT NULL,                   -- NULL = not yet provided, distinct from 0
-	college_status tinyint unsigned DEFAULT NULL,       -- 1 = undergrad, 2 = masters, 3 = phd (bind to PHP enum)
+	major varchar(255) DEFAULT NULL,                    -- most recent/applicable major; string for multiple majors
+	gpa decimal(3,2) DEFAULT NULL,                      -- most current GPA
+	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = AA, 2 = BS, 3 = MS, 4 = PhD (bind to PHP enum)
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
-	toefl_score int DEFAULT NULL,                       -- international students only
+	toefl_ibt_score int DEFAULT NULL,                   -- international students only
+	toefl_ibt_date date DEFAULT NULL,
 	has_ta_experience tinyint(1) NOT NULL DEFAULT 0,
 	eap5836_status tinyint unsigned DEFAULT NULL,       -- (PhD) 1 = taken at uf, 2 = taken not at uf, 3 = taking, 4 = not taken
 	eap5837_status tinyint unsigned DEFAULT NULL,       -- (PhD) same php enum values as above
 	country_code varchar(2) DEFAULT NULL,               -- ISO 3166-1 alpha-2
-	additional_info varchar(1000) DEFAULT NULL,         -- students' custom notes
+	additional_info varchar(1000) DEFAULT NULL,         -- students' notes for anyone reading their profile (professors/HR)
 	PRIMARY KEY  (student_ufid)
 );
 
@@ -58,10 +61,11 @@ CREATE TABLE {prefix}courses (
 	course_id varchar(20) NOT NULL,                     -- course section number
 	course_code varchar(20) NOT NULL,
 	course_name varchar(255) NOT NULL,
-	course_term varchar(20) NOT NULL,
-	ufo varchar(20) NOT NULL,
+	course_semester tinyint unsigned NOT NULL,          -- 1 = Fall, 2 = Spring, 3 = SummerA, 4 = SummerB, 5 = SummerC
+	course_year year NOT NULL,
+	is_online tinyint(1) NOT NULL DEFAULT 0,
 	course_description varchar(1000) DEFAULT NULL,
-	course_notes varchar(1000) DEFAULT NULL,
+	course_notes varchar(1000) DEFAULT NULL,            -- professor's notes/requests regarding matching
 	sections int DEFAULT NULL,
 	weekly_hours int DEFAULT NULL,                      -- total TA hours required, calculated by formula
 	lab_hours int NOT NULL DEFAULT 0,

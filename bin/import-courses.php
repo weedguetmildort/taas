@@ -23,14 +23,21 @@ if ( '' === $file ) {
 }
 
 try {
-	// Ask user for course term
-	$course_term = trim( readline( 'Enter course term (e.g. Fall 2026): ' ) );
+	// Ask user for the term the courses belong to
+	$semester_input = trim( (string) readline( 'Enter semester (Fall, Spring, Summer A, Summer B, Summer C): ' ) );
+	$semester       = TAAS_Semester::try_from_label( $semester_input );
 
-	if ( '' === $course_term ) {
-		throw new RuntimeException( 'Course term cannot be empty.' );
+	if ( null === $semester ) {
+		throw new RuntimeException( 'Unknown semester: "' . $semester_input . '".' );
 	}
 
-	$counts = taas_import_courses( $file, $course_term );
+	$year_input = trim( (string) readline( 'Enter year (e.g. 2026): ' ) );
+
+	if ( 1 !== preg_match( '/^\d{4}$/', $year_input ) ) {
+		throw new RuntimeException( 'Year must be four digits, got "' . $year_input . '".' );
+	}
+
+	$counts = taas_import_courses( $file, $semester, (int) $year_input );
 } catch ( Throwable $e ) {
 	fwrite( STDERR, 'Import failed, nothing saved: ' . $e->getMessage() . "\n" );
 	exit( 1 );
