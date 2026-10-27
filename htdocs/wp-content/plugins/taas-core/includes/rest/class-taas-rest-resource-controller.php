@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  *   GET /{rest_base}/{id}   one row by primary key
  *
  * Use this when an endpoint is a plain view of one table. A subclass picks its
- * repository and base, and overrides read_permission() when HR-only is the
+ * repository and base, and overrides read_permission() when admin-only is the
  * wrong default. Write routes (create, update, delete) are added per resource
  * as the frontend needs them.
  *

@@ -212,16 +212,41 @@ abstract class TAAS_Repository {
 	 * @throws RuntimeException If the query fails.
 	 */
 	protected function find_by( string $column, string|int $value ): array {
+		return $this->find_where( array( $column => $value ) );
+	}
+
+	/**
+	 * Find rows where every given column equals its value, ordered by primary key.
+	 *
+	 * Same rules as find_by(): protected, and the column names must come from
+	 * the subclass, never from request input. Values are always bound.
+	 * check_error() throws RuntimeException if the query fails.
+	 *
+	 * @param array<string, string|int> $conditions Column => value, joined with AND.
+	 * @return object[]
+	 * @throws InvalidArgumentException If no conditions are given.
+	 */
+	protected function find_where( array $conditions ): array {
 		global $wpdb;
 
+		if ( empty( $conditions ) ) {
+			throw new InvalidArgumentException( 'find_where() needs at least one condition.' );
+		}
+
+		$clauses = array();
+		$args    = array( $this->table() );
+
+		foreach ( $conditions as $column => $value ) {
+			$clauses[] = '%i = %s';
+			$args[]    = (string) $column;
+			$args[]    = (string) $value;
+		}
+
+		$args[] = $this->primary_key();
+
 		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE %i = %s ORDER BY %i',
-				$this->table(),
-				$column,
-				(string) $value,
-				$this->primary_key()
-			),
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Only fixed '%i = %s' fragments are joined in; every value is bound.
+			$wpdb->prepare( 'SELECT * FROM %i WHERE ' . implode( ' AND ', $clauses ) . ' ORDER BY %i', ...$args ),
 			ARRAY_A
 		);
 

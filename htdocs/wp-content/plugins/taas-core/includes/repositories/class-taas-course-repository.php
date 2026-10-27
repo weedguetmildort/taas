@@ -50,4 +50,21 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	public function find_by_professor( string $professor_ufid ): array {
 		return $this->find_by( 'professor_ufid', $professor_ufid );
 	}
+
+	/**
+	 * Every course offered in one term, e.g. Fall 2026.
+	 *
+	 * @param TAAS_Semester $semester Semester to match.
+	 * @param int           $year     Year to match.
+	 * @return TAAS_Course[]
+	 * @throws RuntimeException If the query fails.
+	 */
+	public function find_by_term( TAAS_Semester $semester, int $year ): array {
+		return $this->find_where(
+			array(
+				'course_semester' => $semester->value,
+				'course_year'     => $year,
+			)
+		);
+	}
 }

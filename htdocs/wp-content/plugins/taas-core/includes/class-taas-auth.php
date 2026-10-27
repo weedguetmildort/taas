@@ -14,7 +14,8 @@ class TAAS_Auth {
 
 	public const ROLE_STUDENT    = 'taas_student';
 	public const ROLE_INSTRUCTOR = 'taas_instructor';
-	public const ROLE_HR_ADMIN   = 'taas_hr_admin';
+	public const ROLE_HR         = 'taas_hr';
+	public const ROLE_ADMIN      = 'taas_admin';
 
 	/**
 	 * Create TAAS roles and their display names
@@ -25,7 +26,8 @@ class TAAS_Auth {
 		return array(
 			self::ROLE_STUDENT    => __( 'TAAS Student', 'taas-core' ),
 			self::ROLE_INSTRUCTOR => __( 'TAAS Instructor', 'taas-core' ),
-			self::ROLE_HR_ADMIN   => __( 'TAAS HR Admin', 'taas-core' ),
+			self::ROLE_HR         => __( 'TAAS HR', 'taas-core' ),
+			self::ROLE_ADMIN      => __( 'TAAS Admin', 'taas-core' ),
 		);
 	}
 
@@ -140,7 +142,7 @@ class TAAS_Auth {
 	 * @return string
 	 */
 	private static function taas_role_for( WP_User $user ): string {
-		$ordered = array( self::ROLE_HR_ADMIN, self::ROLE_INSTRUCTOR, self::ROLE_STUDENT );
+		$ordered = array( self::ROLE_ADMIN, self::ROLE_HR, self::ROLE_INSTRUCTOR, self::ROLE_STUDENT );
 
 		foreach ( $ordered as $role ) {
 			if ( in_array( $role, (array) $user->roles, true ) ) {
@@ -162,7 +164,8 @@ class TAAS_Auth {
 		$fixtures = array(
 			self::ROLE_STUDENT    => array( '12345678', 'test.student@ufl.edu', 'Test Student' ),
 			self::ROLE_INSTRUCTOR => array( '87654321', 'test.instructor@ufl.edu', 'Test Instructor' ),
-			self::ROLE_HR_ADMIN   => array( '11223344', 'test.hr@ufl.edu', 'Test HR Admin' ),
+			self::ROLE_HR         => array( '11223344', 'test.hr@ufl.edu', 'Test HR' ),
+			self::ROLE_ADMIN      => array( '99887766', 'test.admin@ufl.edu', 'Test Admin' ),
 		);
 
 		list( $university_id, $email, $name ) = $fixtures[ $role ];

@@ -9,7 +9,7 @@ declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Routes under taas/v1/academic-backgrounds. HR-only until ownership checks exist.
+ * Routes under taas/v1/academic-backgrounds. Admin-only until ownership checks exist.
  */
 final class TAAS_REST_Academic_Background_Controller extends TAAS_REST_Resource_Controller {
 

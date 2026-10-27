@@ -9,7 +9,7 @@ declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Routes under taas/v1/professors. HR-only until a role needs more.
+ * Routes under taas/v1/professors. Admin-only until a role needs more.
  */
 final class TAAS_REST_Professor_Controller extends TAAS_REST_Resource_Controller {
 

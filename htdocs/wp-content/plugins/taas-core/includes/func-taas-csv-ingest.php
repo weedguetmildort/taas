@@ -79,29 +79,49 @@ function taas_read_course_rows( string $file_path ): Generator {
 }
 
 /**
+ * Read the spreadsheet's UFO (UF Online) cell as a yes/no flag
+ *
+ * @param string $value Trimmed cell value
+ * @return bool True if the course is online
+ * @throws RuntimeException If the value is not a recognised yes/no.
+ */
+function taas_parse_online_flag( string $value ): bool {
+	$normalised = strtoupper( trim( $value ) );
+
+	if ( in_array( $normalised, array( '', '0', 'N', 'NO', 'FALSE' ), true ) ) {
+		return false;
+	}
+
+	if ( in_array( $normalised, array( '1', 'Y', 'YES', 'TRUE', 'X', 'UFO', 'ONLINE' ), true ) ) {
+		return true;
+	}
+
+	throw new RuntimeException( 'Invalid UFO value: "' . esc_html( $value ) . '". Expected Y/N, yes/no, true/false, 1/0 or blank.' );
+}
+
+/**
  * Import every course in a file, creating professors that do not exist yet
  *
  * Runs in a single transaction, so a failure on any row saves nothing.
+ * TAAS_Guard::year() throws InvalidArgumentException, before the transaction
+ * starts, if the year does not fit the course_year column.
  *
- * @param string $file_path Path to a .csv or .xlsx file
- * @param string $course_term Term the courses belong to, e.g. Fall 2026
+ * @param string        $file_path   Path to a .csv or .xlsx file
+ * @param TAAS_Semester $semester    Semester the courses belong to
+ * @param int           $course_year Year the courses belong to, e.g. 2026
  * @return array{professors: int, courses: int} Rows inserted, keyed by table
  * @throws RuntimeException If the file is unreadable, a row is invalid, or a query fails.
  * @throws Throwable Any other failure, rethrown after rolling back.
  */
-function taas_import_courses( string $file_path, string $course_term ): array {
+function taas_import_courses( string $file_path, TAAS_Semester $semester, int $course_year ): array {
 	global $wpdb;
 
 	if ( ! is_file( $file_path ) || ! is_readable( $file_path ) ) {
 		throw new RuntimeException( 'File does not exist or cannot be read.' );
 	}
 
-	// TODO: course_term should come from an input field from the frontend page that the admin specifies
-	$course_term = trim( $course_term );
-
-	if ( '' === $course_term ) {
-		throw new RuntimeException( 'Course term cannot be empty.' );
-	}
+	// TODO: semester and year should come from input fields on the admin's frontend page
+	TAAS_Guard::year( 'course_year', $course_year );
 
 	$professors = TAAS_Schema::table( 'professors' );
 	$courses    = TAAS_Schema::table( 'courses' );
@@ -135,7 +155,7 @@ function taas_import_courses( string $file_path, string $course_term ): array {
 
 			list(
 				$course_code,
-				$ufo,
+				$ufo, // UF Online flag, stored as is_online
 				$lab_hours,
 				$course_name,
 				$enrollment,
@@ -185,17 +205,18 @@ function taas_import_courses( string $file_path, string $course_term ): array {
 			$result = $wpdb->insert(
 				$courses,
 				array(
-					'course_id'      => $next_course_id,
-					'course_term'    => $course_term,
-					'ufo'            => $ufo,
-					'course_code'    => $course_code,
-					'course_name'    => $course_name,
-					'lab_hours'      => $lab_hours,
-					'enrollment'     => $enrollment,
-					'max_enrollment' => $max_enrollment,
-					'professor_ufid' => $professor_id,
+					'course_id'       => $next_course_id,
+					'course_semester' => $semester->value,
+					'course_year'     => $course_year,
+					'is_online'       => taas_parse_online_flag( $ufo ) ? 1 : 0,
+					'course_code'     => $course_code,
+					'course_name'     => $course_name,
+					'lab_hours'       => $lab_hours,
+					'enrollment'      => $enrollment,
+					'max_enrollment'  => $max_enrollment,
+					'professor_ufid'  => $professor_id,
 				),
-				array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s' )
+				array( '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%d', '%d', '%s' )
 			);
 
 			if ( false === $result ) {
