@@ -140,6 +140,54 @@ class TypesTest extends TestCase {
 	}
 
 	/**
+	 * The application's to_row() writes exactly the applications columns, in schema order
+	 */
+	public function test_application_to_row_matches_schema_columns(): void {
+		$row = ( new TAAS_Application( 7, '12345678', 'COP3502-1234', has_ta_for_course: true ) )->to_row();
+
+		$this->assertSame(
+			array(
+				'application_id',
+				'student_ufid',
+				'applied_course_id',
+				'has_taken_course',
+				'has_ta_for_course',
+				'student_statement',
+				'student_preference_rank',
+				'professor_preference_rank',
+				'match_status',
+			),
+			array_keys( $row )
+		);
+		$this->assertSame( 0, $row['has_taken_course'] );
+		$this->assertSame( 1, $row['has_ta_for_course'] );
+	}
+
+	/**
+	 * has_ta_for_course hydrates independently of has_taken_course, and defaults to false when absent
+	 */
+	public function test_application_hydrates_has_ta_for_course(): void {
+		$base = array(
+			'student_ufid'      => '12345678',
+			'applied_course_id' => 'COP3502-1234',
+			'match_status'      => '1',
+		);
+
+		$ta_before = TAAS_Application::from_row(
+			$base + array(
+				'has_taken_course'  => '0',
+				'has_ta_for_course' => '1',
+			)
+		);
+		$legacy    = TAAS_Application::from_row( $base );
+
+		$this->assertFalse( $ta_before->has_taken_course );
+		$this->assertTrue( $ta_before->has_ta_for_course );
+		$this->assertFalse( $legacy->has_ta_for_course );
+		$this->assertSame( 0, $legacy->to_row()['has_ta_for_course'] );
+	}
+
+	/**
 	 * The course_semester column is NOT NULL, so a row without it is corrupt
 	 */
 	public function test_course_from_row_requires_semester(): void {

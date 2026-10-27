@@ -85,6 +85,7 @@ CREATE TABLE {prefix}applications (
 	student_ufid varchar(8) NOT NULL,
 	applied_course_id varchar(20) NOT NULL,             -- links applicant to course
 	has_taken_course tinyint(1) NOT NULL DEFAULT 0,
+	has_ta_for_course tinyint(1) NOT NULL DEFAULT 0,    -- student has previously TA'd this course (vs. has_ta_experience: any course)
 	student_statement varchar(500) DEFAULT NULL,
 	student_preference_rank int DEFAULT NULL,           -- how the student ranks this course among their applications
 	professor_preference_rank int DEFAULT NULL,         -- how the professor ranks this applicant among theirs

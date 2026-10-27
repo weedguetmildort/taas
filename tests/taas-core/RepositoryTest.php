@@ -171,6 +171,19 @@ class RepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Both per-course experience flags reach the applications insert as 0/1
+	 */
+	public function test_application_insert_writes_has_ta_for_course(): void {
+		( new TAAS_Application_Repository() )->insert(
+			new TAAS_Application( null, '12345678', 'COP3502-1234', has_taken_course: true, has_ta_for_course: true )
+		);
+
+		$this->assertSame( 'wp_taas_core_applications', $this->db->write['table'] );
+		$this->assertSame( 1, $this->db->write['data']['has_taken_course'] );
+		$this->assertSame( 1, $this->db->write['data']['has_ta_for_course'] );
+	}
+
+	/**
 	 * A failed insert surfaces as an exception
 	 */
 	public function test_insert_throws_on_failure(): void {
