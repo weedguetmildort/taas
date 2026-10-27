@@ -220,11 +220,11 @@ abstract class TAAS_Repository {
 	 *
 	 * Same rules as find_by(): protected, and the column names must come from
 	 * the subclass, never from request input. Values are always bound.
+	 * check_error() throws RuntimeException if the query fails.
 	 *
 	 * @param array<string, string|int> $conditions Column => value, joined with AND.
 	 * @return object[]
 	 * @throws InvalidArgumentException If no conditions are given.
-	 * @throws RuntimeException If the query fails.
 	 */
 	protected function find_where( array $conditions ): array {
 		global $wpdb;

@@ -57,7 +57,7 @@ class TypesTest extends TestCase {
 	}
 
 	/**
-	 * to_row() writes exactly the student_profiles columns, with no removed ones left over
+	 * The profile's to_row() writes exactly the student_profiles columns, with no removed ones left over
 	 */
 	public function test_student_profile_to_row_matches_schema_columns(): void {
 		$row = ( new TAAS_Student_Profile(
@@ -110,7 +110,7 @@ class TypesTest extends TestCase {
 	}
 
 	/**
-	 * to_row() writes exactly the courses columns, with no removed ones left over
+	 * The course's to_row() writes exactly the courses columns, with no removed ones left over
 	 */
 	public function test_course_to_row_matches_schema_columns(): void {
 		$row = ( new TAAS_Course( '12345', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Summer_C, 2027, true ) )->to_row();
@@ -140,7 +140,7 @@ class TypesTest extends TestCase {
 	}
 
 	/**
-	 * course_semester is NOT NULL, so a row without it is corrupt
+	 * The course_semester column is NOT NULL, so a row without it is corrupt
 	 */
 	public function test_course_from_row_requires_semester(): void {
 		$this->expectException( UnexpectedValueException::class );
@@ -156,7 +156,7 @@ class TypesTest extends TestCase {
 	}
 
 	/**
-	 * course_year must fit MySQL's YEAR type
+	 * The course_year column must fit MySQL's YEAR type
 	 */
 	public function test_course_rejects_year_outside_mysql_range(): void {
 		$this->expectException( InvalidArgumentException::class );

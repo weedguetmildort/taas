@@ -103,13 +103,14 @@ function taas_parse_online_flag( string $value ): bool {
  * Import every course in a file, creating professors that do not exist yet
  *
  * Runs in a single transaction, so a failure on any row saves nothing.
+ * TAAS_Guard::year() throws InvalidArgumentException, before the transaction
+ * starts, if the year does not fit the course_year column.
  *
  * @param string        $file_path   Path to a .csv or .xlsx file
  * @param TAAS_Semester $semester    Semester the courses belong to
  * @param int           $course_year Year the courses belong to, e.g. 2026
  * @return array{professors: int, courses: int} Rows inserted, keyed by table
  * @throws RuntimeException If the file is unreadable, a row is invalid, or a query fails.
- * @throws InvalidArgumentException If the year does not fit the course_year column.
  * @throws Throwable Any other failure, rethrown after rolling back.
  */
 function taas_import_courses( string $file_path, TAAS_Semester $semester, int $course_year ): array {
