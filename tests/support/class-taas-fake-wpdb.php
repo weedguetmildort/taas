@@ -67,6 +67,20 @@ class TAAS_Fake_Wpdb {
 	public $write = array();
 
 	/**
+	 * Every write, in order, each shaped like $write
+	 *
+	 * @var array[]
+	 */
+	public $writes = array();
+
+	/**
+	 * Value update() returns
+	 *
+	 * @var int|false
+	 */
+	public $update_result = 1;
+
+	/**
 	 * Substitute %i, %s and %d the way $wpdb->prepare() does
 	 *
 	 * @param string $query SQL with placeholders.
@@ -143,10 +157,11 @@ class TAAS_Fake_Wpdb {
 	 * @return int|false
 	 */
 	public function insert( $table, $data ) {
-		$this->write = array(
+		$this->write    = array(
 			'table' => $table,
 			'data'  => $data,
 		);
+		$this->writes[] = $this->write;
 		return $this->insert_result;
 	}
 
@@ -156,14 +171,15 @@ class TAAS_Fake_Wpdb {
 	 * @param string $table Table name.
 	 * @param array  $data Column => value.
 	 * @param array  $where Column => value.
-	 * @return int
+	 * @return int|false
 	 */
 	public function update( $table, $data, $where ) {
-		$this->write = array(
+		$this->write    = array(
 			'table' => $table,
 			'data'  => $data,
 			'where' => $where,
 		);
-		return 1;
+		$this->writes[] = $this->write;
+		return $this->update_result;
 	}
 }

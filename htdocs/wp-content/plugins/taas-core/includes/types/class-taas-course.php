@@ -22,7 +22,7 @@ final class TAAS_Course {
 	 * @param string        $course_id          Course section number.
 	 * @param string        $course_code        Course code, e.g. COP3502.
 	 * @param string        $course_name        Course title.
-	 * @param string        $professor_ufid     Instructor's UFID, 1-8 characters.
+	 * @param string        $professor_ufid     Professor's UFID, 1-8 characters.
 	 * @param TAAS_Semester $course_semester    Semester the course runs in.
 	 * @param int           $course_year        Year the course runs in, e.g. 2026.
 	 * @param bool          $is_online          Whether the course is offered online.
