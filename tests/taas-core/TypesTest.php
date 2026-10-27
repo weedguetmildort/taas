@@ -164,7 +164,7 @@ class TypesTest extends TestCase {
 	}
 
 	/**
-	 * has_ta_for_course hydrates independently of has_taken_course, and defaults to false when absent
+	 * The has_ta_for_course field hydrates independently of has_taken_course, and defaults to false when absent
 	 */
 	public function test_application_hydrates_has_ta_for_course(): void {
 		$base = array(
