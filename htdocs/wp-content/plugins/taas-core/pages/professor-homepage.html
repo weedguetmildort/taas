@@ -1,0 +1,144 @@
+<!-- wp:html -->
+<style data-wp-block-html="css">
+.professor-homepage {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 60px 50px;
+    background: #ffffff;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+.professor-homepage-content {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.professor-welcome h1 {
+    font-size: 46px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #111;
+    margin: 0 0 20px;
+}
+
+.professor-welcome p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #555;
+}
+
+.professor-homepage-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.professor-homepage-menu h2 {
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    background: #f5f5f5;
+    color: #222;
+    padding: 20px;
+    margin: 0 0 5px;
+    border-radius: 6px;
+}
+
+.professor-home-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 30px;
+    background: #f58220;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    border-radius: 6px;
+    font-size: 21px;
+    font-weight: 500;
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.professor-home-button:hover {
+    background: #e56d0a;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+}
+
+.professor-home-button:focus-visible {
+    outline: 3px solid #174ea6;
+    outline-offset: 3px;
+}
+
+.home-arrow {
+    font-size: 25px;
+    margin-left: 15px;
+}
+
+@media (max-width: 768px) {
+    .professor-homepage {
+        margin: 20px 10px;
+        padding: 30px 20px;
+    }
+
+    .professor-homepage-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .professor-welcome {
+        text-align: center;
+    }
+
+    .professor-welcome h1 {
+        font-size: 34px;
+    }
+
+    .professor-homepage-menu h2 {
+        font-size: 18px;
+    }
+
+    .professor-home-button {
+        font-size: 17px;
+        padding: 20px;
+    }
+}
+</style>
+
+<div class="professor-homepage">
+
+    <div class="professor-homepage-content">
+
+        <div class="professor-welcome">
+            <h1>Welcome<br>Professor!</h1>
+
+            <p>
+                Welcome to the TA Application System.
+                Select an option to get started.
+            </p>
+        </div>
+
+        <div class="professor-homepage-menu">
+
+            <h2>Choose from one of the options below</h2>
+
+            <a href="/professor-page/" class="professor-home-button">
+                Professor Page
+                <span class="home-arrow">→</span>
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->

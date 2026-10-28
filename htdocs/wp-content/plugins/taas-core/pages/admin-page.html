@@ -1,344 +1,573 @@
+<!-- wp:heading {"style":{"typography":{"textAlign":"right"}}} -->
+<h2 class="wp-block-heading has-text-align-right"></h2>
+<!-- /wp:heading -->
+
 <!-- wp:html -->
 <style data-wp-block-html="css">
-/* Main Admin Card */
-.admin-portal-container {
-    max-width: 750px;
-    margin: 30px auto;
-    padding: 35px;
+/* MAIN ADMIN CARD */
 
-    background-color: #ffffff;
+.admin-portal-container {
+    width: 95%;
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 45px;
+
+    background: #ffffff;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 
     font-family: Arial, sans-serif;
     color: #222;
-
     box-sizing: border-box;
 }
 
+/* HEADER */
 
-/* Admin Header */
 .admin-header {
+    display: block;
     margin-bottom: 30px;
 }
 
-.admin-header h2 {
-    font-size: 22px;
-    margin: 0 0 12px;
-    color: #222;
+.admin-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 30px;
 }
 
-.admin-header p {
+.admin-header-top h2 {
+    font-size: 27px;
+    font-weight: 600;
+    color: #222;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* PROFESSOR VIEW BUTTON */
+
+.professor-switch-button {
+    display: inline-block;
+    max-width: 290px;
+    padding: 13px 18px;
+    flex-shrink: 0;
+
+    background: #0021a5;
+    color: white !important;
+
+    border-radius: 4px;
+    text-decoration: none !important;
+    text-align: center;
+
     font-size: 14px;
+    font-weight: 500;
     line-height: 1.5;
+}
+
+.professor-switch-button:hover {
+    background: #00166e;
+    color: white !important;
+}
+
+/* NAVIGATION */
+
+.admin-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 25px;
+}
+
+/* ORANGE NAVIGATION BUTTONS */
+
+.admin-nav-button {
+    display: inline-block;
+    padding: 14px 20px;
+
+    background: #ff7f11;
+    color: white !important;
+
+    border: 1px solid #ff7f11;
+    border-radius: 4px;
+    text-decoration: none !important;
+
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.admin-nav-button:hover {
+    background: #e66f08;
+    color: white !important;
+}
+
+/* STOP APPLICATIONS BUTTON */
+
+.stop-applications-button {
+    padding: 14px 20px;
+
+    background: #b42318;
+    color: white;
+
+    border: none;
+    border-radius: 4px;
+
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+
+    cursor: pointer;
+}
+
+.stop-applications-button:hover {
+    background: #8f1d14;
+}
+
+/* DESCRIPTION */
+
+.admin-header p {
+    font-size: 16px;
+    line-height: 1.7;
+    color: #444;
     margin: 0;
 }
 
+/* CSV UPLOAD */
 
-/* CSV Upload Section */
 .csv-upload-section {
-    padding-bottom: 30px;
-    margin-bottom: 30px;
-    border-bottom: 1px solid #eeeeee;
+    padding-top: 25px;
+    border-top: 1px solid #eeeeee;
 }
 
 .csv-label {
     display: block;
-    font-size: 14px;
+    margin-bottom: 12px;
+
+    font-size: 17px;
     font-weight: 600;
-    margin-bottom: 8px;
 }
 
 .csv-upload-section input[type="file"] {
     display: block;
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    padding: 12px;
 
     border: 1px solid #ccc;
     border-radius: 4px;
 
-    padding: 7px;
+    font-size: 15px;
     box-sizing: border-box;
 }
 
+/* UPLOAD BUTTON */
 
-/* Orange button matching existing site */
 .admin-button {
-    background-color: #ff7f11;
+    padding: 13px 25px;
+
+    background: #ff7f11;
     color: white;
 
     border: none;
-    border-radius: 0;
+    border-radius: 4px;
 
-    padding: 10px 22px;
-
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 500;
     cursor: pointer;
 }
 
 .admin-button:hover {
-    background-color: #e66f08;
+    background: #e66f08;
 }
 
+/* KEYBOARD ACCESSIBILITY */
 
-/* Current Listings */
-.current-listings h3 {
-    font-size: 18px;
-    margin: 0 0 20px;
-    color: #222;
+.admin-portal-container a:focus-visible,
+.admin-portal-container button:focus-visible {
+    outline: 3px solid #0021a5;
+    outline-offset: 3px;
 }
 
+/* MOBILE */
 
-/* Course Table */
-.course-table {
-    width: 100%;
+@media (max-width: 768px) {
+
+    .admin-portal-container {
+        width: 95%;
+        padding: 25px;
+    }
+
+    .admin-header-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-header-top h2 {
+        font-size: 24px;
+    }
+
+    .professor-switch-button {
+        max-width: 100%;
+    }
+
+    .admin-navigation {
+        flex-direction: column;
+    }
+
+    .admin-nav-button,
+    .stop-applications-button {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
 }
 
+/* MAIN ADMIN CARD */
 
-/* Individual Rows */
-.course-row {
-    display: grid;
-
-    grid-template-columns:
-        1.2fr
-        1.7fr
-        1fr
-        0.8fr
-        35px;
-
-    align-items: center;
-
-    min-height: 45px;
-
-    padding: 7px 10px;
-
-    background-color: #f2f2f2;
-    border-bottom: 3px solid white;
-
-    font-size: 13px;
-
+.admin-portal-container {
+    width: 95%;
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 45px;
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
     box-sizing: border-box;
 }
 
+/* HEADER - KEEP BLUE BUTTON ON RIGHT */
 
-/* Header Row */
-.course-heading {
-    background-color: white;
-    font-weight: 600;
-    border-bottom: 1px solid #ccc;
+.admin-portal-container .admin-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 25px;
+    width: 100%;
+    margin-bottom: 35px;
 }
 
+/* LARGER HEADER TEXT */
 
-/* Expand Button */
-.expand-button {
-    background: none;
+.admin-portal-container .admin-header-top h2 {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #222;
+    margin: 0;
+    flex: 1;
+}
+
+/* BLUE PROFESSOR VIEW BUTTON */
+
+.admin-portal-container .professor-switch-button {
+    display: inline-block;
+    flex-shrink: 0;
+    max-width: 300px;
+    padding: 16px 20px;
+
+    background-color: #0021a5;
+    color: #ffffff !important;
+
+    border-radius: 4px;
+    text-decoration: none !important;
+    text-align: center;
+
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.admin-portal-container .professor-switch-button:hover {
+    background-color: #00166e;
+    color: #ffffff !important;
+}
+
+/* STACK ADMIN BUTTONS VERTICALLY */
+
+.admin-portal-container .admin-navigation {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    margin: 25px 0;
+}
+
+/* ORANGE NAVIGATION BUTTONS */
+
+.admin-portal-container .admin-nav-button {
+    display: block;
+    width: 350px;
+    max-width: 100%;
+    padding: 18px 22px;
+
+    background-color: #ff7f11;
+    color: #ffffff !important;
+
     border: none;
+    border-radius: 4px;
+    box-sizing: border-box;
 
-    font-size: 13px;
-    color: #555;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: left;
+    text-decoration: none !important;
 
     cursor: pointer;
 }
 
-
-/* Hidden Course Details */
-.course-details {
-    display: none;
-
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-
-    padding: 18px;
-
-    background-color: #f7f7f7;
-    border-bottom: 3px solid white;
-
-    font-size: 13px;
+.admin-portal-container .admin-nav-button:hover {
+    background-color: #e66f08;
 }
 
-.course-details p {
-    margin: 6px 0 0;
+/* RED STOP ACCEPTING APPLICATIONS BUTTON */
+
+.admin-portal-container .stop-applications-button {
+    display: block;
+    width: 350px;
+    max-width: 100%;
+    padding: 18px 22px;
+
+    background-color: #b42318;
+    color: #ffffff;
+
+    border: none;
+    border-radius: 4px;
+    box-sizing: border-box;
+
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
     line-height: 1.4;
+    text-align: left;
+
+    cursor: pointer;
 }
 
-
-/* Displayed when expanded */
-.course-details.open {
-    display: grid;
+.admin-portal-container .stop-applications-button:hover {
+    background-color: #8f1d14;
 }
 
+/* MOBILE */
 
-/* Mobile */
-@media (max-width: 700px) {
+@media (max-width: 768px) {
 
     .admin-portal-container {
-        margin: 20px 10px;
-        padding: 20px;
+        padding: 25px;
     }
 
-    .course-heading {
-        display: none;
+    .admin-portal-container .admin-header-top {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .course-row {
-        grid-template-columns: 1fr;
-        gap: 5px;
-
-        padding: 15px;
+    .admin-portal-container .admin-header-top h2 {
+        font-size: 26px;
     }
 
-    .expand-button {
-        text-align: left;
-        padding: 5px 0;
+    .admin-portal-container .professor-switch-button {
+        max-width: 100%;
+        font-size: 15px;
     }
 
-    .course-details.open {
-        grid-template-columns: 1fr;
-        gap: 15px;
+    .admin-portal-container .admin-nav-button,
+    .admin-portal-container .stop-applications-button {
+        width: 100%;
+        font-size: 17px;
     }
 }
 </style>
 
 <div class="admin-portal-container">
 
-    <!-- Header / Instructions -->
+    <!-- HEADER -->
     <div class="admin-header">
-        <h2>TA Application Administrator Portal</h2>
 
-        <p>
-            To update courses for TA position listings, submit the most recent
-            CSV file containing the necessary information.
-            All courses will automatically be overwritten by the new listings.
-            Please check that all information is accurate and not duplicated.
-        </p>
-    </div>
+        <div class="admin-header-top">
 
+            <h2>TA Application Administrator Portal</h2>
 
-    <!-- CSV Upload -->
-    <div class="csv-upload-section">
-
-        <label for="course_csv" class="csv-label">
-            Upload Course Listings
-        </label>
-
-        <input type="file" id="course_csv" name="course_csv" accept=".csv">
-
-        <button type="button" class="admin-button">
-            Upload CSV
-        </button>
-
-    </div>
-
-
-    <!-- Current Listings -->
-    <div class="current-listings">
-
-        <h3>Current Listings for &lt;TERM&gt; &lt;YEAR&gt;</h3>
-
-        <div class="course-table">
-
-            <!-- Column Headings -->
-            <div class="course-row course-heading">
-                <div>Instructor Name</div>
-                <div>Course Name</div>
-                <div>Course Number</div>
-                <div>LAB Hours(Weekly)</div>
-                <div></div>
-            </div>
-
-
-            <!-- Example Course 1 -->
-            <div class="course-row">
-                <div>Neha Rani</div>
-                <div>Computer Science Class</div>
-                <div>COPXXXX</div>
-                <div>15</div>
-
-                <button type="button" class="expand-button" onclick="toggleCourse(this)" aria-label="Show course details">
-                    ▼
-                </button>
-            </div>
-
-            <div class="course-details">
-                <div>
-                    <strong>Class Description</strong>
-                    <p>
-                        Course description will appear here.
-                    </p>
-                </div>
-
-                <div>
-                    <strong>Notes</strong>
-                    <p>
-                        Additional course information will appear here.
-                    </p>
-                </div>
-            </div>
-
-
-            <!-- Example Course 2 -->
-            <div class="course-row">
-                <div>Cheryl Resch</div>
-                <div>Intro to Cryptology</div>
-                <div>COPXXXX</div>
-                <div>10</div>
-
-                <button type="button" class="expand-button" onclick="toggleCourse(this)" aria-label="Show course details">
-                    ▼
-                </button>
-            </div>
-
-            <div class="course-details">
-                <div>
-                    <strong>Class Description</strong>
-                    <p>
-                        Course description will appear here.
-                    </p>
-                </div>
-
-                <div>
-                    <strong>Notes</strong>
-                    <p>
-                        Additional course information will appear here.
-                    </p>
-                </div>
-            </div>
-
-
-            <!-- Example Course 3 -->
-            <div class="course-row">
-                <div>TBD</div>
-                <div>Special Topics: Machine Learning</div>
-                <div>COPXXXX</div>
-                <div>TBD</div>
-
-                <button type="button" class="expand-button" onclick="toggleCourse(this)" aria-label="Show course details">
-                    ▼
-                </button>
-            </div>
-
-            <div class="course-details">
-                <div>
-                    <strong>Class Description</strong>
-                    <p>
-                        Class description is class description. This is what is
-                        happening in the class.
-                    </p>
-                </div>
-
-                <div>
-                    <strong>Notes</strong>
-                    <p>
-                        Applicants with &lt;qualification&gt; will be highly
-                        prioritized.
-                    </p>
-                </div>
-            </div>
+            <a href="https://taas.cise.ufl.edu/professor-page/" class="professor-switch-button">
+                Also a Professor? Click here to Switch to Professor View
+            </a>
 
         </div>
 
-    </div>
 
-</div>
+        <!-- NAVIGATION BUTTONS -->
+        <div class="admin-navigation">
+
+            <!-- MANAGE COURSES -->
+            <a href="https://taas.cise.ufl.edu/manage-course-listings-admin/" class="admin-nav-button active">
+                Manage Course Listings
+            </a>
+
+            <!-- VIEW APPLICATIONS -->
+            <a href="https://taas.cise.ufl.edu/view-student-application-admin/" class="admin-nav-button active">
+                View Student Applications
+            </a>
+
+            <!-- STOP APPLICATIONS -->
+            <button type="button" class="stop-applications-button" onclick="showStopApplicationsMessage()">
+                Stop Accepting Applications
+            </button>
+
+            <!-- DOWNLOAD STUDENT DATA -->
+            <button type="button" id="download-student-data" class="admin-nav-button download-student-button" onclick="downloadStudentCSV()">
+                Download Student Data
+            </button>
+
+        </div> <!-- END NAVIGATION -->
+
+    </div> <!-- END HEADER -->
+
+</div> <!-- END ADMIN PORTAL CONTAINER -->
+
+<script>
+(function () {
+
+    function initializeStudentDownload() {
+
+        const downloadButton =
+            document.getElementById("download-student-data");
+
+        if (!downloadButton) return;
+
+        downloadButton.addEventListener("click", function () {
+
+            // SAMPLE STUDENT DATA
+            // Replace with database results later.
+
+            const students = [
+                {
+                    name: "Jane Doe",
+                    email: "jane@example.edu",
+                    studentType: "PhD",
+                    course: "COP3502C",
+                    gpa: "3.9",
+                    hours: "15",
+                    status: "Submitted",
+                    hr: "Approved"
+                },
+                {
+                    name: "John Smith",
+                    email: "john@example.edu",
+                    studentType: "Masters",
+                    course: "COP3530",
+                    gpa: "3.8",
+                    hours: "10",
+                    status: "Submitted",
+                    hr: "Not Approved"
+                },
+                {
+                    name: "Leonardo Rey",
+                    email: "leonardo@example.edu",
+                    studentType: "Undergraduate",
+                    course: "CIS4301",
+                    gpa: "3.7",
+                    hours: "12",
+                    status: "Submitted",
+                    hr: "Approved"
+                },
+                {
+                    name: "Emily Davis",
+                    email: "emily@example.edu",
+                    studentType: "PhD",
+                    course: "COP4600",
+                    gpa: "3.8",
+                    hours: "20",
+                    status: "Submitted",
+                    hr: "Approved"
+                }
+            ];
+
+            // CSV COLUMN HEADERS
+            const headers = [
+                "Student Name",
+                "Email",
+                "Student Type",
+                "Course Number",
+                "GPA",
+                "Available Hours",
+                "Application Status",
+                "HR Approval Status"
+            ];
+
+            // ESCAPE CSV VALUES SAFELY
+            function escapeCSV(value) {
+                const text = String(value ?? "");
+
+                return '"' +
+                    text.replace(/"/g, '""') +
+                    '"';
+            }
+
+            // BUILD CSV CONTENT
+           
+const rows = students.map(function (student) {
+
+    // Remove spaces and standardize course numbers
+    const formattedCourse = String(student.course)
+        .replace(/\s+/g, "")
+        .toUpperCase();
+
+    return [
+        student.name,
+        student.email,
+        student.studentType,
+        formattedCourse,
+        student.gpa,
+        student.hours,
+        student.status,
+        student.hr
+    ].map(escapeCSV).join(",");
+
+});
+
+
+            const csvContent =
+                [headers.map(escapeCSV).join(","), ...rows]
+                    .join("\r\n");
+
+            // CREATE CSV FILE
+            const blob = new Blob(
+                ["\uFEFF" + csvContent],
+                { type: "text/csv;charset=utf-8;" }
+            );
+
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = "TA_Student_Applications_SAMPLE.csv";
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+
+            // CLEAN UP
+            setTimeout(function () {
+                URL.revokeObjectURL(url);
+            }, 1000);
+
+        });
+
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeStudentDownload
+        );
+    } else {
+        initializeStudentDownload();
+    }
+
+})();
+</script>
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
