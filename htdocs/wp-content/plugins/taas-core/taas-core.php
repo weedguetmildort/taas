@@ -38,6 +38,7 @@ require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-match-status.php'
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-semester.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-cast.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-guard.php';
+require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-ranking.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-professor.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-student.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-student-profile.php';
@@ -69,6 +70,7 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-profile-con
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-academic-background-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-course-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-page-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
 
 TAAS_REST::init();

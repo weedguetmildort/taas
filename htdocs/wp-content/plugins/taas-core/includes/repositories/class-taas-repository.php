@@ -256,6 +256,36 @@ abstract class TAAS_Repository {
 	}
 
 	/**
+	 * Write some columns on every row matching all the given conditions.
+	 *
+	 * For targeted writes (one rank, one notes field) where update() would
+	 * rewrite the whole row from an entity. Same rules as find_where(): the
+	 * column names in both arrays must come from the subclass, never from
+	 * request input. A null value in $data is written as SQL NULL.
+	 *
+	 * @param array<string, mixed>      $data       Column => new value.
+	 * @param array<string, string|int> $conditions Column => value, joined with AND.
+	 * @return int Rows changed; 0 when every match already held these values.
+	 * @throws InvalidArgumentException If no data or no conditions are given.
+	 * @throws RuntimeException If the update fails.
+	 */
+	protected function update_where( array $data, array $conditions ): int {
+		global $wpdb;
+
+		if ( empty( $data ) || empty( $conditions ) ) {
+			throw new InvalidArgumentException( 'update_where() needs at least one column and one condition.' );
+		}
+
+		$changed = $wpdb->update( $this->table(), $data, $conditions );
+
+		if ( false === $changed ) {
+			throw new RuntimeException( 'Update of ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ) );
+		}
+
+		return (int) $changed;
+	}
+
+	/**
 	 * Run an already-prepared SELECT and return the raw rows.
 	 *
 	 * For joins and aggregates, whose rows do not fit one row class. Callers

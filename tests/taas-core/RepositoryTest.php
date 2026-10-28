@@ -150,6 +150,215 @@ class RepositoryTest extends TestCase {
 	}
 
 	/**
+	 * A professor's term lookup matches professor, semester and year together
+	 */
+	public function test_find_by_professor_and_term_filters_on_all_three(): void {
+		( new TAAS_Course_Repository() )->find_by_professor_and_term( '87654321', TAAS_Semester::Summer_B, 2026 );
+
+		$this->assertSame(
+			"SELECT * FROM `wp_taas_core_courses` WHERE `professor_ufid` = '87654321' AND `course_semester` = '4' AND `course_year` = '2026' ORDER BY `course_id`",
+			$this->db->sql
+		);
+	}
+
+	/**
+	 * Updating notes writes only course_notes, keyed by course_id
+	 */
+	public function test_update_notes_writes_only_course_notes(): void {
+		$changed = ( new TAAS_Course_Repository() )->update_notes( 'COP4930-12345', 'Needs React.' );
+
+		$this->assertTrue( $changed );
+		$this->assertSame(
+			array(
+				'table' => 'wp_taas_core_courses',
+				'data'  => array( 'course_notes' => 'Needs React.' ),
+				'where' => array( 'course_id' => 'COP4930-12345' ),
+			),
+			$this->db->write
+		);
+	}
+
+	/**
+	 * Null notes are written as NULL, and an unchanged row reports false
+	 */
+	public function test_update_notes_clears_with_null(): void {
+		$this->db->update_result = 0;
+
+		$changed = ( new TAAS_Course_Repository() )->update_notes( 'COP4930-12345', null );
+
+		$this->assertFalse( $changed );
+		$this->assertSame( array( 'course_notes' => null ), $this->db->write['data'] );
+	}
+
+	/**
+	 * A failed targeted update surfaces as an exception
+	 */
+	public function test_update_notes_throws_on_failure(): void {
+		$this->db->update_result = false;
+
+		$this->expectException( RuntimeException::class );
+		( new TAAS_Course_Repository() )->update_notes( 'COP4930-12345', 'x' );
+	}
+
+	/**
+	 * Withdrawn applications are dropped from the active list
+	 */
+	public function test_find_active_by_course_skips_withdrawn(): void {
+		$this->db->rows = array(
+			array(
+				'application_id'    => '1',
+				'student_ufid'      => '20000001',
+				'applied_course_id' => 'COP4930-12345',
+				'match_status'      => '1',
+			),
+			array(
+				'application_id'    => '2',
+				'student_ufid'      => '20000002',
+				'applied_course_id' => 'COP4930-12345',
+				'match_status'      => '4',
+			),
+			array(
+				'application_id'    => '3',
+				'student_ufid'      => '20000003',
+				'applied_course_id' => 'COP4930-12345',
+				'match_status'      => '2',
+			),
+		);
+
+		$active = ( new TAAS_Application_Repository() )->find_active_by_course( 'COP4930-12345' );
+
+		$this->assertSame( array( 1, 3 ), array_map( static fn( $a ) => $a->application_id, $active ) );
+		$this->assertStringContainsString( "`applied_course_id` = 'COP4930-12345'", $this->db->sql );
+	}
+
+	/**
+	 * The applicant list joins students and profiles, skips withdrawn and sorts by name
+	 */
+	public function test_applicants_for_course_builds_join(): void {
+		( new TAAS_Application_Repository() )->applicants_for_course( 'COP4930-12345' );
+
+		$sql = $this->db->sql;
+
+		$this->assertStringContainsString( 'FROM `wp_taas_core_applications` a', $sql );
+		$this->assertStringContainsString( 'INNER JOIN `wp_taas_core_students` s ON s.student_ufid = a.student_ufid', $sql );
+		$this->assertStringContainsString( 'LEFT JOIN `wp_taas_core_student_profiles` p ON p.student_ufid = a.student_ufid', $sql );
+		$this->assertStringContainsString( "WHERE a.applied_course_id = 'COP4930-12345' AND a.match_status <> 4", $sql );
+		$this->assertStringEndsWith( 'ORDER BY s.student_name, a.application_id', $sql );
+	}
+
+	/**
+	 * Joined rows come back with native types, and a missing profile reads as nulls
+	 */
+	public function test_applicants_for_course_casts_values(): void {
+		$this->db->rows = array(
+			array(
+				'application_id'    => '7',
+				'student_ufid'      => '20000002',
+				'student_name'      => 'Priya Raman',
+				'major'             => 'Computer Science',
+				'gpa'               => '3.85',
+				'enrollment_status' => '4',
+				'has_taken_course'  => '0',
+				'has_ta_for_course' => '1',
+			),
+			array(
+				'application_id'    => '8',
+				'student_ufid'      => '20000009',
+				'student_name'      => 'No Profile',
+				'major'             => null,
+				'gpa'               => null,
+				'enrollment_status' => null,
+				'has_taken_course'  => '1',
+				'has_ta_for_course' => '0',
+			),
+		);
+
+		$rows = ( new TAAS_Application_Repository() )->applicants_for_course( 'COP4930-12345' );
+
+		$this->assertSame(
+			array(
+				'application_id'    => 7,
+				'student_ufid'      => '20000002',
+				'student_name'      => 'Priya Raman',
+				'major'             => 'Computer Science',
+				'gpa'               => 3.85,
+				'enrollment_status' => TAAS_Enrollment_Status::Phd,
+				'has_taken_course'  => false,
+				'has_ta_for_course' => true,
+			),
+			$rows[0]
+		);
+		$this->assertNull( $rows[1]['major'] );
+		$this->assertNull( $rows[1]['gpa'] );
+		$this->assertNull( $rows[1]['enrollment_status'] );
+		$this->assertTrue( $rows[1]['has_taken_course'] );
+	}
+
+	/**
+	 * Saving a ranking clears the course's ranks first, then sets 1..n in order
+	 */
+	public function test_set_professor_ranks_resets_then_sets_in_order(): void {
+		( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( '20000002', '20000001' ) );
+
+		$table = 'wp_taas_core_applications';
+
+		$this->assertSame(
+			array(
+				array(
+					'table' => $table,
+					'data'  => array( 'professor_preference_rank' => null ),
+					'where' => array( 'applied_course_id' => 'COP4930-12345' ),
+				),
+				array(
+					'table' => $table,
+					'data'  => array( 'professor_preference_rank' => 1 ),
+					'where' => array(
+						'student_ufid'      => '20000002',
+						'applied_course_id' => 'COP4930-12345',
+					),
+				),
+				array(
+					'table' => $table,
+					'data'  => array( 'professor_preference_rank' => 2 ),
+					'where' => array(
+						'student_ufid'      => '20000001',
+						'applied_course_id' => 'COP4930-12345',
+					),
+				),
+			),
+			$this->db->writes
+		);
+	}
+
+	/**
+	 * An empty ranking only clears
+	 */
+	public function test_set_professor_ranks_empty_only_clears(): void {
+		( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array() );
+
+		$this->assertCount( 1, $this->db->writes );
+		$this->assertSame( array( 'professor_preference_rank' => null ), $this->db->writes[0]['data'] );
+	}
+
+	/**
+	 * A failed rank write surfaces, so the transaction around it rolls back
+	 */
+	public function test_set_professor_ranks_rolls_back_on_failure(): void {
+		$this->db->update_result = false;
+
+		try {
+			TAAS_Transaction::run(
+				static fn() => ( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( '20000001' ) )
+			);
+			$this->fail( 'Expected a RuntimeException.' );
+		} catch ( RuntimeException $e ) {
+			$this->assertStringContainsString( 'Update of applications failed', $e->getMessage() );
+		}
+
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->db->queries );
+	}
+
+	/**
 	 * Insert on a natural-key table returns the key
 	 */
 	public function test_insert_returns_primary_key_for_natural_key_table(): void {
