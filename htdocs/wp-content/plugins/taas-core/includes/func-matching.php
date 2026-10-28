@@ -23,14 +23,31 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Return the total weekly TA hours a course needs
  *
+ * 10 hours of TA support per 35 students with no lab, per 30 with a 1-hour lab,
+ * or per 25 with a 2-hour lab, rounded to the nearest multiple of 5.
+ *
  * @param TAAS_Course $course Course to staff
  * @return int hours
+ * @throws InvalidArgumentException If enrollment is negative or lab_hours is not 0, 1, or 2.
  */
 function taas_calc_course_ta_hours( TAAS_Course $course ): int {
-	// TODO: compute from enrollment and lab_hours using the staffing formula. edit course->weekly_hours in db/object after
-	// TODO: add checks, such as enrollment == 0 (unless we can assume courses will always have enrollment > 0, etc.)
+	// TODO: save the result to course->weekly_hours in the db
 
-	return $course->weekly_hours ?? 0;
+	if ( $course->enrollment < 0 ) {
+		throw new InvalidArgumentException( sprintf( 'Course %s has negative enrollment.', esc_html( $course->course_id ) ) );
+	}
+
+	// Students covered by each 10 hours of TA support
+	$students_per_10_hours = match ( $course->lab_hours ) {
+		0       => 35,
+		1       => 30,
+		2       => 25,
+		default => throw new InvalidArgumentException( sprintf( 'Course %s has unsupported lab_hours: %d.', esc_html( $course->course_id ), (int) $course->lab_hours ) ),
+	};
+
+	$hours = $course->enrollment * 10 / $students_per_10_hours;
+
+	return (int) ( round( $hours / 5 ) * 5 );
 }
 
 /**
@@ -50,6 +67,7 @@ function taas_calc_course_ta_hours( TAAS_Course $course ): int {
  * @param array<string, TAAS_Student_Profile> $profiles    Profiles keyed by student_ufid
  * @param array<string, string>               $assigned    Student UFID => course_id, updated in place
  * @return array{matches: array<string, array{student_ufid: string, hours: int, reason: string}>, unfilled_hours: int}
+ * @throws InvalidArgumentException If the course's TA hours cannot be calculated.
  */
 function taas_match_course( TAAS_Course $course, array $course_apps, array $profiles, array &$assigned ): array {
 	$cth = taas_calc_course_ta_hours( $course );
@@ -137,18 +155,19 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
  * @param TAAS_Application[]     $apps     Applications across all courses
  * @param TAAS_Student_Profile[] $profiles Profiles of the applicants
  * @return array{matches: array<string, array>, unfilled_hours: array<string, int>} Both keyed by course_id
+ * @throws InvalidArgumentException If any course's TA hours cannot be calculated.
  */
 function taas_run_matching( array $courses, array $apps, array $profiles ): array {
 	$profiles_by_ufid = array();
 
-    // Get student profiles accessed by student's UFID
+	// Get student profiles accessed by student's UFID
 	foreach ( $profiles as $profile ) {
 		$profiles_by_ufid[ $profile->student_ufid ] = $profile;
 	}
 
 	$apps_by_course = array();
 
-    // Get course applications accessed by course's ID
+	// Get course applications accessed by course's ID
 	foreach ( $apps as $app ) {
 		$apps_by_course[ $app->applied_course_id ][] = $app;
 	}
