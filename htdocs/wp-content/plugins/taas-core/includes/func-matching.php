@@ -45,8 +45,10 @@ function taas_calc_course_ta_hours( TAAS_Course $course ): int {
 		default => throw new InvalidArgumentException( sprintf( 'Course %s has unsupported lab_hours: %d.', esc_html( $course->course_id ), (int) $course->lab_hours ) ),
 	};
 
-	$hours = $course->enrollment * 10 / $students_per_10_hours;
+    // Calculation of TA hours for the course
+	$hours = ( $course->enrollment * 10 ) / $students_per_10_hours;
 
+    // Round hours to nearest multiple of 5
 	return (int) ( round( $hours / 5 ) * 5 );
 }
 
