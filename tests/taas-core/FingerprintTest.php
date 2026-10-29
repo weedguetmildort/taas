@@ -109,6 +109,16 @@ class FingerprintTest extends TestCase {
 	}
 
 	/**
+	 * Edited page markup must reach existing pages, so the installer has to run
+	 */
+	public function test_changes_when_page_content_changes(): void {
+		$before = TAAS_DB::fingerprint( $this->root );
+		$this->write( 'pages/hr-page.html', '<p>HR, redesigned</p>' );
+
+		$this->assertNotSame( $before, TAAS_DB::fingerprint( $this->root ) );
+	}
+
+	/**
 	 * Migrations run once by filename, so editing one that ran changes nothing
 	 */
 	public function test_ignores_edits_to_an_existing_migration(): void {
