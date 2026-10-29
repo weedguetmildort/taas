@@ -1,851 +1,518 @@
 <!-- wp:html -->
 <style data-wp-block-html="css">
-.form-container {
- padding: 30px;
- box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
- width: 100%;
- max-width: 720px;
- display: flex;
- justify-content: center;
- align-content: center;
- margin: auto auto;
+:root {
+  color-scheme: light;
+  --accent: #f5801d;
+  --accent-hover: #e8710c;
+  --text: #222;
+  --muted: #626262;
+  --border: #d2d2d2;
+  --surface: #fff;
+  --page: #f5f6f7;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-form {
- display: grid;
- grid-gap: 20px;
+* { box-sizing: border-box; }
+body { margin: 0; padding: 32px 16px; background: var(--page); color: var(--text); line-height: 1.5; }
+.application-shell { width: min(100%, 850px); margin: 0 auto; }
+.page-header { margin: 0 0 22px; }
+.page-header h1 { margin: 0 0 6px; font-size: clamp(1.7rem, 4vw, 2.2rem); }
+.page-header p, .section-help { margin: 0; color: var(--muted); }
+#student-application-form { display: grid; gap: 20px; }
+.form-section { min-width: 0; padding: clamp(18px, 4vw, 30px); background: var(--surface); border: 1px solid #e8e8e8; border-radius: 10px; box-shadow: 0 3px 10px rgb(0 0 0 / 5%); }
+.form-section h2 { margin: 0 0 18px; font-size: 1.3rem; }
+.section-help { margin: -8px 0 18px; font-size: .94rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; }
+label { display: flex; min-width: 0; flex-direction: column; gap: 6px; font-size: .92rem; font-weight: 600; }
+input, select, textarea { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); font: inherit; font-weight: 400; }
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 3px solid rgb(245 128 29 / 22%); border-color: var(--accent); }
+input:invalid:not(:placeholder-shown) { border-color: #b42318; }
+small { color: var(--muted); font-size: .78rem; font-weight: 400; }
+.full-width { grid-column: 1 / -1; }
+.preferences-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.student-app-preference { min-width: 0; margin: 0; padding: 15px; border: 1px solid #e2e2e2; border-radius: 8px; display: grid; gap: 12px; }
+.student-app-preference legend { padding: 0 5px; font-weight: 700; }
+.form-actions { display: grid; justify-items: end; gap: 12px; }
+.student-app-message { width: 100%; min-height: 1.4em; margin: 0; color: var(--muted); }
+.student-app-message[data-state="error"] { color: #b42318; }
+.student-app-message[data-state="success"] { color: #18703a; }
+button { min-height: 44px; padding: 11px 22px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; transition: background-color .15s ease; }
+button:hover { background: var(--accent-hover); }
+button:focus-visible { outline: 3px solid #222; outline-offset: 3px; }
+button:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 620px) {
+  body { padding: 20px 10px; }
+  .form-grid, .preferences-grid { grid-template-columns: 1fr; }
+  .form-section { padding: 18px; }
+  .form-actions button { width: 100%; }
 }
 
-.form-title p {
- font-size: 1.5rem;
- text-align: center;
- font-weight: 600;
+/* course selection and ranking */
+.course-selection-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-items: start; }
+.course-chooser, .course-ranking-panel { min-width: 0; }
+.course-chooser h3, .course-ranking-panel h3 { margin: 0 0 5px; font-size: 1.05rem; }
+.course-subhelp { margin: 0 0 12px; color: var(--muted); font-size: .87rem; }
+.available-course-list { display: block; max-height: 440px; overflow: auto; padding: 0; border: 1px solid #dcdcdc; border-radius: 6px; background: #fff; }
+.course-table-header, .available-course-option { display: grid; grid-template-columns: 18px minmax(64px, .8fr) minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(44px, .55fr) minmax(0, 1fr); align-items: center; gap: 0; min-width: 0; }
+.course-table-header { position: sticky; top: 0; z-index: 1; padding: 6px 5px; border-bottom: 2px solid #d4d4d4; background: #f0f1f2; color: #444; font-size: .65rem; font-weight: 700; text-transform: uppercase; }
+.course-table-header > span { min-width: 0; overflow-wrap: anywhere; }
+.available-course-option { padding: 5px; background: #fff; border-bottom: 1px solid #e8e8e8; font-weight: 400; cursor: pointer; }
+.available-course-option:last-child { border-bottom: 0; }
+.available-course-option:nth-child(even) { background: #f8f9fa; }
+.available-course-option input[type="checkbox"] { width: 18px; min-height: 18px; height: 18px; margin: 2px 0 0; padding: 0; accent-color: var(--accent); }
+.available-course-option:has(input:checked) { background: #fff4e9; box-shadow: inset 3px 0 var(--accent); }
+.course-selection-message { min-height: 1.4em; margin: 10px 0 0; color: var(--muted); font-size: .85rem; }
+.course-selection-message[data-state="error"] { color: #b42318; }
+.preferences-grid { grid-template-columns: 1fr; }
+.student-app-preference { padding: 13px; }
+.student-app-preference legend { max-width: 100%; overflow-wrap: anywhere; }
+.empty-course-rankings { margin: 0; padding: 16px; border: 1px dashed #ccc; border-radius: 8px; color: var(--muted); font-size: .9rem; }
+.course-section { width: 100%; }
+.course-information { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; width: 100%; }
+.available-course-option .course-information { display: contents; }
+.course-detail { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 1px 5px; overflow-wrap: anywhere; border-right: 1px solid #ededed; line-height: 1.2; }
+.course-detail:last-child { border-right: 0; }
+.course-detail-label { color: var(--muted); font-size: .66rem; font-weight: 700; }
+.course-detail > span:last-child { font-size: .76rem; }
+.course-ranking-information { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 4px; }
+@media (max-width: 720px) {
+  .course-selection-layout { grid-template-columns: 1fr; }
+  .available-course-list { max-height: 300px; }
+  .course-table-header { padding: 5px 3px; font-size: .58rem; }
+  .available-course-option { padding: 4px 3px; }
+  .course-detail { padding-right: 3px; padding-left: 3px; }
+  .course-detail > span:last-child { font-size: .7rem; }
 }
 
-form-group {
- display: flex;
- grid-gap: 6px;
-}
-
-label {
- font-size: 0.75rem;
- font-weight: 500;
-}
-
-input,
-select {
- width: 100%;
- font-size: 1rem;
- border: 1px solid #d2d2d2;
- border-radius: 6px;
- outline: none;
-}
-
-input: focus,
-select: focus {
- border-color: 1px solid #e1e1e1;
- box-shadow: 0 0 0 3px;
-}
-
-.submit-button {
- background-color: #F5801D;
- color: #ffffff;
- border: none;
- border-radius: none;
- padding: 8px;
- font-size: 1rem;
- font-weight: 500;
- margin-top: 20px;
- transition: background-color 0.2s;
-}
-
-.submit-button:hover {
- background-color: #E8710C;
-}
 </style>
 
-<div class="form-container">
-<!-- Submit to "update student info" endpoint? -->
-<form action="" method="POST">
-
-<!-- Nonce field protects against cross-site request forgery -->
-<!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
-
-<div class="form-title">
-<p>Student Information</p>
-</div>
-    
-<div class="form-group">
-<label for="fname">First Name</label>
-<input type="text" name="fname" id="fname" required="">
-</div>
-
-<div class="form-group">
-<label for="lname">Last Name</label>
-<input type="text" name="lname" id="lname" required="">
-</div>
-
-<div class="form-group">
-<label for="ufid">UFID</label>
-<input type="text" inputmode="numeric" length="8" name="ufid" id="ufid" required="">
-</div>
-
-<div class="form-group">
-<label for="ufemail">UF Email</label>
-<input type="email" pattern="^[a-zA-Z0-9._%+-]+@ufl\.edu$" name="ufemail&quot;" id="ufemail" required="">
-</div>
-
-<div class="form-group">
-<label for="lname">Country of Origin</label>
-<input type="text" name="origin" id="origin" required="">
-</div>
-
-<label for="options">Semester you started UF</label>
-[dynamic_semester]
-
-<label for="options">Current College Status</label>
-<select name="options" id="options">
-  <option value="item1">Masters</option>
-  <option value="item2" selected="">Graduate</option>
-  <option value="item3">PhD</option>
-</select>
-
-
-<div class="form-group">
-<label for="phone">Phone Number</label>
-<input type="text" inputmode="numeric" name="phone" id="phone" required="">
-</div>
-
-    
-    <button type="submit" name="submit_user_input" class="submit-button">Submit Info</button>
-</form></div>
-<!-- /wp:html -->
-
-<!-- wp:html -->
-<style data-wp-block-html="css">
-.form-container {
- padding: 30px;
- box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
- width: 100%;
- max-width: 720px;
- display: flex;
- justify-content: center;
- align-content: center;
- margin: auto auto;
-}
-
-form {
- display: grid;
- grid-gap: 20px;
-}
-
-.form-title p {
- font-size: 1.5rem;
- text-align: center;
- font-weight: 600;
-}
-
-form-group {
- display: flex;
- grid-gap: 6px;
-}
-
-label {
- font-size: 0.75rem;
- font-weight: 500;
-}
-
-input,
-select {
- width: 100%;
- font-size: 1rem;
- border: 1px solid #d2d2d2;
- border-radius: 6px;
- outline: none;
-}
-
-input: focus,
-select: focus {
- border-color: 1px solid #e1e1e1;
- box-shadow: 0 0 0 3px;
-}
-
-.submit-button {
- background-color: #F5801D;
- color: #ffffff;
- border: none;
- border-radius: none;
- padding: 8px;
- font-size: 1rem;
- font-weight: 500;
- margin-top: 20px;
- transition: background-color 0.2s;
-}
-
-.submit-button:hover {
- background-color: #E8710C;
-}
-</style>
-
-<div class="form-container">
-<!-- Submit to "update student info" endpoint? -->
-<form action="" method="POST">
-
-<!-- Nonce field protects against cross-site request forgery -->
-<!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
-
-<div class="form-title">
-<p>Academic Background</p>
-</div>
-    
-<div class="form-group">
-<label for="fname">Undergraduate University</label>
-<input type="text" name="university" id="university" required="">
-</div>
-
-<div class="form-group">
-<label for="lname">Undergraduate Major</label>
-<input type="text" name="major" id="major" required="">
-</div>
-
-
-<div class="form-group">
-<label for="degType">Degree Type</label>
-<input type="text" name="degType" id="degType" required="">
-</div>
-
-<div class="form-group">
-<label for="card-expiry">Graduation Date (MM/YYYY):</label>
-<input type="text" id="gradDate" name="gradDate" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])\/[0-9]{4}" title="Please enter a valid date in MM/YYYY format" maxlength="7" required="">
-</div>
-
-<div class="form-group">
-<label for="gpa">GPA (out of 4.0):</label>
-<input type="number" id="gpa" name="gpa" min="0.0" max="4.0" step="0.01" placeholder="4.00" required="">
-</div>
-    
-<button type="submit" name="submit_user_input" class="submit-button">Submit</button>
-</form></div>
-<!-- /wp:html -->
-
-<!-- wp:html -->
-<style data-wp-block-html="css">
-.form-container {
- padding: 30px;
- box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
- width: 100%;
- max-width: 720px;
- justify: center;
-}
-
-form {
- display: grid;
- grid-gap: 20px;
-}
-
-form-group {
- display: flex;
- grid-gap: 6px;
-}
-
-label {
- font-size: 0.75rem;
- font-weight: 500;
-}
-
-input,
-select {
- width: 100%;
- font-size: 1rem;
- border: 1px solid #d2d2d2;
- border-radius: 6px;
- outline: none;
-}
-
-input: focus,
-select: focus {
- border-color: 1px solid #e1e1e1;
- box-shadow: 0 0 0 3px;
-}
-
-.submit-button {
- background-color: #F5801D;
- color: #ffffff;
- border: none;
- border-radius: none;
- padding: 8px;
- font-size: 1rem;
- font-weight: 500;
- margin-top: 20px;
- transition: background-color 0.2s;
-}
-
-.submit-button:hover {
- background-color: #E8710C;
-}
-</style>
-
-<div class="form-container">
-<!-- Submit to "update student info" endpoint? -->
-<form action="" method="POST">
-
-<!-- Nonce field protects against cross-site request forgery -->
-<!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
-
-<div class="form-title">
-<p>PhD Student Eligibility</p>
-</div>
-    
-<div class=" form-group"="">
-<label for="options">Please enter your course status for EAP5836</label>
-<select name="options" id="options">
-  <option value="item1">Taken at UF</option>
-  <option value="item2" selected="">Currently Taking</option>
-  <option value="item3">Not Taken</option>
-<option value="item1" 4="">Taken at different University</option>
-</select>
-</div>
-
-<div class="form-group">
-<label for="options">Please enter your course status for EAP5837</label>
-<select name="options" id="options">
-  <option value="item1">Taken at UF</option>
-  <option value="item2" selected="">Currently Taking</option>
-  <option value="item3">Not Taken</option>
-<option value="item1" 4="">Taken at different University</option>
-</select>
-</div>
-
-    
-    <button type="submit" name="submit_user_input" class="submit-button">Submit Info</button>
-</form></div>
-<!-- /wp:html -->
-
-<!-- wp:html -->
-<style data-wp-block-html="css">
-.form-container {
- padding: 30px;
- box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
- width: 100%;
- max-width: 720px;
- justify: center;
-}
-
-form {
- display: grid;
- grid-gap: 20px;
-}
-
-form-group {
- display: flex;
- grid-gap: 6px;
-}
-
-label {
- font-size: 0.75rem;
- font-weight: 500;
-}
-
-input,
-select {
- width: 100%;
- font-size: 1rem;
- border: 1px solid #d2d2d2;
- border-radius: 6px;
- outline: none;
-}
-
-input: focus,
-select: focus {
- border-color: 1px solid #e1e1e1;
- box-shadow: 0 0 0 3px;
-}
-
-.submit-button {
- background-color: #F5801D;
- color: #ffffff;
- border: none;
- border-radius: none;
- padding: 8px;
- font-size: 1rem;
- font-weight: 500;
- margin-top: 20px;
- transition: background-color 0.2s;
-}
-
-.submit-button:hover {
- background-color: #E8710C;
-}
-</style>
-
-<div class="form-container">
-
-    <!-- Submit to "update student info" endpoint? -->
-    <form action="" method="POST" enctype="multipart/form-data">
-
-        <!-- Nonce field protects against cross-site request forgery -->
-        <!--?php wp_nonce_field('user_input_form_action', 'user_input_form_nonce'); ?-->
-
-<div class="form-title">
-<p>Additional Information</p>
-</div>
-
-        <div class="form-group">
-            <label for="taHours">
-                How many hours a week do you plan to TA for?
-            </label>
-
-            <select name="taHours" id="taHours" required="">
-                <option value="" disabled="" selected="">Select hours</option>
-                <option value="10">10 hours</option>
-                <option value="20">20 hours</option>
-            </select>
-        </div>
-
-
-
-        <div class="form-group">
-            <label for="englishScore">
-                IF APPLICABLE, enter your SPEAK and/or your TOEFL iBT score
-            </label>
-
-            <select name="englishScore" id="englishScore">
-                <option value="" selected="">Not Applicable</option>
-
-                <!-- SPEAK SCORES -->
-                <optgroup label="SPEAK">
-                    <option value="SPEAK-20">SPEAK: 20</option>
-                    <option value="SPEAK-25">SPEAK: 25</option>
-                    <option value="SPEAK-30">SPEAK: 30</option>
-                    <option value="SPEAK-35">SPEAK: 35</option>
-                    <option value="SPEAK-40">SPEAK: 40</option>
-                    <option value="SPEAK-45">SPEAK: 45</option>
-                    <option value="SPEAK-50">SPEAK: 50</option>
-                    <option value="SPEAK-55">SPEAK: 55</option>
-                    <option value="SPEAK-60">SPEAK: 60</option>
-                </optgroup>
-
-                <!-- TOEFL SCORES -->
-                <optgroup label="TOEFL iBT">
-                    <option value="TOEFL-6.0">TOEFL: 6.0</option>
-                    <option value="TOEFL-5.5">TOEFL: 5.5</option>
-                    <option value="TOEFL-5.0">TOEFL: 5.0</option>
-                    <option value="TOEFL-4.5">TOEFL: 4.5</option>
-                    <option value="TOEFL-4.0">TOEFL: 4.0</option>
-                    <option value="TOEFL-3.5">TOEFL: 3.5</option>
-                    <option value="TOEFL-3.0">TOEFL: 3.0</option>
-                    <option value="TOEFL-2.5">TOEFL: 2.5</option>
-                    <option value="TOEFL-2.0">TOEFL: 2.0</option>
-                    <option value="TOEFL-1.5">TOEFL: 1.5</option>
-                    <option value="TOEFL-1.0">TOEFL: 1.0</option>
-                </optgroup>
-            </select>
-        </div>
-
-
-        <!-- ADDITIONAL INFORMATION -->
-        <div class="form-group">
-            <label for="additionalInfo">
-                If you would like to add anything else about yourself that you
-                think would be fit for the professor to be aware of.
-                *Note* if you have any travel plans during the semester,
-                please enter the days that you are going to be away here.
-            </label>
-
-            <textarea name="additionalInfo" id="additionalInfo" rows="6"></textarea>
-        </div>
-
-
-        <!-- RESUME -->
-        <div class="form-group">
-            <label for="resume">
-                OPTIONAL: If you would like to include your resume,
-                please attach it below.
-            </label>
-
-            <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx">
-        </div>
-
-
-        <!-- SAVE BUTTON -->
-        <button type="submit" name="submit_user_input" class="submit-button">
-            SAVE CHANGES
-        </button>
-
-    </form>
-
-</div>
-<!-- /wp:html -->
-
-<!-- wp:html -->
-<style data-wp-block-html="css">
-/* Main white card - matches the Role Specific section */
-.course-preferences-container {
-    max-width: 750px;
-    margin: 30px auto;
-    padding: 35px;
-
-    background-color: #ffffff;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-
-    font-family: Arial, sans-serif;
-    color: #222;
-}
-
-
-/* Instructions at top */
-.course-preferences-header {
-    margin-bottom: 30px;
-}
-
-.course-preferences-header h2 {
-    font-size: 22px;
-    margin-top: 0;
-    margin-bottom: 15px;
-}
-
-.course-preferences-header p {
-    font-size: 14px;
-    line-height: 1.5;
-    margin: 7px 0;
-}
-
-.required-message {
-    font-weight: bold;
-}
-
-
-/* Each course preference */
-.course-preference {
-    margin-bottom: 35px;
-}
-
-.preference-number {
-    font-size: 15px;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.preference-content {
-    width: 100%;
-}
-
-
-/* Course label */
-.course-label {
-    display: block;
-    font-size: 14px;
-    margin-bottom: 5px;
-}
-
-
-/* Regular white dropdown - matches existing form */
-.course-select {
-    width: 100%;
-    height: 35px;
-
-    padding: 4px 8px;
-
-    background-color: #ffffff;
-    color: #222;
-
-    border: 1px solid #ccc;
-    border-radius: 4px;
-
-    font-size: 14px;
-
-    box-sizing: border-box;
-}
-
-.course-select:focus {
-    border-color: #777;
-    outline: none;
-}
-
-
-/* Highest / lowest rank indicator */
-.rank-label {
-    font-size: 12px;
-    font-weight: normal;
-    color: #666;
-    margin-left: 5px;
-}
-
-
-/* Radio button section */
-.course-history {
-    border: none;
-    padding: 0;
-    margin: 15px 0 0;
-}
-
-.course-history legend {
-    font-size: 14px;
-    margin-bottom: 8px;
-}
-
-.course-history label {
-    display: block;
-    font-size: 14px;
-    margin: 7px 0;
-    cursor: pointer;
-}
-
-.course-history input[type="radio"] {
-    margin-right: 7px;
-}
-
-
-/* Space between preference sections */
-.course-preference:not(:last-child) {
-    padding-bottom: 25px;
-    border-bottom: 1px solid #eeeeee;
-}
-
-
-/* Mobile */
-@media (max-width: 600px) {
-    .course-preferences-container {
-        padding: 20px;
-        margin: 20px 10px;
+<script data-wp-block-html="js">
+(() => {
+  'use strict';
+
+  // Replace this placeholder with the endpoint for PHP plugin
+  const SUBMISSION_ENDPOINT = '/wp-json/your-plugin/v1/student-application';
+
+  // Sample courses for testing the course selection form
+  const sample_courses = [
+    {
+      value: 'course1',
+      courseNumber: 'CIS4930',
+      courseName: 'Intro to Cryptography',
+      instructorName: 'John Professor',
+      classDays: 'MWF',
+      classTimes: '12:50pm-1:40pm'
+    },
+    {
+      value: 'course2',
+      courseNumber: 'CIS4910',
+      courseName: 'Data Visualization',
+      instructorName: 'Jane Doe',
+      classDays: 'TR',
+      classTimes: '9:30am-10:45am'
+    },
+    {
+      value: 'course3',
+      courseNumber: 'COP4600',
+      courseName: 'Operating Systems',
+      instructorName: 'Julia Bush',
+      classDays: 'MWF',
+      classTimes: '10:40am-11:30am'
+    },
+    {
+      value: 'course4',
+      courseNumber: 'CEN3031',
+      courseName: 'Software Engineering',
+      instructorName: 'Neha Rani',
+      classDays: 'MWF',
+      classTimes: '11:45am-12:35pm'
+    },
+    {
+      value: 'course5',
+      courseNumber: 'CIS4301',
+      courseName: 'Information and Database Systems',
+      instructorName: 'Shashank Gutta',
+      classDays: 'TR',
+      classTimes: '11:00am-12:15pm'
+    },
+    {
+      value: 'course6',
+      courseNumber: 'CAP4730',
+      courseName: 'Computer Vision',
+      instructorName: 'Grace Toner',
+      classDays: 'MWF',
+      classTimes: '1:55pm-2:45pm'
+    },
+    {
+      value: 'course7',
+      courseNumber: 'CIS4930',
+      courseName: 'Intro to Machine Learning',
+      instructorName: 'Jack Professor',
+      classDays: 'TR',
+      classTimes: '12:50pm-2:05pm'
+    },
+    {
+      value: 'course8',
+      courseNumber: 'COT3100',
+      courseName: 'Discrete Structures',
+      instructorName: 'Albert Gator',
+      classDays: 'MWF',
+      classTimes: '9:35am-10:25am'
+    },
+    {
+      value: 'course9',
+      courseNumber: 'CEN4721',
+      courseName: 'Human-Computer Interaction',
+      instructorName: 'Alberta Gator',
+      classDays: 'TR',
+      classTimes: '2:00pm-3:15pm'
+    },
+    {
+      value: 'course10',
+      courseNumber: 'COP3530',
+      courseName: 'Data Structures and Algorithms',
+      instructorName: 'Alice Gator',
+      classDays: 'MWF',
+      classTimes: '3:00pm-3:50pm'
     }
-}
-</style>
+  ];
+  const COURSE_HISTORY = [
+    { value: 'yes', label: 'Yes, I have taken this course' },
+    {value: 'other', label: 'I have taken an equivalent course at another institution'},
+    { value: 'no', label: 'No, I have not taken this course' }
+  ];
+  const MAX_COURSES = 5;
 
-<div class="course-preferences-container">
+  const suppliedCourses = Array.isArray(window.STUDENT_APPLICATION_COURSES)
+    ? window.STUDENT_APPLICATION_COURSES
+    : sample_courses;
+  const COURSES = suppliedCourses
+    .filter((course) => typeof course === 'string' || (course && typeof course === 'object'))
+    .map((course) => typeof course === 'string'
+      ? {
+        value: course,
+        courseNumber: course,
+        courseName: course,
+        instructorName: '',
+        classDays: '',
+        classTimes: ''
+      }
+      : {
+        value: String(course.value ?? course.courseCode ?? course.course_code ?? course.courseNumber ?? course.course_number ?? course.courseId ?? course.course_id ?? course.id ?? ''),
+        courseNumber: String(course.courseNumber ?? course.course_number ?? course.courseCode ?? course.course_code ?? course.value ?? course.id ?? ''),
+        courseName: String(course.courseName ?? course.course_name ?? course.name ?? course.title ?? course.label ?? course.value ?? ''),
+        instructorName: String(course.instructorName ?? course.instructor_name ?? course.instructor ?? ''),
+        classDays: String(course.classDays ?? course.class_days ?? course.days ?? ''),
+        classTimes: String(course.classTimes ?? course.class_times ?? course.classTime ?? course.class_time ?? course.times ?? '')
+      })
+    .filter((course) => course.value && course.courseName);
 
+  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
 
+  function getSelectedCourseValues() {
+    return [...document.querySelectorAll('input[name="selectedCourses"]:checked')].map((input) => input.value);
+  }
 
-    <div class="course-preferences-header">
-        <h2>Course Preferences</h2>
-        <p>
-            In this section, please select 5 course preferences for which you
-            would like to work as a TA/Grader/Peer Mentor.
-        </p>
+  function showCourseMessage(message, state = '') {
+    const node = document.querySelector('#course-selection-message');
+    if (!node) return;
+    node.textContent = message;
+    node.dataset.state = state;
+  }
 
-        <p>
-            Your first selection will be considered your
-            <strong>highest-ranked preference</strong>, with each following
-            selection decreasing in rank.
-        </p>
+  function courseDetailsMarkup(course, fields, includeLabels = true) {
+    return fields.map(([label, value]) => `
+      <span class="course-detail">
+        ${includeLabels ? `<span class="course-detail-label">${label}</span>` : ''}
+        <span>${escapeHtml(value || 'Not provided')}</span>
+      </span>`).join('');
+  }
 
-        <p>
-            Selecting the same course multiple times will not increase your
-            chances of being selected for that course.
-        </p>
+  function buildCourseChooser() {
+    const host = document.querySelector('#available-course-list');
+    if (!host) return;
+    if (!COURSES.length) {
+      host.textContent = 'No courses are currently available.';
+      return;
+    }
+    const courseFields = [
+      ['Course number', 'courseNumber'],
+      ['Course name', 'courseName'],
+      ['Instructor', 'instructorName'],
+      ['Class days', 'classDays'],
+      ['Class times', 'classTimes']
+    ];
+    host.innerHTML = `
+      <div class="course-table-header">
+        <span></span>
+        ${courseFields.map(([label]) => `<span>${label}</span>`).join('')}
+      </div>
+      ${COURSES.map((course) => `
+      <label class="available-course-option">
+        <input type="checkbox" name="selectedCourses" value="${escapeHtml(course.value)}">
+        <span class="course-information">${courseDetailsMarkup(course, courseFields.map(([label, key]) => [label, course[key]]), false)}</span>
+      </label>`).join('')}`;
 
-        <p class="required-message">
-            Please select at least 1 of 5 preferences.
-        </p>
-    </div>
+    host.querySelectorAll('input[name="selectedCourses"]').forEach((checkbox) => {
+      checkbox.addEventListener('change', () => {
+        const selected = getSelectedCourseValues();
+        if (selected.length > MAX_COURSES) {
+          checkbox.checked = false;
+          showCourseMessage('You can select no more than five courses.', 'error');
+          return;
+        }
+        showCourseMessage(`${selected.length} of ${MAX_COURSES} courses selected.`);
+        renderCourseRankings(selected);
+      });
+    });
+    showCourseMessage(`0 of ${MAX_COURSES} courses selected.`);
+  }
 
+  function renderCourseRankings(selectedValues) {
+    const host = document.querySelector('#student-course-preferences');
+    if (!host) return;
+    const previous = new Map([...host.querySelectorAll('.student-app-preference')].map((fieldset) => [
+      fieldset.dataset.course,
+      {
+        rank: fieldset.querySelector('[name="courseRank"]')?.value || '',
+        history: fieldset.querySelector('[name="courseHistory"]')?.value || ''
+      }
+    ]));
 
-    <!-- Preference 1 -->
-    <div class="course-preference">
+    if (!selectedValues.length) {
+      host.innerHTML = '<p class="empty-course-rankings">Select one or more courses on the left to rank them here.</p>';
+      return;
+    }
 
-        <div class="preference-number">1.</div>
+    host.innerHTML = selectedValues.map((value) => {
+      const course = COURSES.find((item) => item.value === value);
+      const oldRank = previous.get(value)?.rank || '';
+      const validOldRank = Number(oldRank) <= selectedValues.length ? oldRank : '';
+      const rankOptions = Array.from({ length: selectedValues.length }, (_, index) => {
+        const rank = index + 1;
+        return `<option value="${rank}" ${String(validOldRank) === String(rank) ? 'selected' : ''}>${rank}${rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th'} choice</option>`;
+      }).join('');
+      const old = previous.get(value) || {};
+      const historyOptions = COURSE_HISTORY.map((item) => `<option value="${item.value}" ${old.history === item.value ? 'selected' : ''}>${item.label}</option>`).join('');
+      return `<fieldset class="student-app-preference" data-course="${escapeHtml(value)}">
+        <legend>${escapeHtml(course ? `${course.courseNumber} — ${course.courseName}` : value)}</legend>
+        <input type="hidden" name="courseValue" value="${escapeHtml(value)}">
+        ${course ? `<div class="course-information course-ranking-information">${courseDetailsMarkup(course, [
+          ['Instructor', course.instructorName],
+          ['Class days', course.classDays],
+          ['Class times', course.classTimes]
+        ])}</div>` : ''}
+        <label>Preference rank
+          <select name="courseRank" required>
+            <option value="">Select rank</option>${rankOptions}
+          </select>
+        </label>
+        <label>Have you taken this course?
+          <select name="courseHistory" required>
+            <option value="">Select answer</option>${historyOptions}
+          </select>
+        </label>
+      </fieldset>`;
+    }).join('');
 
-        <div class="preference-content">
+    host.querySelectorAll('[name="courseRank"]').forEach((select) => {
+      select.addEventListener('change', updateRankOptions);
+    });
+    updateRankOptions();
+  }
 
-            <label for="course_preference_1" class="course-label">
-                1st Course Preference
-                <span class="rank-label">Highest Rank</span>
-            </label>
+  function updateRankOptions() {
+    const selects = [...document.querySelectorAll('#student-course-preferences [name="courseRank"]')];
+    const selectedRanks = selects.map((select) => select.value).filter(Boolean);
+    const hasDuplicates = new Set(selectedRanks).size !== selectedRanks.length;
 
-            <select name="course_preference_1" id="course_preference_1" class="course-select" required="">
-                <option value="" selected="" disabled="">Select first course</option>
+    selects.forEach((select) => {
+      const otherRanks = new Set(selects.filter((other) => other !== select).map((other) => other.value).filter(Boolean));
+      [...select.options].forEach((option) => {
+        option.disabled = option.value !== '' && option.value !== select.value && otherRanks.has(option.value);
+      });
+      select.setCustomValidity(select.value && otherRanks.has(select.value)
+        ? 'Each selected course must have a different rank.' : '');
+    });
+    if (hasDuplicates) showCourseMessage('Each selected course must have a unique rank.', 'error');
+    else showCourseMessage(`${selects.length} of ${MAX_COURSES} courses selected.`);
+    return !hasDuplicates;
+  }
 
-                <!-- Course options will be added later -->
-            </select>
+  function validateUniqueRanks() {
+    return updateRankOptions();
+  }
 
-            <fieldset class="course-history">
-                <legend>Have you taken the course listed above at UF?</legend>
+  function buildSemesters() {
+    const select = document.querySelector('#start-semester');
+    if (!select) return;
+    const currentYear = new Date().getFullYear();
+    const terms = ['Spring', 'Summer', 'Fall'];
+    for (let year = currentYear - 8; year <= currentYear + 1; year++) {
+      terms.forEach((term) => {
+        const option = document.createElement('option');
+        option.value = `${term} ${year}`;
+        option.textContent = `${term} ${year}`;
+        select.appendChild(option);
+      });
+    }
+  }
 
-                <label>
-                    <input type="radio" name="course_history_1" value="no">
-                    No
-                </label>
+  function showMessage(message, state = '') {
+    const node = document.querySelector('#form-message');
+    node.textContent = message;
+    node.dataset.state = state;
+  }
 
-                <label>
-                    <input type="radio" name="course_history_1" value="similar">
-                    Taken similar course outside of UF
-                </label>
+  function collectApplication(form) {
+    const values = Object.fromEntries(new FormData(form).entries());
+    delete values.resume;
+    delete values.selectedCourses;
+    delete values.courseValue;
+    delete values.courseRank;
+    delete values.courseHistory;
+    values.studentStatus = values.collegeStatus; // Student-reported/self-proclaimed status.
+    values.coursePreferences = [...document.querySelectorAll('#student-course-preferences .student-app-preference')]
+      .map((fieldset) => ({
+        course: fieldset.dataset.course,
+        rank: Number(fieldset.querySelector('[name="courseRank"]').value),
+        hasTaken: fieldset.querySelector('[name="courseHistory"]').value
+      }));
+    return values;
+  }
 
-                <label>
-                    <input type="radio" name="course_history_1" value="yes">
-                    Yes
-                </label>
-            </fieldset>
+  document.addEventListener('DOMContentLoaded', () => {
+    buildSemesters();
+    buildCourseChooser();
+    renderCourseRankings([]);
 
+    const form = document.querySelector('#student-application-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+
+      const selected = getSelectedCourseValues();
+      if (selected.length < 1 || selected.length > MAX_COURSES) {
+        showMessage('Please select between one and five courses.', 'error');
+        return;
+      }
+      if (!validateUniqueRanks()) {
+        showMessage('Please assign a unique rank to every selected course.', 'error');
+        return;
+      }
+      const missingCourseDetails = [...document.querySelectorAll('#student-course-preferences .student-app-preference')]
+        .some((fieldset) => !fieldset.querySelector('[name="courseRank"]').value || !fieldset.querySelector('[name="courseHistory"]').value);
+      if (missingCourseDetails) {
+        showMessage('Please rank each selected course and indicate whether you have taken it.', 'error');
+        return;
+      }
+
+      const resume = form.elements.resume.files[0];
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (resume && (resume.size > 5 * 1024 * 1024 || (!allowedTypes.includes(resume.type) && !/\.(pdf|doc|docx)$/i.test(resume.name)))) {
+        showMessage('Please attach a PDF, DOC, or DOCX file no larger than 5 MB.', 'error');
+        return;
+      }
+
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      showMessage('Submitting application…');
+      const payload = new FormData();
+      payload.append('application', JSON.stringify(collectApplication(form)));
+      if (resume) payload.append('resume', resume);
+
+      try {
+        const response = await fetch(SUBMISSION_ENDPOINT, { method: 'POST', body: payload });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.message || `Submission failed (${response.status}).`);
+        showMessage(result.message || 'Application submitted successfully.', 'success');
+        form.reset();
+        renderCourseRankings([]);
+        showCourseMessage(`0 of ${MAX_COURSES} courses selected.`);
+      } catch (error) {
+        showMessage(error.message || 'Could not submit. Check the endpoint configuration and try again.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+})();
+
+</script>
+
+<main class="application-shell">
+    <form id="student-application-form" enctype="multipart/form-data" novalidate>
+      <section class="form-section" aria-labelledby="student-info-heading">
+        <h2 id="student-info-heading">Student Information</h2>
+        <div class="form-grid">
+          <label>First name <input name="firstName" autocomplete="given-name" required></label>
+          <label>Last name <input name="lastName" autocomplete="family-name" required></label>
+          <label>UFID <input name="ufid" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" required aria-describedby="ufid-help"><small id="ufid-help">Enter your 8-digit UFID.</small></label>
+          <label>UF email <input name="ufEmail" type="email" pattern="[A-Za-z0-9._%+-]+@ufl\.edu" autocomplete="email" required></label>
+          <label>Country of origin <input name="countryOfOrigin" required></label>
+          <label>Semester you started at UF <select name="startSemester" id="start-semester" required><option value="">Select semester</option></select></label>
+          <label>Current college status <select name="collegeStatus" required><option value="">Select status</option><option value="masters">Master's</option><option value="graduate">Graduate</option><option value="phd">PhD</option></select></label>
+          <label>Phone number <input name="phone" type="tel" autocomplete="tel" inputmode="tel" required></label>
         </div>
-    </div>
+      </section>
 
-
-    <!-- Preference 2 -->
-    <div class="course-preference">
-
-        <div class="preference-number">2.</div>
-
-        <div class="preference-content">
-
-            <label for="course_preference_2" class="course-label">
-                2nd Course Preference
-            </label>
-
-            <select name="course_preference_2" id="course_preference_2" class="course-select">
-                <option value="" selected="">Select second course</option>
-            </select>
-
-            <fieldset class="course-history">
-                <legend>Have you taken the course listed above at UF?</legend>
-
-                <label>
-                    <input type="radio" name="course_history_2" value="no">
-                    No
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_2" value="similar">
-                    Taken similar course outside of UF
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_2" value="yes">
-                    Yes
-                </label>
-            </fieldset>
-
+      <section class="form-section" aria-labelledby="academic-heading">
+        <h2 id="academic-heading">Academic Background</h2>
+        <div class="form-grid">
+          <label>Undergraduate university <input name="undergraduateUniversity" required></label>
+          <label>Undergraduate major <input name="undergraduateMajor" required></label>
+          <label>Degree type <input name="degreeType" required></label>
+          <label>Graduation date (MM/YYYY) <input name="graduationDate" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[0-9]{4}" maxlength="7" title="Enter a date in MM/YYYY format" required></label>
+          <label>GPA (out of 4.0) <input name="gpa" type="number" min="0" max="4" step="0.01" placeholder="4.00" required></label>
         </div>
-    </div>
+      </section>
 
-
-    <!-- Preference 3 -->
-    <div class="course-preference">
-
-        <div class="preference-number">3.</div>
-
-        <div class="preference-content">
-
-            <label for="course_preference_3" class="course-label">
-                3rd Course Preference
-            </label>
-
-            <select name="course_preference_3" id="course_preference_3" class="course-select">
-                <option value="" selected="">Select third course</option>
-            </select>
-
-            <fieldset class="course-history">
-                <legend>Have you taken the course listed above at UF?</legend>
-
-                <label>
-                    <input type="radio" name="course_history_3" value="no">
-                    No
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_3" value="similar">
-                    Taken similar course outside of UF
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_3" value="yes">
-                    Yes
-                </label>
-            </fieldset>
-
+      <section class="form-section" aria-labelledby="eligibility-heading">
+        <h2 id="eligibility-heading">PhD Student Eligibility</h2>
+        <p class="section-help">Choose the status that applies to each course.</p>
+        <div class="form-grid">
+          <label>EAP5836 status <select name="eap5836Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
+          <label>EAP5837 status <select name="eap5837Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
         </div>
-    </div>
+      </section>
 
-
-    <!-- Preference 4 -->
-    <div class="course-preference">
-
-        <div class="preference-number">4.</div>
-
-        <div class="preference-content">
-
-            <label for="course_preference_4" class="course-label">
-                4th Course Preference
-            </label>
-
-            <select name="course_preference_4" id="course_preference_4" class="course-select">
-                <option value="" selected="">Select fourth course</option>
-            </select>
-
-            <fieldset class="course-history">
-                <legend>Have you taken the course listed above at UF?</legend>
-
-                <label>
-                    <input type="radio" name="course_history_4" value="no">
-                    No
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_4" value="similar">
-                    Taken similar course outside of UF
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_4" value="yes">
-                    Yes
-                </label>
-            </fieldset>
-
+      <section class="form-section" aria-labelledby="additional-heading">
+        <h2 id="additional-heading">Additional Information</h2>
+        <div class="form-grid">
+          <label>Planned TA hours per week <select name="taHours" required><option value="">Select hours</option><option value="10">10 hours</option><option value="20">20 hours</option></select></label>
+          <label>English score (if applicable) <select name="englishScore"><option value="">Not applicable</option><optgroup label="SPEAK"><option>SPEAK-20</option><option>SPEAK-25</option><option>SPEAK-30</option><option>SPEAK-35</option><option>SPEAK-40</option><option>SPEAK-45</option><option>SPEAK-50</option><option>SPEAK-55</option><option>SPEAK-60</option></optgroup><optgroup label="TOEFL iBT"><option>TOEFL-6.0</option><option>TOEFL-5.5</option><option>TOEFL-5.0</option><option>TOEFL-4.5</option><option>TOEFL-4.0</option><option>TOEFL-3.5</option><option>TOEFL-3.0</option><option>TOEFL-2.5</option><option>TOEFL-2.0</option><option>TOEFL-1.5</option><option>TOEFL-1.0</option></optgroup></select></label>
+          <label class="full-width">Anything else the professor should know, including planned travel <textarea name="additionalInfo" rows="5"></textarea></label>
+          <label class="full-width">Resume (optional; PDF, DOC, or DOCX, max 5 MB) <input name="resume" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
         </div>
-    </div>
+      </section>
 
-
-    <!-- Preference 5 -->
-    <div class="course-preference">
-
-        <div class="preference-number">5.</div>
-
-        <div class="preference-content">
-
-            <label for="course_preference_5" class="course-label">
-                5th Course Preference
-                <span class="rank-label lowest">Lowest Rank</span>
-            </label>
-
-            <select name="course_preference_5" id="course_preference_5" class="course-select">
-                <option value="" selected="">Select fifth course</option>
-            </select>
-
-            <fieldset class="course-history">
-                <legend>Have you taken the course listed above at UF?</legend>
-
-                <label>
-                    <input type="radio" name="course_history_5" value="no">
-                    No
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_5" value="similar">
-                    Taken similar course outside of UF
-                </label>
-
-                <label>
-                    <input type="radio" name="course_history_5" value="yes">
-                    Yes
-                </label>
-            </fieldset>
-
+      <section class="form-section course-section" aria-labelledby="preferences-heading">
+        <h2 id="preferences-heading">Course Preferences</h2>
+        <p class="section-help">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and indicate whether you have taken it.</p>
+        <div class="course-selection-layout">
+          <div class="course-chooser">
+            <h3>Available courses</h3>
+            <p class="course-subhelp">Check up to five courses.</p>
+            <div id="available-course-list" class="available-course-list" aria-describedby="course-selection-message"></div>
+            <p id="course-selection-message" class="course-selection-message" role="status" aria-live="polite"></p>
+          </div>
+          <div class="course-ranking-panel">
+            <h3>Your course rankings</h3>
+            <p class="course-subhelp">Set a different rank for each course and answer the course-history question.</p>
+            <div id="student-course-preferences" class="preferences-grid"></div>
+          </div>
         </div>
-    </div></div>
+      </section>
+
+      <footer class="form-actions">
+        <p class="student-app-message" id="form-message" role="status" aria-live="polite"></p>
+        <button type="submit">Submit Application</button>
+      </footer>
+    </form>
+  </main>
 <!-- /wp:html -->
-
-<!-- wp:buttons {"layout":{"type":"flex","verticalAlignment":"stretch"}} -->
-<div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button"></a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
-<!-- wp:buttons {"layout":{"type":"flex","verticalAlignment":"stretch","justifyContent":"center"}} -->
-<div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button">SUBMIT APPLICATION</a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
-<!-- wp:paragraph -->
-<p></p>
-<!-- /wp:paragraph -->

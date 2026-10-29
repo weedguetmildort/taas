@@ -124,9 +124,10 @@ class TAAS_DB {
 	/**
 	 * Hash every file the installer reads, so any schema change is detected
 	 *
-	 * Covers the contents of sql/schema.sql and sql/constraints.sql, plus the
-	 * names of migrations and page files. Names suffice for those two, because
-	 * the migration runner tracks by filename and pages are adopted by slug.
+	 * Covers the contents of sql/schema.sql, sql/constraints.sql and every
+	 * page file, plus the names of migrations. Names suffice for migrations,
+	 * because the runner tracks them by filename and never re-runs one. Page
+	 * contents count, because the installer syncs them into existing pages.
 	 *
 	 * @param string $plugin_path Plugin root directory
 	 * @return string SHA-256 hex digest
@@ -140,11 +141,17 @@ class TAAS_DB {
 			$parts[] = $file . ':' . ( is_file( $path ) ? (string) hash_file( 'sha256', $path ) : 'missing' );
 		}
 
-		foreach ( array( 'migrations/*.php', 'pages/*.html' ) as $pattern ) {
-			$files = glob( $plugin_path . $pattern );
-			$names = array_map( 'basename', false === $files ? array() : $files );
-			sort( $names, SORT_STRING );
-			$parts[] = $pattern . ':' . implode( ',', $names );
+		$migrations = glob( $plugin_path . 'migrations/*.php' );
+		$names      = array_map( 'basename', false === $migrations ? array() : $migrations );
+		sort( $names, SORT_STRING );
+		$parts[] = 'migrations:' . implode( ',', $names );
+
+		$pages = glob( $plugin_path . 'pages/*.html' );
+		$pages = false === $pages ? array() : $pages;
+		sort( $pages, SORT_STRING );
+
+		foreach ( $pages as $path ) {
+			$parts[] = 'pages/' . basename( $path ) . ':' . (string) hash_file( 'sha256', $path );
 		}
 
 		return hash( 'sha256', implode( "\n", $parts ) );

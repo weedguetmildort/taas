@@ -3,24 +3,23 @@
 /* MAIN WHITE CARD */
 
 .hr-portal-container {
-    max-width: 900px;
+    width: 95%;
+    max-width: 1100px;
     margin: 30px auto;
-    padding: 35px;
+    padding: 40px 35px;
 
     background: #ffffff;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 
     font-family: Arial, sans-serif;
     color: #222;
-
     box-sizing: border-box;
 }
-
 
 /* HEADER */
 
 .hr-header {
-    margin-bottom: 35px;
+    margin-bottom: 30px;
 }
 
 .hr-header h2 {
@@ -31,604 +30,1017 @@
 .hr-header p {
     font-size: 14px;
     line-height: 1.5;
-    margin: 0;
 }
 
+/* FILTER DROPDOWN */
 
-/* APPLICANT SECTION */
+.student-filter-section {
+    margin-bottom: 30px;
+    padding: 20px;
+
+    background: #f7f7f7;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.student-filter-section label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.student-filter-section select {
+    width: 100%;
+    max-width: 350px;
+    height: 38px;
+
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+
+    background: white;
+    color: #222;
+    font-size: 14px;
+}
+
+/* APPLICANTS SECTION */
 
 .applicants-section h3 {
     font-size: 18px;
     margin-bottom: 20px;
 }
 
-
 /* TABLE */
 
-.applicant-table {
+.hr-table-wrapper {
     width: 100%;
+    overflow-x: auto;
 }
 
-.applicant-row {
-    display: grid;
-
-    grid-template-columns:
-        1.3fr
-        1fr
-        0.9fr
-        0.6fr
-        1.2fr
-        1.8fr;
-
-    align-items: center;
-
-    min-height: 52px;
-
-    padding: 8px 10px;
-
-    background: #f5f5f5;
-
-    border-bottom: 3px solid white;
-    border-left: 4px solid transparent;
-
+.hr-applicant-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 13px;
-
-    cursor: pointer;
-
-    box-sizing: border-box;
-
-    transition:
-        background-color 0.15s ease,
-        border-color 0.15s ease;
+    text-align: left;
 }
 
-
-/* Hover */
-
-.applicant-row:not(.applicant-heading):hover {
-    background: #eeeeee;
-}
-
-
-/* SELECTED APPLICANT */
-
-.applicant-row.selected {
-    background: #e8f1f8;
-    border-left: 4px solid #2271b1;
-}
-
-
-/* TABLE HEADER */
-
-.applicant-heading {
-    background: white;
-
+.hr-applicant-table th {
+    padding: 13px 10px;
+    background: #f1f1f1;
+    border-bottom: 2px solid #ddd;
     font-weight: 600;
-
-    border-left: 4px solid transparent;
-    border-bottom: 1px solid #ccc;
-
-    cursor: default;
+    text-align: left;
 }
 
+.hr-applicant-table td {
+    padding: 14px 10px;
+    border-bottom: 2px solid white;
+}
+
+.hr-applicant-table tbody tr.student-row {
+    background: #f5f5f5;
+}
+
+.hr-applicant-table tbody tr.student-row:hover {
+    background: #e8f1f8;
+}
 
 /* VIEW BUTTON */
 
-.view-button {
-    background: none;
-
-    border: 1px solid #aaa;
+.hr-applicant-table .view-button {
+    padding: 6px 12px;
+    background: #eeeeee;
+    border: 1px solid #ccc;
     border-radius: 3px;
-
-    padding: 5px 10px;
-
-    font-size: 12px;
-
     cursor: pointer;
 }
 
-.view-button:hover {
-    background: #e5e5e5;
+.hr-applicant-table .view-button:hover {
+    background: #dddddd;
 }
-
 
 /* APPROVE / REJECT */
 
-.decision-options {
+.hr-applicant-table .decision-options {
     display: flex;
     gap: 12px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
-.decision-options label {
+.hr-applicant-table .decision-options label {
     display: flex;
-    align-items: center;
     gap: 4px;
-
+    align-items: center;
     font-size: 12px;
-
     cursor: pointer;
 }
 
-.approve-option input {
-    accent-color: #2e8540;
+.hr-applicant-table .decision-options input {
+    accent-color: #2271b1;
 }
 
-.reject-option input {
-    accent-color: #c62828;
-}
+/* EXPANDED APPLICATION DETAILS */
 
-
-/* EXPANDED APPLICATION */
-
-.application-details {
+.hr-applicant-table .student-details {
     display: none;
-
-    padding: 20px 25px;
-
     background: #fafafa;
+}
 
+.hr-applicant-table .student-details td {
+    padding: 20px;
     border-left: 4px solid #2271b1;
-    border-bottom: 3px solid white;
 }
 
-.application-details.open {
-    display: block;
-}
-
-.application-details h4 {
-    margin: 0 0 18px;
-
-    font-size: 16px;
-}
-
-
-/* APPLICATION INFORMATION */
-
-.application-info-grid {
-    display: grid;
-
-    grid-template-columns: repeat(3, 1fr);
-
-    gap: 20px;
-}
-
-.application-info-grid span,
-.application-notes span {
-    display: block;
-
-    font-size: 11px;
-    color: #666;
-
-    margin-bottom: 4px;
-}
-
-.application-info-grid strong {
+.hr-applicant-table .student-details p {
+    margin: 10px 0 0;
     font-size: 13px;
 }
 
+/* HIDE OTHER STUDENT TYPES */
 
-/* NOTES */
-
-.application-notes {
-    margin-top: 20px;
+.hr-applicant-table .student-row.hidden,
+.hr-applicant-table .student-details.hidden {
+    display: none;
 }
 
-.application-notes p {
-    font-size: 13px;
+/* SELECTED ROW */
 
-    margin: 5px 0 0;
-
-    line-height: 1.4;
+.hr-applicant-table .student-row.selected {
+    background: #e8f1f8;
+    box-shadow: inset 4px 0 #2271b1;
 }
-
 
 /* SAVE BUTTON */
 
-.save-section {
+.hr-portal-container .save-section {
     margin-top: 25px;
-
-    text-align: center;
 }
 
-.save-button {
+.hr-portal-container .save-button {
     width: 100%;
-
-    padding: 11px 20px;
+    padding: 12px 20px;
 
     background: #ff7f11;
     color: white;
-
     border: none;
-
-    font-size: 14px;
-
     cursor: pointer;
+    font-size: 14px;
 }
 
-.save-button:hover {
+.hr-portal-container .save-button:hover {
     background: #e66f08;
 }
 
-
 /* MOBILE */
 
-@media (max-width: 850px) {
-
+@media (max-width: 768px) {
     .hr-portal-container {
-        margin: 20px 10px;
         padding: 20px;
     }
 
-    .applicant-heading {
-        display: none;
+    .hr-applicant-table {
+        min-width: 800px;
     }
-
-    .applicant-row {
-        grid-template-columns: 1fr;
-
-        gap: 8px;
-
-        padding: 15px;
-    }
-
-    .application-info-grid {
-        grid-template-columns: 1fr;
-    }
-
 }
+
+/* Ensure filtered rows are actually hidden */
+
+.hr-applicant-table tr.student-row.hidden,
+.hr-applicant-table tr.student-details.hidden {
+    display: none !important;
+}
+
+/* Keep application details hidden until View is clicked */
+
+.hr-applicant-table tr.student-details {
+    display: none;
+}
+
+/* Highlight the selected applicant */
+
+.hr-applicant-table tr.student-row.selected {
+    background-color: #e8f1f8;
+    box-shadow: inset 4px 0 #1733a5;
+}
+
+/* HR APPLICATION REVIEW PROGRESS */
+
+.hr-review-progress {
+    background: #f7f8fa;
+    border: 1px solid #e1e5eb;
+    border-radius: 6px;
+
+    padding: 25px 30px;
+    margin: 25px 0 30px;
+}
+
+/* HEADER */
+
+.hr-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.hr-progress-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #222;
+    margin: 0;
+}
+
+.hr-progress-label {
+    font-size: 13px;
+    color: #666;
+}
+
+/* REVIEW COUNT */
+
+.hr-progress-count {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+#hr-reviewed-count {
+    font-size: 36px;
+    font-weight: 700;
+    color: #0021a5;
+}
+
+.hr-progress-divider,
+#hr-total-applicants {
+    font-size: 27px;
+    font-weight: 600;
+    color: #555;
+}
+
+.hr-progress-description {
+    margin-left: 10px;
+    font-size: 15px;
+    color: #555;
+}
+
+/* PROGRESS BAR */
+
+.hr-progress-bar {
+    width: 100%;
+    height: 13px;
+    background: #e0e4eb;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.hr-progress-fill {
+    height: 100%;
+    background: #0021a5;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* FOOTER */
+
+.hr-progress-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 12px;
+
+    font-size: 14px;
+    color: #555;
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+    .hr-review-progress {
+        padding: 20px;
+    }
+
+    .hr-progress-header h3 {
+        font-size: 18px;
+    }
+
+    #hr-reviewed-count {
+        font-size: 30px;
+    }
+
+    .hr-progress-description {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* REVIEWED AND APPROVED SIDE BY SIDE */
+
+.hr-progress-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 20px;
+}
+
+/* LEFT SIDE */
+
+.hr-reviewed-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.hr-reviewed-stat .hr-progress-count {
+    margin-bottom: 0;
+}
+
+.hr-reviewed-stat .hr-progress-description {
+    margin-left: 0;
+    font-size: 14px;
+    color: #555;
+}
+
+/* RIGHT SIDE */
+
+.hr-approved-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.hr-approved-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+}
+
+#hr-approved-count {
+    font-size: 36px;
+    font-weight: 700;
+    color: #228b55;
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+    .hr-progress-stats {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .hr-approved-stat {
+        align-items: flex-start;
+    }
+}
+
 </style>
 
 <script data-wp-block-html="js">
 <script>
+(function () {
+    "use strict";
 
-function selectApplicant(row) {
+    function initializeHRPortal() {
 
-    // Remove selection from all other applicants
-    document
-        .querySelectorAll(".applicant-row")
-        .forEach(function(item) {
-            item.classList.remove("selected");
+        const container = document.querySelector(
+            ".hr-portal-container"
+        );
+
+        if (!container) {
+            console.error("HR portal container not found.");
+            return;
+        }
+
+        // Prevent duplicate initialization
+        if (container.dataset.initialized === "true") {
+            return;
+        }
+
+        const table = container.querySelector(
+            ".hr-applicant-table"
+        );
+
+        const filter = container.querySelector(
+            "#student-type-filter"
+        );
+
+        const saveButton = container.querySelector(
+            ".save-button"
+        );
+
+        const saveMessage = container.querySelector(
+            "#hr-save-message"
+        );
+
+        const reviewedElement = container.querySelector(
+            "#hr-reviewed-count"
+        );
+
+        const totalElement = container.querySelector(
+            "#hr-total-applicants"
+        );
+
+        const remainingElement = container.querySelector(
+            "#hr-remaining-count"
+        );
+
+        const percentageElement = container.querySelector(
+            "#hr-progress-percentage"
+        );
+
+        const progressFill = container.querySelector(
+            "#hr-progress-fill"
+        );
+
+        if (
+            !table ||
+            !filter ||
+            !saveButton ||
+            !saveMessage ||
+            !reviewedElement ||
+            !totalElement ||
+            !remainingElement ||
+            !percentageElement ||
+            !progressFill
+        ) {
+            console.error(
+                "One or more HR portal elements are missing."
+            );
+            return;
+        }
+
+        container.dataset.initialized = "true";
+
+        const studentRows = table.querySelectorAll(
+            ".student-row"
+        );
+
+        const detailRows = table.querySelectorAll(
+            ".student-details"
+        );
+
+        const viewButtons = table.querySelectorAll(
+            ".view-button"
+        );
+
+        // Track reviews during this page session
+        const reviewedStudents = new Set();
+
+
+        /* =====================================
+           FILTER STUDENTS AND COLUMNS
+        ===================================== */
+
+        function filterStudents() {
+
+            const selectedType = filter.value;
+
+            // Show only matching students
+            studentRows.forEach(function (row) {
+
+                const matches = row.classList.contains(
+                    selectedType
+                );
+
+                row.style.display = matches
+                    ? "table-row"
+                    : "none";
+
+                row.classList.remove("selected");
+            });
+
+            // Close all application details
+            detailRows.forEach(function (row) {
+                row.style.display = "none";
+            });
+
+            // Advisor column only for PhD
+            table.querySelectorAll(".phd-only")
+                .forEach(function (cell) {
+
+                    cell.style.display =
+                        selectedType === "phd"
+                            ? ""
+                            : "none";
+                });
+
+            // Count visible table headers
+            const visibleColumns = Array.from(
+                table.querySelectorAll("thead th")
+            ).filter(function (th) {
+
+                return window.getComputedStyle(th)
+                    .display !== "none";
+
+            }).length;
+
+            // Adjust detail row width
+            detailRows.forEach(function (row) {
+
+                const cell = row.querySelector("td");
+
+                if (cell) {
+                    cell.colSpan = visibleColumns;
+                }
+            });
+
+            // Reset View buttons
+            viewButtons.forEach(function (button) {
+                button.textContent = "View";
+            });
+
+        }
+
+        filter.addEventListener(
+            "change",
+            filterStudents
+        );
+
+
+        /* =====================================
+           VIEW APPLICATION DETAILS
+        ===================================== */
+
+        viewButtons.forEach(function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    const row = button.closest(
+                        ".student-row"
+                    );
+
+                    if (!row) return;
+
+                    const details = row.nextElementSibling;
+
+                    if (
+                        !details ||
+                        !details.classList.contains(
+                            "student-details"
+                        )
+                    ) {
+                        return;
+                    }
+
+                    const wasOpen =
+                        details.style.display === "table-row";
+
+                    // Close other details
+                    detailRows.forEach(function (item) {
+                        item.style.display = "none";
+                    });
+
+                    // Remove row highlights
+                    studentRows.forEach(function (item) {
+                        item.classList.remove("selected");
+                    });
+
+                    // Reset button text
+                    viewButtons.forEach(function (item) {
+                        item.textContent = "View";
+                    });
+
+                    // Open selected application
+                    if (!wasOpen) {
+
+                        details.style.display = "table-row";
+
+                        row.classList.add("selected");
+
+                        button.textContent = "Hide";
+                    }
+                }
+            );
         });
 
-    // Highlight clicked applicant
-    row.classList.add("selected");
-}
+
+        /* =====================================
+           UPDATE PROGRESS BAR
+        ===================================== */
+
+        function updateProgress() {
+
+            const total = Number(
+                totalElement.textContent
+            );
+
+            const reviewed = Number(
+                reviewedElement.textContent
+            );
+
+            const remaining = Math.max(
+                0,
+                total - reviewed
+            );
+
+            const percentage = total > 0
+                ? Math.min(
+                    100,
+                    (reviewed / total) * 100
+                )
+                : 0;
+
+            remainingElement.textContent =
+                remaining + " Remaining";
+
+            percentageElement.textContent =
+                percentage.toFixed(1) +
+                "% Completed";
+
+            progressFill.style.width =
+                percentage + "%";
+        }
 
 
-function toggleApplication(event, button) {
+        /* =====================================
+           SAVE HR DECISIONS (DEMO)
+        ===================================== */
 
-    // Prevent button click from interfering
-    // with the row selection
-    event.stopPropagation();
+        saveButton.addEventListener(
+            "click",
+            function () {
 
-    const row = button.closest(".applicant-row");
-    const details = row.nextElementSibling;
+                let newReviews = 0;
 
-    // Select this applicant
-    document
-        .querySelectorAll(".applicant-row")
-        .forEach(function(item) {
-            item.classList.remove("selected");
-        });
+                studentRows.forEach(function (row, index) {
 
-    row.classList.add("selected");
+                    const selectedDecision =
+                        row.querySelector(
+                            'input[type="radio"]:checked'
+                        );
 
+                    if (
+                        selectedDecision &&
+                        !reviewedStudents.has(index)
+                    ) {
 
-    // Close other applications
-    document
-        .querySelectorAll(".application-details")
-        .forEach(function(item) {
+                        reviewedStudents.add(index);
 
-            if (item !== details) {
-                item.classList.remove("open");
+                        newReviews++;
+                    }
+                });
+
+                if (newReviews > 0) {
+
+                    const currentReviewed = Number(
+                        reviewedElement.textContent
+                    );
+
+                    const total = Number(
+                        totalElement.textContent
+                    );
+
+                    reviewedElement.textContent =
+                        Math.min(
+                            currentReviewed + newReviews,
+                            total
+                        );
+
+                    updateProgress();
+
+                    saveMessage.textContent =
+                        newReviews +
+                        " application decision(s) recorded " +
+                        "for this demonstration.";
+
+                    saveMessage.style.color = "#2271b1";
+
+                } else {
+
+                    saveMessage.textContent =
+                        "No new application decisions to record.";
+
+                    saveMessage.style.color = "#666";
+                }
             }
-
-        });
-
-
-    // Open/close this application
-    details.classList.toggle("open");
+        );
 
 
-    if (details.classList.contains("open")) {
-        button.textContent = "Hide";
-    } else {
-        button.textContent = "View";
+        /* =====================================
+           INITIALIZE PAGE
+        ===================================== */
+
+        filterStudents();
+
+        updateProgress();
+
+        console.log(
+            "HR portal initialized successfully."
+        );
     }
-}
 
-</script>
+
+    // Initialize once DOM is ready
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeHRPortal,
+            { once: true }
+        );
+
+    } else {
+
+        initializeHRPortal();
+    }
+
+})();
 </script>
 
 <div class="hr-portal-container">
 
+    <!-- HEADER -->
     <div class="hr-header">
         <h2>TA Application HR Portal</h2>
-
         <p>
-            Below is an overview of the current TA applicants.
-            Select an applicant to review their application and
-            approve or reject their application.
+            Below is an overview of current TA applicants.
+            Select a student type to filter applications,
+            review applicant information, and approve or
+            reject applications.
         </p>
     </div>
 
+    
+<!-- HR APPLICATION REVIEW PROGRESS -->
+<div class="hr-review-progress">
 
+    <div class="hr-progress-header">
+        <h3>HR Application Review Progress</h3>
+
+        <span class="hr-progress-label">
+            Current Application Cycle
+        </span>
+    </div>
+
+    <!-- REVIEWED AND APPROVED COUNTS -->
+    <div class="hr-progress-stats">
+
+        <div class="hr-reviewed-stat">
+            <div class="hr-progress-count">
+                <span id="hr-reviewed-count">45</span>
+                <span class="hr-progress-divider">/</span>
+                <span id="hr-total-applicants">200</span>
+            </div>
+
+            <span class="hr-progress-description">
+                Applications Reviewed
+            </span>
+        </div>
+
+        <!-- TOTAL APPROVED -->
+        <div class="hr-approved-stat">
+            <span class="hr-approved-label">
+                Total Approved
+            </span>
+
+            <span id="hr-approved-count">22</span>
+        </div>
+
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="hr-progress-bar">
+        <div
+            id="hr-progress-fill"
+            class="hr-progress-fill"
+            style="width: 22.5%;">
+        </div>
+    </div>
+
+    <!-- PROGRESS FOOTER -->
+    <div class="hr-progress-footer">
+        <span id="hr-progress-percentage">
+            22.5% Completed
+        </span>
+
+        <span id="hr-remaining-count">
+            155 Remaining
+        </span>
+    </div>
+
+</div> <!-- END HR REVIEW PROGRESS -->
+
+
+    <!-- FILTER SECTION -->
+    <div class="student-filter-section">
+
+        <label for="student-type-filter">
+            Filter Applicants by Student Type
+        </label>
+
+        <select id="student-type-filter">
+    <option value="phd">PhD Students</option>
+    <option value="masters">Master's Students</option>
+    <option value="undergrad">Undergraduate Students</option>
+</select>
+           
+    </div>
+
+    <!-- APPLICANT TABLE -->
     <div class="applicants-section">
 
-        <h3>Current Applicants for &lt;TERM&gt; &lt;YEAR&gt;</h3>
+        <h3>
+            Current Applicants for
+            &lt;TERM&gt; &lt;YEAR&gt;
+        </h3>
+
+        <div class="hr-table-wrapper">
+
+            <table class="hr-applicant-table">
+
+                <thead>
+                    <tr>
+                        <th>Applicant Name</th>
+                        <th>View Application</th>
+                        <th>GPA</th>
+                        <th>SPEAK / TOEFL iBT Score</th>
+                        <th>Country of Origin</th>
+                        <th class="phd-only">
+                            Advisor Name
+                        </th>
+                        <th>Decision</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <!-- PHD STUDENT -->
+                    <tr class="student-row phd">
+
+                        <td>Jane Doe</td>
+
+                        <td>
+                            <button type="button" class="view-button">
+                                View
+                            </button>
+                        </td>
+
+                        <td>3.9</td>
+                        <td>SPEAK: 55</td>
+                        <td>United States</td>
+
+                        <td class="phd-only">
+                            Dr. Smith
+                        </td>
+
+                        <td>
+                            <div class="decision-options">
+                                <label>
+                                    <input type="radio" name="decision_jane" value="approve">
+                                    Approve
+                                </label>
+
+                                <label>
+                                    <input type="radio" name="decision_jane" value="reject">
+                                    Reject
+                                </label>
+                            </div>
+                        </td>
+
+                    </tr>
+
+                    <tr class="student-details phd">
+                        <td colspan="7">
+
+                            <strong>
+                                Jane Doe - Application
+                            </strong>
+
+                            <p>
+                                Additional application
+                                information will appear
+                                here once connected
+                                to the backend.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- MASTERS STUDENT -->
+                    <tr class="student-row masters">
+
+                        <td>John Smith</td>
+
+                        <td>
+                            <button type="button" class="view-button">
+                                View
+                            </button>
+                        </td>
+
+                        <td>3.8</td>
+                        <td>TOEFL iBT: 26</td>
+                        <td>India</td>
+
+                        <td class="phd-only"></td>
+
+                        <td>
+                            <div class="decision-options">
+                                <label>
+                                    <input type="radio" name="decision_john" value="approve">
+                                    Approve
+                                </label>
+
+                                <label>
+                                    <input type="radio" name="decision_john" value="reject">
+                                    Reject
+                                </label>
+                            </div>
+                        </td>
 
-        <div class="applicant-table">
+                    </tr>
 
-            <!-- Table Header -->
-            <div class="applicant-row applicant-heading">
-                <div>Applicant Name</div>
-                <div>View Application</div>
-                <div>UFID</div>
-                <div>GPA</div>
-                <div>USA Country of Origin?</div>
-                <div>Decision</div>
-            </div>
+                    <tr class="student-details masters">
+                        <td colspan="6">
 
+                            <strong>
+                                John Smith - Application
+                            </strong>
 
-            <!-- APPLICANT 1 -->
-            <div class="applicant-row"
-                 onclick="selectApplicant(this)">
+                            <p>
+                                Additional application
+                                information will appear
+                                here once connected
+                                to the backend.
+                            </p>
 
-                <div>Jane Doe</div>
+                        </td>
+                    </tr>
 
-                <div>
-                    <button
-                        type="button"
-                        class="view-button"
-                        onclick="toggleApplication(event, this)"
-                    >
-                        View
-                    </button>
-                </div>
+                    <!-- UNDERGRADUATE STUDENT -->
+                    <tr class="student-row undergrad">
 
-                <div>12345678</div>
+                        <td>Leonardo Rey</td>
 
-                <div>3.7</div>
+                        <td>
+                            <button type="button" class="view-button">
+                                View
+                            </button>
+                        </td>
 
-                <div>Yes</div>
+                        <td>3.7</td>
+                        <td>Not Applicable</td>
+                        <td>United States</td>
 
-                <div class="decision-options">
+                        <td class="phd-only"></td>
 
-                    <label class="approve-option">
-                        <input
-                            type="radio"
-                            name="decision_12345678"
-                            value="approve"
-                        >
-                        Approve
-                    </label>
+                        <td>
+                            <div class="decision-options">
+                                <label>
+                                    <input type="radio" name="decision_leonardo" value="approve">
+                                    Approve
+                                </label>
 
-                    <label class="reject-option">
-                        <input
-                            type="radio"
-                            name="decision_12345678"
-                            value="reject"
-                        >
-                        Reject
-                    </label>
+                                <label>
+                                    <input type="radio" name="decision_leonardo" value="reject">
+                                    Reject
+                                </label>
+                            </div>
+                        </td>
 
-                </div>
+                    </tr>
 
-            </div>
+                    <tr class="student-details undergrad">
+                        <td colspan="6">
 
+                            <strong>
+                                Leonardo Rey - Application
+                            </strong>
 
-            <!-- Expanded Application -->
-            <div class="application-details">
+                            <p>
+                                Additional application
+                                information will appear
+                                here once connected
+                                to the backend.
+                            </p>
 
-                <h4>Jane Doe — Application</h4>
+                        </td>
+                    </tr>
 
-                <div class="application-info-grid">
+                </tbody>
 
-                    <div>
-                        <span>UFID</span>
-                        <strong>12345678</strong>
-                    </div>
-
-                    <div>
-                        <span>GPA</span>
-                        <strong>3.7</strong>
-                    </div>
-
-                    <div>
-                        <span>Hours Available</span>
-                        <strong>10–15 hours</strong>
-                    </div>
-
-                    <div>
-                        <span>Course Preference #1</span>
-                        <strong>Course data</strong>
-                    </div>
-
-                    <div>
-                        <span>Course Preference #2</span>
-                        <strong>Course data</strong>
-                    </div>
-
-                    <div>
-                        <span>Course Preference #3</span>
-                        <strong>Course data</strong>
-                    </div>
-
-                </div>
-
-                <div class="application-notes">
-                    <span>Additional Information</span>
-
-                    <p>
-                        Applicant information will appear here once the
-                        application is connected to the database.
-                    </p>
-                </div>
-
-            </div>
-
-
-            <!-- APPLICANT 2 -->
-            <div class="applicant-row"
-                 onclick="selectApplicant(this)">
-
-                <div>John Smith</div>
-
-                <div>
-                    <button
-                        type="button"
-                        class="view-button"
-                        onclick="toggleApplication(event, this)"
-                    >
-                        View
-                    </button>
-                </div>
-
-                <div>11223344</div>
-
-                <div>4.0</div>
-
-                <div>No</div>
-
-                <div class="decision-options">
-
-                    <label class="approve-option">
-                        <input
-                            type="radio"
-                            name="decision_11223344"
-                            value="approve"
-                        >
-                        Approve
-                    </label>
-
-                    <label class="reject-option">
-                        <input
-                            type="radio"
-                            name="decision_11223344"
-                            value="reject"
-                        >
-                        Reject
-                    </label>
-
-                </div>
-
-            </div>
-
-
-            <!-- Expanded Application -->
-            <div class="application-details">
-
-                <h4>John Smith — Application</h4>
-
-                <div class="application-info-grid">
-
-                    <div>
-                        <span>UFID</span>
-                        <strong>11223344</strong>
-                    </div>
-
-                    <div>
-                        <span>GPA</span>
-                        <strong>4.0</strong>
-                    </div>
-
-                    <div>
-                        <span>Hours Available</span>
-                        <strong>5–10 hours</strong>
-                    </div>
-
-                    <div>
-                        <span>English Proficiency</span>
-                        <strong>Score data</strong>
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- APPLICANT 3 -->
-            <div class="applicant-row"
-                 onclick="selectApplicant(this)">
-
-                <div>Leonardo Rey</div>
-
-                <div>
-                    <button
-                        type="button"
-                        class="view-button"
-                        onclick="toggleApplication(event, this)"
-                    >
-                        View
-                    </button>
-                </div>
-
-                <div>12123432</div>
-
-                <div>3.8</div>
-
-                <div>Yes</div>
-
-                <div class="decision-options">
-
-                    <label class="approve-option">
-                        <input
-                            type="radio"
-                            name="decision_12123432"
-                            value="approve"
-                        >
-                        Approve
-                    </label>
-
-                    <label class="reject-option">
-                        <input
-                            type="radio"
-                            name="decision_12123432"
-                            value="reject"
-                        >
-                        Reject
-                    </label>
-
-                </div>
-
-            </div>
-
-
-            <!-- Expanded Application -->
-            <div class="application-details">
-
-                <h4>Leonardo Rey — Application</h4>
-
-                <div class="application-info-grid">
-
-                    <div>
-                        <span>UFID</span>
-                        <strong>12123432</strong>
-                    </div>
-
-                    <div>
-                        <span>GPA</span>
-                        <strong>3.8</strong>
-                    </div>
-
-                    <div>
-                        <span>Hours Available</span>
-                        <strong>10–15 hours</strong>
-                    </div>
-
-                </div>
-
-            </div>
+            </table>
 
         </div>
 
-
+        <!-- SAVE BUTTON -->
         <div class="save-section">
 
             <button type="button" class="save-button">
                 Save Changes
             </button>
+
+            <p id="hr-save-message" role="status" aria-live="polite" style="font-size:13px; margin-top:12px;">
+            </p>
 
         </div>
 

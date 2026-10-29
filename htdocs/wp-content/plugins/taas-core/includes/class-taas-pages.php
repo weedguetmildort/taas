@@ -25,24 +25,48 @@ class TAAS_Pages {
 	/**
 	 * Declare the pages, keyed by slug
 	 *
-	 * @return array<string, array{title: string, parent: string|null}>
+	 * Set 'front_page' on the one page WordPress should serve at the site root.
+	 * Its slug still exists, but WordPress redirects it to /.
+	 *
+	 * @return array<string, array{title: string, parent: string|null, front_page?: bool}>
 	 */
 	private static function definitions(): array {
 		return array(
-			'admin-page'               => array(
-				'title'  => 'Admin Page(need to figure out parsing csv with php)',
-				'parent' => null,
+			'front-page'                     => array(
+				'title'      => 'Student Home Page',
+				'parent'     => null,
+				'front_page' => true,
 			),
-			'hr-page'                  => array(
-				'title'  => 'HR Page',
-				'parent' => null,
-			),
-			'student-application'      => array(
+			'student-application'            => array(
 				'title'  => 'Student Application',
 				'parent' => null,
 			),
-			'suggested-ta-assignments' => array(
-				'title'  => 'Suggested TA Assignments',
+			'check-application-status'       => array(
+				'title'  => 'Check Application Status',
+				'parent' => null,
+			),
+			'professor-homepage'             => array(
+				'title'  => 'Professor Home Page',
+				'parent' => null,
+			),
+			'professor-page'                 => array(
+				'title'  => 'Professor Page',
+				'parent' => null,
+			),
+			'hr-page'                        => array(
+				'title'  => 'HR Page',
+				'parent' => null,
+			),
+			'admin-page'                     => array(
+				'title'  => 'Admin Home Page',
+				'parent' => null,
+			),
+			'manage-course-listings-admin'   => array(
+				'title'  => 'Admin Manage Course Listings',
+				'parent' => null,
+			),
+			'view-student-application-admin' => array(
+				'title'  => 'Admin View Student Application',
 				'parent' => null,
 			),
 		);
@@ -89,7 +113,7 @@ class TAAS_Pages {
 				// Restore trashed pages rather than leaving the site with an invisible page
 				if ( 'trash' === $existing->post_status ) {
 					wp_untrash_post( $existing->ID );
-					wp_update_post(
+					self::save(
 						array(
 							'ID'          => $existing->ID,
 							'post_status' => 'publish',
@@ -103,7 +127,7 @@ class TAAS_Pages {
 				continue;
 			}
 
-			$id = wp_insert_post(
+			$id = self::save(
 				array(
 					'post_title'   => $page['title'],
 					'post_name'    => $slug,
@@ -111,8 +135,7 @@ class TAAS_Pages {
 					'post_status'  => 'publish',
 					'post_type'    => 'page',
 					'post_author'  => 1,
-				),
-				true
+				)
 			);
 
 			if ( is_wp_error( $id ) ) {
@@ -148,12 +171,70 @@ class TAAS_Pages {
 				continue;
 			}
 
-			wp_update_post(
+			self::save(
 				array(
 					'ID'          => $resolved[ $slug ],
 					'post_parent' => $resolved[ $page['parent'] ],
 				)
 			);
+		}
+
+		self::set_front_page( $definitions, $resolved );
+	}
+
+	/**
+	 * Insert or update a page exactly as given
+	 *
+	 * Page files are trusted plugin code, so this bypasses the two things
+	 * WordPress does to user-submitted content: kses filtering, which strips
+	 * <script> and <style> when the current user lacks unfiltered_html (always
+	 * true on an anonymous admin request), and unslashing, which would strip
+	 * the backslash from JavaScript escapes such as backslash-u0026.
+	 *
+	 * @param array<string, mixed> $postarr Post fields; an 'ID' means update
+	 * @return int|WP_Error Post ID, or the error
+	 */
+	private static function save( array $postarr ) {
+		$filtered = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
+
+		if ( $filtered ) {
+			kses_remove_filters();
+		}
+
+		$postarr = wp_slash( $postarr );
+		$result  = isset( $postarr['ID'] ) ? wp_update_post( $postarr, true ) : wp_insert_post( $postarr, true );
+
+		if ( $filtered ) {
+			kses_init_filters();
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Serve the page flagged 'front_page' at the site root
+	 *
+	 * Same as Settings > Reading > "A static page", so the homepage is
+	 * version controlled like every other page.
+	 *
+	 * @param array<string, array> $definitions Page definitions
+	 * @param array<string, int>   $resolved Page IDs keyed by slug
+	 * @return void
+	 */
+	private static function set_front_page( array $definitions, array $resolved ): void {
+		foreach ( $definitions as $slug => $page ) {
+			if ( empty( $page['front_page'] ) || ! isset( $resolved[ $slug ] ) ) {
+				continue;
+			}
+
+			if ( 'page' === get_option( 'show_on_front' ) && (int) get_option( 'page_on_front' ) === $resolved[ $slug ] ) {
+				return;
+			}
+
+			update_option( 'show_on_front', 'page' );
+			update_option( 'page_on_front', $resolved[ $slug ] );
+			TAAS_Logger::info( 'Set front page.', array( 'slug' => $slug ) );
+			return;
 		}
 	}
 
@@ -178,12 +259,23 @@ class TAAS_Pages {
 				continue;
 			}
 
-			wp_update_post(
+			$result = self::save(
 				array(
 					'ID'           => $existing->ID,
 					'post_content' => $content,
 				)
 			);
+
+			if ( is_wp_error( $result ) ) {
+				TAAS_Logger::error(
+					'Page sync failed.',
+					array(
+						'slug'  => $slug,
+						'error' => $result->get_error_message(),
+					)
+				);
+				continue;
+			}
 
 			++$updated;
 			TAAS_Logger::info( 'Synced page content from file.', array( 'slug' => $slug ) );

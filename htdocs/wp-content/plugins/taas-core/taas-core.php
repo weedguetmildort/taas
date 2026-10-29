@@ -83,6 +83,7 @@ TAAS_REST::init();
 function taas_core_install(): void {
 	TAAS_Auth::register_roles();
 	TAAS_Pages::install();
+	TAAS_Pages::sync_content();
 	TAAS_Schema::install();
 	TAAS_Migrations::run( 'core', TAAS_CORE_PATH . 'migrations/' );
 	TAAS_DB::set_schema_version( 'core', TAAS_CORE_VERSION );
