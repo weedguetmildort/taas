@@ -29,6 +29,7 @@ final class TAAS_Application {
 	 * @param int|null          $student_preference_rank   Student's ranking of this course, 1 or greater.
 	 * @param int|null          $professor_preference_rank Professor's ranking of this student, 1 or greater.
 	 * @param TAAS_Match_Status $match_status              Matching outcome.
+	 * @param int               $assigned_hours            TA hours assigned once matched.
 	 * @throws InvalidArgumentException If the UFID or a rank is invalid.
 	 */
 	public function __construct(
@@ -41,6 +42,7 @@ final class TAAS_Application {
 		public readonly ?int $student_preference_rank = null,
 		public readonly ?int $professor_preference_rank = null,
 		public readonly TAAS_Match_Status $match_status = TAAS_Match_Status::Pending,
+		public readonly int $assigned_hours = 0,
 	) {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
 		TAAS_Guard::rank( 'student_preference_rank', $student_preference_rank );
@@ -72,6 +74,7 @@ final class TAAS_Application {
 			student_preference_rank: TAAS_Cast::int_or_null( $r['student_preference_rank'] ?? null ),
 			professor_preference_rank: TAAS_Cast::int_or_null( $r['professor_preference_rank'] ?? null ),
 			match_status: $status,
+			assigned_hours: TAAS_Cast::int( $r['assigned_hours'] ?? 0 ),
 		);
 	}
 
@@ -90,6 +93,7 @@ final class TAAS_Application {
 			'student_preference_rank'   => $this->student_preference_rank,
 			'professor_preference_rank' => $this->professor_preference_rank,
 			'match_status'              => $this->match_status->value,
+			'assigned_hours'            => $this->assigned_hours,
 		);
 
 		if ( null !== $this->application_id ) {

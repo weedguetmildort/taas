@@ -8,6 +8,7 @@ CREATE TABLE `{prefix}applications` (
   `student_preference_rank` int DEFAULT NULL,
   `professor_preference_rank` int DEFAULT NULL,
   `match_status` tinyint unsigned NOT NULL DEFAULT '1',
+  `assigned_hours` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`application_id`),
   UNIQUE KEY `student_course` (`student_ufid`,`applied_course_id`),
   KEY `applied_course_id` (`applied_course_id`),
