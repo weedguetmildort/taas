@@ -24,6 +24,7 @@ final class TAAS_Application {
 	 * @param string            $student_ufid              Applicant's UFID, 1-8 characters.
 	 * @param string            $applied_course_id         Course section applied for.
 	 * @param bool              $has_taken_course          Whether the student has taken the course.
+	 * @param bool              $has_ta_for_course         Whether the student has previously TA'd this course.
 	 * @param string|null       $student_statement         Statement of interest.
 	 * @param int|null          $student_preference_rank   Student's ranking of this course, 1 or greater.
 	 * @param int|null          $professor_preference_rank Professor's ranking of this student, 1 or greater.
@@ -35,6 +36,7 @@ final class TAAS_Application {
 		public readonly string $student_ufid,
 		public readonly string $applied_course_id,
 		public readonly bool $has_taken_course = false,
+		public readonly bool $has_ta_for_course = false,
 		public readonly ?string $student_statement = null,
 		public readonly ?int $student_preference_rank = null,
 		public readonly ?int $professor_preference_rank = null,
@@ -65,6 +67,7 @@ final class TAAS_Application {
 			student_ufid: (string) $r['student_ufid'],
 			applied_course_id: (string) $r['applied_course_id'],
 			has_taken_course: TAAS_Cast::bool( $r['has_taken_course'] ?? 0 ),
+			has_ta_for_course: TAAS_Cast::bool( $r['has_ta_for_course'] ?? 0 ),
 			student_statement: TAAS_Cast::string_or_null( $r['student_statement'] ?? null ),
 			student_preference_rank: TAAS_Cast::int_or_null( $r['student_preference_rank'] ?? null ),
 			professor_preference_rank: TAAS_Cast::int_or_null( $r['professor_preference_rank'] ?? null ),
@@ -82,6 +85,7 @@ final class TAAS_Application {
 			'student_ufid'              => $this->student_ufid,
 			'applied_course_id'         => $this->applied_course_id,
 			'has_taken_course'          => $this->has_taken_course ? 1 : 0,
+			'has_ta_for_course'         => $this->has_ta_for_course ? 1 : 0,
 			'student_statement'         => $this->student_statement,
 			'student_preference_rank'   => $this->student_preference_rank,
 			'professor_preference_rank' => $this->professor_preference_rank,

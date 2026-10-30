@@ -97,13 +97,13 @@ abstract class TAAS_REST_Controller extends WP_REST_Controller {
 	/**
 	 * Permission callback for this controller's read routes.
 	 *
-	 * HR-only by default, so a new endpoint is closed until someone decides
+	 * Admin-only by default, so a new endpoint is closed until someone decides
 	 * who may read it.
 	 *
 	 * @return callable Returns true or WP_Error when called.
 	 */
 	protected function read_permission(): callable {
-		return TAAS_Auth::require_role( TAAS_Auth::ROLE_HR_ADMIN );
+		return TAAS_Auth::require_role( TAAS_Auth::ROLE_ADMIN );
 	}
 
 	/**

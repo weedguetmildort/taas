@@ -37,6 +37,11 @@ ALTER TABLE {prefix}academic_background
 	ADD CONSTRAINT chk_background_gpa
 	CHECK (gpa IS NULL OR (gpa >= 0 AND gpa <= 4.00));
 
+-- Same rule for the current GPA on the profile
+ALTER TABLE {prefix}student_profiles
+	ADD CONSTRAINT chk_profiles_gpa
+	CHECK (gpa IS NULL OR (gpa >= 0 AND gpa <= 4.00));
+
 -- Lab hours capped at 2 per the staffing formula
 ALTER TABLE {prefix}courses
 	ADD CONSTRAINT chk_courses_lab_hours

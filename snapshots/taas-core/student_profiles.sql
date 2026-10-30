@@ -3,14 +3,18 @@ CREATE TABLE `{prefix}student_profiles` (
   `phone` varchar(15) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `admitted_semester` varchar(20) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `available_hours` int DEFAULT NULL,
-  `college_status` tinyint unsigned DEFAULT NULL,
+  `major` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `gpa` decimal(3,2) DEFAULT NULL,
+  `enrollment_status` tinyint unsigned DEFAULT NULL,
   `resume_url` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
-  `toefl_score` int DEFAULT NULL,
+  `toefl_ibt_score` int DEFAULT NULL,
+  `toefl_ibt_date` date DEFAULT NULL,
   `has_ta_experience` tinyint(1) NOT NULL DEFAULT '0',
   `eap5836_status` tinyint unsigned DEFAULT NULL,
   `eap5837_status` tinyint unsigned DEFAULT NULL,
   `country_code` varchar(2) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `additional_info` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   PRIMARY KEY (`student_ufid`),
-  CONSTRAINT `fk_profiles_student` FOREIGN KEY (`student_ufid`) REFERENCES `{prefix}students` (`student_ufid`) ON DELETE CASCADE
+  CONSTRAINT `fk_profiles_student` FOREIGN KEY (`student_ufid`) REFERENCES `{prefix}students` (`student_ufid`) ON DELETE CASCADE,
+  CONSTRAINT `chk_profiles_gpa` CHECK (((`gpa` is null) or ((`gpa` >= 0) and (`gpa` <= 4.00))))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci

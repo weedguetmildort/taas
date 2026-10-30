@@ -1,0 +1,1885 @@
+<!-- wp:html -->
+<style data-wp-block-html="css">
+.ta-apps{
+    --navy:#0d1b8c;
+    --green:#8fd14f;
+    --muted:#626262;
+    --accent:#f5801d;
+
+    font-family:Arial,Helvetica,sans-serif;
+    color:#222;
+    line-height:1.5;
+
+    width:min(100%,950px);
+    margin:0 auto;
+    padding:16px 0;
+
+    display:grid;
+    gap:20px
+}
+
+.ta-apps *{
+    box-sizing:border-box
+}
+
+.ta-apps h1,
+.ta-apps h2{
+    font-family:inherit;
+    margin:0;
+    color:var(--navy)
+}
+
+.ta-apps h1{
+    font-size:clamp(1.7rem,4vw,2.2rem)
+}
+
+.ta-apps h2{
+    margin-bottom:10px;
+    font-size:1.3rem
+}
+
+.ta-apps-intro,
+.ta-apps-help{
+    margin:0 0 16px;
+    color:var(--muted);
+    font-size:.94rem
+}
+
+.ta-apps-intro{
+    margin:8px 0 0
+}
+
+.ta-apps-eyebrow{
+    margin:0 0 2px;
+    font-size:.9rem;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--muted)
+}
+
+.ta-apps-eyebrow span{
+    margin-left:10px;
+    padding:1px 10px;
+
+    border-radius:999px;
+
+    background:#eef0fb;
+    color:var(--navy);
+
+    font-size:.78rem;
+    letter-spacing:0;
+    text-transform:none
+}
+
+.ta-apps-card{
+    padding:clamp(18px,4vw,30px);
+
+    background:#fff;
+
+    border:1px solid #e8e8e8;
+    border-radius:10px;
+
+    box-shadow:0 3px 10px rgb(0 0 0/5%)
+}
+
+
+/* COURSE SELECTOR */
+
+.ta-apps-course-picker label{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+
+    font-size:1rem;
+    font-weight:700;
+    color:var(--navy)
+}
+
+
+/* SEARCH + FILTER AREA */
+
+.ta-apps-search{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:30px
+}
+
+.ta-apps-search > label{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+
+    font-size:1rem;
+    font-weight:700;
+    color:var(--navy)
+}
+
+.ta-apps input[type="search"],
+.ta-apps select,
+.ta-apps textarea{
+    width:100%;
+    min-height:42px;
+
+    padding:9px 11px;
+
+    border:1px solid #d2d2d2;
+    border-radius:6px;
+
+    background:#fff;
+    color:#222;
+
+    font:inherit;
+    font-size:.92rem;
+    font-weight:400
+}
+
+.ta-apps textarea{
+    resize:vertical
+}
+
+.ta-apps input:focus,
+.ta-apps select:focus,
+.ta-apps textarea:focus{
+    outline:3px solid rgb(245 128 29/22%);
+    border-color:var(--accent)
+}
+
+
+/* MULTIPLE FILTERS */
+
+.ta-filter-group{
+    display:flex;
+    flex-direction:column;
+    gap:8px
+}
+
+.ta-filter-title{
+    font-size:1rem;
+    font-weight:700;
+    color:var(--navy)
+}
+
+.ta-filter-option{
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    gap:8px;
+
+    font-size:.92rem;
+    font-weight:400;
+    color:#222;
+
+    cursor:pointer
+}
+
+.ta-filter-option input{
+    width:auto;
+    min-height:0;
+    margin:0
+}
+
+.ta-clear-filters{
+    align-self:flex-start;
+
+    margin-top:5px;
+    padding:6px 12px;
+
+    border:1px solid #d2d2d2;
+    border-radius:6px;
+
+    background:#fff;
+    color:var(--navy);
+
+    font:inherit;
+    font-size:.85rem;
+    font-weight:700;
+
+    cursor:pointer
+}
+
+.ta-clear-filters:hover{
+    background:#f4f6ff;
+    border-color:var(--navy)
+}
+
+
+/* ACCESSIBILITY */
+
+.ta-apps-sr{
+    position:absolute;
+    left:-9999px
+}
+
+
+/* APPLICANT TABLE */
+
+.ta-apps-table-host{
+    overflow-x:auto;
+    color:var(--muted)
+}
+
+.ta-apps-table{
+    width:100%;
+    border-collapse:collapse;
+
+    font-size:.92rem;
+    color:#222
+}
+
+.ta-apps-table th{
+    text-align:left;
+
+    padding:8px 10px;
+
+    border-bottom:2px solid #d2d2d2;
+
+    font-weight:700;
+    white-space:nowrap
+}
+
+.ta-apps-table td{
+    padding:10px;
+
+    border-bottom:1px solid #eee;
+
+    vertical-align:middle
+}
+
+.ta-apps-table td.name{
+    font-weight:700;
+    white-space:nowrap
+}
+
+.ta-apps-row{
+    cursor:pointer
+}
+
+.ta-apps-row:hover{
+    background:#f4f6ff
+}
+
+.ta-apps-link{
+    color:inherit;
+    text-decoration:none
+}
+
+.ta-apps-link:hover,
+.ta-apps-link:focus-visible{
+    color:var(--navy);
+    text-decoration:underline
+}
+
+
+/* ADD TO RANKING */
+
+.ta-apps-add{
+    min-height:34px;
+
+    padding:5px 12px;
+
+    border:2px solid var(--navy);
+    border-radius:6px;
+
+    background:#fff;
+    color:var(--navy);
+
+    font:inherit;
+    font-size:.85rem;
+    font-weight:700;
+
+    cursor:pointer;
+    white-space:nowrap
+}
+
+.ta-apps-add:hover{
+    background:var(--navy);
+    color:#fff
+}
+
+.ta-apps-ranked{
+    display:inline-block;
+
+    padding:5px 12px;
+
+    border-radius:6px;
+
+    background:#eef0fb;
+    color:var(--navy);
+
+    font-size:.85rem;
+    font-weight:700;
+
+    white-space:nowrap
+}
+
+
+/* RANKINGS */
+
+.ta-apps-heading-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+
+    gap:12px;
+
+    flex-wrap:wrap
+}
+
+.ta-apps-counter{
+    margin:0;
+
+    font-weight:700;
+    color:var(--navy)
+}
+
+.ta-apps-ranking{
+    list-style:none;
+
+    margin:0;
+    padding:0;
+
+    display:grid;
+    gap:10px
+}
+
+.ta-apps-slot{
+    display:grid;
+    grid-template-columns:44px minmax(0,1fr) auto;
+
+    align-items:center;
+
+    gap:12px;
+
+    padding:12px 14px;
+
+    border:1px solid #e2e2e2;
+    border-radius:8px;
+
+    background:#fff
+}
+
+.ta-apps-slot.empty{
+    display:block;
+
+    border-style:dashed;
+
+    background:#fafafa;
+    color:var(--muted)
+}
+
+.ta-apps-slot-num{
+    display:grid;
+    place-items:center;
+
+    width:36px;
+    height:36px;
+
+    border-radius:50%;
+
+    background:var(--navy);
+    color:#fff;
+
+    font-weight:700
+}
+
+.ta-apps-slot-name{
+    font-weight:700
+}
+
+.ta-apps-slot-meta{
+    display:block;
+
+    font-size:.85rem;
+    font-weight:400;
+
+    color:var(--muted)
+}
+
+.ta-apps-slot-actions{
+    display:flex;
+    gap:6px
+}
+
+.ta-apps-slot-actions button{
+    width:34px;
+    height:34px;
+
+    padding:0;
+
+    border:1px solid #d2d2d2;
+    border-radius:6px;
+
+    background:#fff;
+    color:#222;
+
+    font-size:1rem;
+
+    cursor:pointer
+}
+
+.ta-apps-slot-actions button:hover:not(:disabled){
+    background:#f4f6ff;
+    border-color:var(--navy)
+}
+
+.ta-apps-slot-actions button:disabled{
+    opacity:.35;
+    cursor:default
+}
+
+.ta-apps-slot-actions button.remove:hover{
+    background:#fdeceb;
+    border-color:#b42318;
+    color:#b42318
+}
+
+
+/* BUTTON FOCUS */
+
+.ta-apps button:focus-visible{
+    outline:3px solid #222;
+    outline-offset:2px
+}
+
+
+/* SPECIAL REQUESTS */
+
+.ta-apps-count{
+    margin:6px 0 0;
+
+    text-align:right;
+
+    font-size:.8rem;
+    color:var(--muted)
+}
+
+
+/* SUBMIT */
+
+.ta-apps-submit{
+    display:grid;
+    justify-items:center;
+    gap:12px
+}
+
+.ta-apps-message{
+    width:100%;
+    min-height:1.4em;
+
+    margin:0;
+
+    text-align:center;
+
+    color:var(--muted)
+}
+
+.ta-apps-message[data-state="error"]{
+    color:#b42318
+}
+
+.ta-apps-message[data-state="success"]{
+    color:#18703a
+}
+
+.ta-apps-submit button{
+    min-width:220px;
+    min-height:48px;
+
+    padding:11px 22px;
+
+    border:0;
+    border-radius:6px;
+
+    background:var(--green);
+    color:#fff;
+
+    font:inherit;
+    font-weight:700;
+
+    letter-spacing:.03em;
+
+    cursor:pointer
+}
+
+.ta-apps-submit button:hover{
+    filter:brightness(.93)
+}
+
+.ta-apps-submit button:disabled{
+    opacity:.65;
+    cursor:wait
+}
+
+
+/* MOBILE */
+
+@media (max-width:700px){
+
+    .ta-apps-search{
+        grid-template-columns:1fr
+    }
+
+    .ta-apps-slot{
+        grid-template-columns:36px minmax(0,1fr)
+    }
+
+    .ta-apps-slot-actions{
+        grid-column:1 / -1;
+        justify-content:flex-end
+    }
+}
+</style>
+
+<script data-wp-block-html="js">
+console.log("PROFESSOR PAGE JS LOADED");
+
+(() => {
+  'use strict';
+
+  const SUBMIT_ENDPOINT =
+    '/wp-json/your-plugin/v1/ta-professor-ranking';
+
+  const DETAIL_PAGE_URL =
+    '/applicant-details/';
+
+
+  /*
+   * DUMMY DATA
+   */
+
+  const person = (
+    id,
+    name,
+    major,
+    gpa,
+    takenBefore,
+    taBefore,
+    preferredProfessor
+  ) => ({
+    id,
+    name,
+    major,
+    gpa,
+    takenBefore,
+    taBefore,
+    preferredProfessor
+  });
+
+
+  const COURSES = [
+    {
+      course: 'COP3502C',
+      courseName: 'Programming Fundamentals 1',
+
+      all: [
+        person(
+          1,
+          'John Smith',
+          'Computer Science',
+          3.8,
+          true,
+          false,
+          true
+        ),
+
+        person(
+          2,
+          'Emily Johnson',
+          'Computer Science',
+          3.9,
+          true,
+          true,
+          true
+        ),
+
+        person(
+          3,
+          'Aaron Lee',
+          'Computer Science',
+          3.6,
+          false,
+          true,
+          false
+        ),
+
+        person(
+          4,
+          'Maria Garcia',
+          'Computer Engineering',
+          3.4,
+          false,
+          false,
+          false
+        ),
+
+        person(
+          5,
+          'Sophia Martinez',
+          'Computer Science',
+          3.7,
+          true,
+          true,
+          false
+        )
+      ]
+    },
+
+    {
+      course: 'COP3530',
+      courseName: 'Data Structures and Algorithms',
+
+      all: [
+        person(
+          6,
+          'Lucas Brown',
+          'Computer Science',
+          3.7,
+          true,
+          true,
+          true
+        ),
+
+        person(
+          7,
+          'Wei Chen',
+          'Data Science',
+          3.5,
+          true,
+          false,
+          false
+        ),
+
+        person(
+          8,
+          'Priya Patel',
+          'Computer Science',
+          3.9,
+          true,
+          true,
+          true
+        ),
+
+        person(
+          9,
+          'Daniel Kim',
+          'Computer Engineering',
+          3.6,
+          false,
+          true,
+          false
+        ),
+
+        person(
+          10,
+          'Olivia Wilson',
+          'Computer Science',
+          3.2,
+          false,
+          false,
+          true
+        )
+      ]
+    }
+  ];
+
+
+  /*
+   * HELPERS
+   */
+
+  const esc = (v) =>
+    String(v ?? '').replace(
+      /[\u0026<>"']/g,
+      (c) => ({
+        '\u0026': '\u0026amp;',
+        '<': '\u0026lt;',
+        '>': '\u0026gt;',
+        '"': '\u0026quot;',
+        "'": '\u0026#39;'
+      }[c])
+    );
+
+
+  const yn = (v) =>
+    (v === true || v === 'yes' || v === 'Yes')
+      ? 'Yes'
+      : 'No';
+
+
+  const keyOf = (r) =>
+    String(r.id);
+
+
+  let course = '';
+
+  let applicants = [];
+
+  let ranking = [];
+
+  const byKey =
+    new Map();
+
+  let el = {};
+
+
+  /*
+   * SAVE EACH COURSE'S WORK
+   */
+
+  const rankingsByCourse =
+    new Map();
+
+  const requestsByCourse =
+    new Map();
+
+
+  const say = (text, state = '') => {
+    el.msg.textContent = text;
+    el.msg.dataset.state = state;
+  };
+
+
+  const detailUrl = (r) => {
+
+    const separator =
+      DETAIL_PAGE_URL.includes('?')
+        ? '\u0026'
+        : '?';
+
+    return `${DETAIL_PAGE_URL}${separator}id=${encodeURIComponent(r.id)}\u0026course=${encodeURIComponent(course)}`;
+  };
+
+
+  /*
+   * FILTERING
+   *
+   * All selected filters must match.
+   */
+
+  function passesFilters(r) {
+
+    const name =
+      el.name.value
+        .trim()
+        .toLowerCase();
+
+
+    if (name) {
+
+      if (
+        !String(r.name)
+          .toLowerCase()
+          .includes(name)
+      ) {
+        return false;
+      }
+    }
+
+
+    if (el.filterTaken.checked) {
+
+      if (!r.takenBefore) {
+        return false;
+      }
+    }
+
+
+    if (el.filterTa.checked) {
+
+      if (!r.taBefore) {
+        return false;
+      }
+    }
+
+
+    if (el.filterPreferred.checked) {
+
+      if (!r.preferredProfessor) {
+        return false;
+      }
+    }
+
+
+    if (el.filterGpa.checked) {
+
+      if (Number(r.gpa) < 3.5) {
+        return false;
+      }
+    }
+
+
+    return true;
+  }
+
+
+  /*
+   * APPLICANT TABLE
+   */
+
+  function renderPool() {
+
+    const rows =
+      applicants.filter(passesFilters);
+
+
+    if (!rows.length) {
+
+      el.all.innerHTML =
+        '<p>No applicants match the selected filters.</p>';
+
+      return;
+    }
+
+
+    el.all.innerHTML = `
+      <table class="ta-apps-table">
+
+        <thead>
+
+          <tr>
+
+            <th>
+              <span class="ta-apps-sr">
+                Ranking
+              </span>
+            </th>
+
+            <th>Name</th>
+
+            <th>Major</th>
+
+            <th>GPA</th>
+
+            <th>
+              Taken Class Before
+            </th>
+
+            <th>
+              TA'd Before
+            </th>
+
+            <th>
+              Preferred Professor?
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          ${rows.map((r) => {
+
+            const key =
+              keyOf(r);
+
+            const pos =
+              ranking.indexOf(key);
+
+
+            const action =
+              pos >= 0
+
+                ? `
+                  <span class="ta-apps-ranked">
+                    Ranked #${pos + 1}
+                  </span>
+                `
+
+                : `
+                  <button
+                    type="button"
+                    class="ta-apps-add"
+                    data-add="${esc(key)}">
+                    Add to ranking
+                  </button>
+                `;
+
+
+            return `
+              <tr
+                class="ta-apps-row"
+                data-href="${esc(detailUrl(r))}">
+
+                <td>
+                  ${action}
+                </td>
+
+                <td class="name">
+
+                  <a
+                    class="ta-apps-link"
+                    href="${esc(detailUrl(r))}">
+
+                    ${esc(r.name)}
+
+                  </a>
+
+                </td>
+
+                <td>
+                  ${esc(r.major)}
+                </td>
+
+                <td>
+                  ${Number(r.gpa).toFixed(1)}
+                </td>
+
+                <td>
+                  ${yn(r.takenBefore)}
+                </td>
+
+                <td>
+                  ${yn(r.taBefore)}
+                </td>
+
+                <td>
+                  ${yn(r.preferredProfessor)}
+                </td>
+
+              </tr>
+            `;
+
+          }).join('')}
+
+        </tbody>
+
+      </table>
+    `;
+  }
+
+
+  /*
+   * PROFESSOR RANKING
+   */
+
+  function renderRanking() {
+
+    el.counter.textContent =
+      `${ranking.length} selected`;
+
+
+    if (!ranking.length) {
+
+      el.ranking.innerHTML = `
+        <li class="ta-apps-slot empty">
+
+          <span>
+            No applicants ranked yet.
+            Add applicants from the list above.
+          </span>
+
+        </li>
+      `;
+
+      return;
+    }
+
+
+    el.ranking.innerHTML =
+      ranking.map((key, i) => {
+
+        const r =
+          byKey.get(key);
+
+
+        return `
+          <li class="ta-apps-slot">
+
+            <span class="ta-apps-slot-num">
+              ${i + 1}
+            </span>
+
+
+            <span class="ta-apps-slot-name">
+
+              <a
+                class="ta-apps-link"
+                href="${esc(detailUrl(r))}">
+
+                ${esc(r.name)}
+
+              </a>
+
+
+              <span class="ta-apps-slot-meta">
+
+                ${esc(r.major)}
+                ·
+                GPA ${Number(r.gpa).toFixed(1)}
+
+              </span>
+
+            </span>
+
+
+            <span class="ta-apps-slot-actions">
+
+              <button
+                type="button"
+                data-move="up"
+                data-index="${i}"
+                aria-label="Move ${esc(r.name)} up"
+                ${i === 0 ? 'disabled' : ''}>
+
+                ▲
+
+              </button>
+
+
+              <button
+                type="button"
+                data-move="down"
+                data-index="${i}"
+                aria-label="Move ${esc(r.name)} down"
+                ${i === ranking.length - 1 ? 'disabled' : ''}>
+
+                ▼
+
+              </button>
+
+
+              <button
+                type="button"
+                class="remove"
+                data-remove="${i}"
+                aria-label="Remove ${esc(r.name)} from ranking">
+
+                ×
+
+              </button>
+
+            </span>
+
+          </li>
+        `;
+
+      }).join('');
+  }
+
+
+  function renderAll() {
+    renderPool();
+    renderRanking();
+  }
+
+
+  /*
+   * SAVE CURRENT COURSE
+   */
+
+  function saveCourseState() {
+
+    if (!course) {
+      return;
+    }
+
+
+    rankingsByCourse.set(
+      course,
+      [...ranking]
+    );
+
+
+    requestsByCourse.set(
+      course,
+      el.requests.value
+    );
+  }
+
+
+  /*
+   * LOAD SELECTED COURSE
+   */
+
+  function loadCourse(courseCode) {
+
+    const data =
+      COURSES.find(
+        (item) =>
+          item.course === courseCode
+      );
+
+
+    if (!data) {
+      return;
+    }
+
+
+    course =
+      data.course;
+
+
+    applicants =
+      [...data.all];
+
+
+    byKey.clear();
+
+
+    applicants.forEach((r) => {
+
+      byKey.set(
+        keyOf(r),
+        r
+      );
+
+    });
+
+
+    ranking =
+      rankingsByCourse.get(course)
+      || [];
+
+
+    el.requests.value =
+      requestsByCourse.get(course)
+      || '';
+
+
+    el.requestsCount.textContent =
+      `${el.requests.value.length} / ${el.requests.maxLength}`;
+
+
+    el.title.textContent =
+      `${data.course} – ${data.courseName}`;
+
+
+    const courseIndex =
+      COURSES.findIndex(
+        (item) =>
+          item.course === course
+      );
+
+
+    el.progress.textContent =
+      `Course ${courseIndex + 1} of ${COURSES.length}`;
+
+
+    el.name.value = '';
+
+
+    /*
+     * Clear filters when switching courses.
+     */
+
+    el.filterTaken.checked =
+      false;
+
+    el.filterTa.checked =
+      false;
+
+    el.filterPreferred.checked =
+      false;
+
+    el.filterGpa.checked =
+      false;
+
+
+    say('');
+
+
+    renderAll();
+  }
+
+
+  /*
+   * COURSE DROPDOWN
+   */
+
+  function populateCourses() {
+
+    el.courseSelect.innerHTML =
+      COURSES.map((item) => `
+
+        <option value="${esc(item.course)}">
+
+          ${esc(item.course)}
+          –
+          ${esc(item.courseName)}
+
+        </option>
+
+      `).join('');
+
+
+    if (COURSES.length) {
+
+      loadCourse(
+        COURSES[0].course
+      );
+    }
+  }
+
+
+  /*
+   * CLICK EVENTS
+   */
+
+  function onClick(event) {
+
+    const t =
+      event.target;
+
+
+    const add =
+      t.closest('[data-add]');
+
+
+    const move =
+      t.closest('[data-move]');
+
+
+    const remove =
+      t.closest('[data-remove]');
+
+
+    /*
+     * ADD TO RANKING
+     */
+
+    if (add) {
+
+      const key =
+        add.dataset.add;
+
+
+      if (!ranking.includes(key)) {
+
+        ranking.push(key);
+      }
+
+
+      saveCourseState();
+
+      say('');
+
+      renderAll();
+
+      return;
+    }
+
+
+    /*
+     * MOVE RANKING
+     */
+
+    if (move) {
+
+      const i =
+        Number(move.dataset.index);
+
+
+      const j =
+        move.dataset.move === 'up'
+          ? i - 1
+          : i + 1;
+
+
+      if (
+        j < 0 ||
+        j >= ranking.length
+      ) {
+        return;
+      }
+
+
+      [
+        ranking[i],
+        ranking[j]
+      ] = [
+        ranking[j],
+        ranking[i]
+      ];
+
+
+      saveCourseState();
+
+      say('');
+
+      renderAll();
+
+      return;
+    }
+
+
+    /*
+     * REMOVE FROM RANKING
+     */
+
+    if (remove) {
+
+      ranking.splice(
+        Number(remove.dataset.remove),
+        1
+      );
+
+
+      saveCourseState();
+
+      say('');
+
+      renderAll();
+
+      return;
+    }
+
+
+    /*
+     * OPEN APPLICATION
+     */
+
+    if (
+      t.closest(
+        'input, a, label, button, select, textarea'
+      )
+    ) {
+      return;
+    }
+
+
+    const row =
+      t.closest(
+        'tr[data-href]'
+      );
+
+
+    if (row) {
+
+      window.location.href =
+        row.dataset.href;
+    }
+  }
+
+
+  /*
+   * SUBMIT
+   */
+
+  async function submit() {
+
+    if (!ranking.length) {
+
+      say(
+        'Please rank at least one applicant before submitting.',
+        'error'
+      );
+
+      return;
+    }
+
+
+    saveCourseState();
+
+
+    el.submit.disabled =
+      true;
+
+
+    say(
+      'Submitting\u2026'
+    );
+
+
+    try {
+
+      const res =
+        await fetch(
+          SUBMIT_ENDPOINT,
+          {
+            method:'POST',
+
+            headers:{
+              'Content-Type':
+                'application/json'
+            },
+
+            body:JSON.stringify({
+              course,
+
+              ranking:
+                ranking.map(
+                  (key, i) => ({
+                    rank:i + 1,
+
+                    studentId:
+                      byKey.get(key).id
+                  })
+                ),
+
+              specialRequests:
+                el.requests.value.trim()
+            })
+          }
+        );
+
+
+      const result =
+        await res
+          .json()
+          .catch(() => ({}));
+
+
+      if (!res.ok) {
+
+        throw new Error(
+          result.message
+          ||
+          `Submission failed (${res.status}).`
+        );
+      }
+
+
+      say(
+        result.message
+        ||
+        `Your preferences for ${course} were submitted.`,
+        'success'
+      );
+
+
+    } catch (err) {
+
+      say(
+        err.message
+        ||
+        'Could not submit. Check the endpoint and try again.',
+        'error'
+      );
+    }
+
+
+    el.submit.disabled =
+      false;
+  }
+
+
+  /*
+   * INITIALIZE
+   */
+
+  function init() {
+
+    el = {
+
+      root:
+        document.querySelector(
+          '#ta-apps'
+        ),
+
+
+      courseSelect:
+        document.querySelector(
+          '#ta-course-select'
+        ),
+
+
+      name:
+        document.querySelector(
+          '#ta-search-name'
+        ),
+
+
+      title:
+        document.querySelector(
+          '#ta-course-title'
+        ),
+
+
+      progress:
+        document.querySelector(
+          '#ta-apps-progress'
+        ),
+
+
+      filterTaken:
+        document.querySelector(
+          '#filter-taken'
+        ),
+
+
+      filterTa:
+        document.querySelector(
+          '#filter-ta'
+        ),
+
+
+      filterPreferred:
+        document.querySelector(
+          '#filter-preferred'
+        ),
+
+
+      filterGpa:
+        document.querySelector(
+          '#filter-gpa'
+        ),
+
+
+      clearFilters:
+        document.querySelector(
+          '#clear-filters'
+        ),
+
+
+      all:
+        document.querySelector(
+          '#ta-all'
+        ),
+
+
+      ranking:
+        document.querySelector(
+          '#ta-ranking'
+        ),
+
+
+      counter:
+        document.querySelector(
+          '#ta-rank-counter'
+        ),
+
+
+      requests:
+        document.querySelector(
+          '#ta-requests'
+        ),
+
+
+      requestsCount:
+        document.querySelector(
+          '#ta-requests-count'
+        ),
+
+
+      msg:
+        document.querySelector(
+          '#ta-apps-message'
+        ),
+
+
+      submit:
+        document.querySelector(
+          '#ta-apps-submit'
+        )
+
+    };
+
+
+    if (
+      Object.values(el)
+        .some(
+          (node) => !node
+        )
+    ) {
+
+      console.error(
+        'TA applications page: HTML elements not found.'
+      );
+
+      return;
+    }
+
+
+    /*
+     * MAIN PAGE EVENTS
+     */
+
+    el.root.addEventListener(
+      'click',
+      onClick
+    );
+
+
+    /*
+     * COURSE SWITCHING
+     */
+
+    el.courseSelect.addEventListener(
+      'change',
+      () => {
+
+        saveCourseState();
+
+
+        loadCourse(
+          el.courseSelect.value
+        );
+
+      }
+    );
+
+
+    /*
+     * SEARCH
+     */
+
+    el.name.addEventListener(
+      'input',
+      renderPool
+    );
+
+
+    /*
+     * MULTIPLE FILTERS
+     */
+
+    el.filterTaken.addEventListener(
+      'change',
+      renderPool
+    );
+
+
+    el.filterTa.addEventListener(
+      'change',
+      renderPool
+    );
+
+
+    el.filterPreferred.addEventListener(
+      'change',
+      renderPool
+    );
+
+
+    el.filterGpa.addEventListener(
+      'change',
+      renderPool
+    );
+
+
+    /*
+     * CLEAR FILTERS
+     */
+
+    el.clearFilters.addEventListener(
+      'click',
+      () => {
+
+        el.filterTaken.checked =
+          false;
+
+        el.filterTa.checked =
+          false;
+
+        el.filterPreferred.checked =
+          false;
+
+        el.filterGpa.checked =
+          false;
+
+
+        renderPool();
+
+      }
+    );
+
+
+    /*
+     * SPECIAL REQUEST COUNT
+     */
+
+    el.requests.addEventListener(
+      'input',
+      () => {
+
+        requestsByCourse.set(
+          course,
+          el.requests.value
+        );
+
+
+        el.requestsCount.textContent =
+          `${el.requests.value.length} / ${el.requests.maxLength}`;
+
+      }
+    );
+
+
+    /*
+     * SUBMIT
+     */
+
+    el.submit.addEventListener(
+      'click',
+      submit
+    );
+
+
+    populateCourses();
+  }
+
+
+  if (
+    document.readyState === 'loading'
+  ) {
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      init
+    );
+
+  } else {
+
+    init();
+  }
+
+})();
+</script>
+
+<main class="ta-apps" id="ta-apps">
+
+<header>
+    <p class="ta-apps-eyebrow">
+        TA Applications
+        <span id="ta-apps-progress"></span>
+    </p>
+
+    <h1 id="ta-course-title">Loading course…</h1>
+
+    <p class="ta-apps-intro">
+        Review the applicants for each course, rank your preferred choices,
+        add any special requests, and submit your preferences to the administrator.
+    </p>
+</header>
+
+<section class="ta-apps-card" aria-label="Course selection">
+
+    <div class="ta-apps-course-picker">
+
+        <label for="ta-course-select">
+            Select Course
+
+            <select id="ta-course-select">
+                <option value="">Loading courses...</option>
+            </select>
+        </label>
+
+    </div>
+
+</section>
+
+<section class="ta-apps-card" aria-label="Search and filters">
+
+    <div class="ta-apps-search">
+
+        <label for="ta-search-name">
+            Search Applicants
+
+            <input id="ta-search-name" type="search" placeholder="John Doe..." autocomplete="off">
+        </label>
+
+        <div class="ta-filter-group">
+
+            <span class="ta-filter-title">
+                Add Filters
+            </span>
+
+            <label class="ta-filter-option">
+                <input type="checkbox" id="filter-taken">
+                Taken class before
+            </label>
+
+            <label class="ta-filter-option">
+                <input type="checkbox" id="filter-ta">
+                TA'd before
+            </label>
+
+            <label class="ta-filter-option">
+                <input type="checkbox" id="filter-preferred">
+                Preferred Professor
+            </label>
+
+            <label class="ta-filter-option">
+                <input type="checkbox" id="filter-gpa">
+                GPA 3.5 or higher
+            </label>
+
+            <button type="button" id="clear-filters" class="ta-clear-filters">
+                Clear Filters
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="ta-apps-card" aria-labelledby="ta-all-heading">
+
+    <h2 id="ta-all-heading">
+        All Applicants
+    </h2>
+
+    <p class="ta-apps-help">
+        Click <strong>Add to ranking</strong> to add someone to your preferences,
+        or click a row to read their full application.
+    </p>
+
+    <div id="ta-all" class="ta-apps-table-host">
+        Loading applicants…
+    </div>
+
+</section>
+
+<section class="ta-apps-card" aria-labelledby="ta-rank-heading">
+
+    <div class="ta-apps-heading-row">
+
+        <h2 id="ta-rank-heading">
+            Your Ranking
+        </h2>
+
+        <p class="ta-apps-counter" id="ta-rank-counter" aria-live="polite">
+        </p>
+
+    </div>
+
+    <p class="ta-apps-help">
+        Your #1 choice goes at the top.
+        Use the arrows to reorder or the × to remove someone.
+    </p>
+
+    <ol class="ta-apps-ranking" id="ta-ranking">
+    </ol>
+
+</section>
+
+<section class="ta-apps-card" aria-labelledby="ta-requests-heading">
+
+    <h2 id="ta-requests-heading">
+        Special Requests
+    </h2>
+
+    <p class="ta-apps-help">
+        Optional. Tell the administrator anything else you would like considered,
+        such as a specific student, scheduling needs, or other notes.
+    </p>
+
+    <label class="ta-apps-sr" for="ta-requests">
+        Special requests
+    </label>
+
+    <textarea id="ta-requests" rows="6" maxlength="1500" placeholder="Type your special requests here..."></textarea>
+
+    <p class="ta-apps-count" id="ta-requests-count">
+        0 / 1500
+    </p>
+
+</section>
+
+<div class="ta-apps-submit">
+
+    <p class="ta-apps-message" id="ta-apps-message" role="status" aria-live="polite">
+    </p>
+
+    <button type="button" id="ta-apps-submit">
+        Submit to Administrator
+    </button>
+
+</div>
+
+</main>
+<!-- /wp:html -->
