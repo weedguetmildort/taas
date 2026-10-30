@@ -329,15 +329,29 @@ class MatchingTest extends TestCase {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Test priority of Phd applicants over non-applicants
+	 * Every PhD student applies to every course, so tiers 4 and 5 place PhD students
+	 * in courses they did not rank
 	 */
 	public function test_phd_priority(): void {
+		// Course ID => UFID => [student rank, professor rank]; every other application is unranked
+		$ranks = array(
+			'B' => array(
+				'PHD1' => array( 1, 1 ),
+				'PHD2' => array( 1, 2 ),
+			),
+		);
+
+		$apps = array();
+		foreach ( array( 'A', 'B', 'C' ) as $course_id ) {
+			foreach ( array( 'PHD1', 'PHD2', 'PHDNEW', 'PHDTA' ) as $ufid ) {
+				[ $student_rank, $prof_rank ] = $ranks[ $course_id ][ $ufid ] ?? array( null, null );
+				$apps[]                       = $this->app( $ufid, $course_id, student_rank: $student_rank, prof_rank: $prof_rank );
+			}
+		}
+
 		$result = taas_run_matching(
 			array( $this->course( 'A', 30 ), $this->course( 'B', 30 ), $this->course( 'C', 30 ) ),
-			array(
-				$this->app( 'PHD1', 'B', student_rank: 1, prof_rank: 1 ),
-				$this->app( 'PHD2', 'B', student_rank: 1, prof_rank: 2 ),
-			),
+			$apps,
 			array(
 				$this->profile( 'PHD1', status: TAAS_Enrollment_Status::Phd ),
 				$this->profile( 'PHD2', status: TAAS_Enrollment_Status::Phd ),
@@ -349,8 +363,9 @@ class MatchingTest extends TestCase {
 		$this->assertSame( array( 'PHD1' ), $this->ufids( $result['matches']['B'] ) );
 		$this->assertSame( 'professor_preference_1', $result['matches']['B']['PHD1']['reason'] );
 		$this->assertSame( array( 'PHDTA' ), $this->ufids( $result['matches']['A'] ) );
-		$this->assertSame( 'phd_pool', $result['matches']['A']['PHDTA']['reason'] );
+		$this->assertSame( 'ta_experience', $result['matches']['A']['PHDTA']['reason'] );
 		$this->assertSame( array( 'PHD2' ), $this->ufids( $result['matches']['C'] ) );
+		$this->assertSame( 'applied', $result['matches']['C']['PHD2']['reason'] );
 	}
 
 	/**
