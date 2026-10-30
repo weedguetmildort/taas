@@ -15,7 +15,7 @@
  * Notes: Arrays keyed by UFID or course_id are documented as array<string, ...>, but PHP
  * stores an all-digit key like '12345678' as an int. Read the ID from the value
  * (e.g. student_ufid) when it is needed as a string.
- * 
+ *
  * SPECIAL NOTE: MASTERS/UNDERGRAD STUDENTS ARE NOT CONSIDERED IN THIS VERSION
  *
  * @package TAAS_Core
