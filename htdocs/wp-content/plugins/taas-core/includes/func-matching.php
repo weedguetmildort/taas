@@ -13,7 +13,7 @@
  * Assumptions:
  * - Every application passed in has been approved by HR
  * - Masters and undergrad students are only considered for courses they applied to
- * - Students with no college_status are treated as masters/undergrad
+ * - Students with no enrollment_status are treated as non-PhD
  * - Courses are processed in the order given, so earlier courses get first pick in each pass
  * - Admin has final say in the matches and can edit, change, and finalize matches as needed
  *
@@ -209,7 +209,7 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 	// Collect PhD students, with previous TAs first, for matching outside their applications
 	$phd_profiles = array_filter(
 		$profiles,
-		fn( TAAS_Student_Profile $profile ) => TAAS_College_Status::Phd === $profile->college_status
+		fn( TAAS_Student_Profile $profile ) => TAAS_Enrollment_Status::Phd === $profile->enrollment_status
 	);
 	usort( $phd_profiles, fn( $a, $b ) => $b->has_ta_experience <=> $a->has_ta_experience );
 	$phd_ufids = array_map( fn( TAAS_Student_Profile $profile ) => $profile->student_ufid, $phd_profiles );
@@ -218,7 +218,7 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 
 	// Get course applications accessed by course's ID, split by whether the applicant is a PhD student
 	foreach ( $apps as $app ) {
-		$is_phd = TAAS_College_Status::Phd === ( $profiles_by_ufid[ $app->student_ufid ]->college_status ?? null );
+		$is_phd = TAAS_Enrollment_Status::Phd === ( $profiles_by_ufid[ $app->student_ufid ]->enrollment_status ?? null );
 
 		if ( $is_phd ) {
 			$phd_apps_by_course[ $app->applied_course_id ][] = $app;

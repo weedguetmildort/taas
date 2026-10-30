@@ -44,6 +44,8 @@ class MatchingTest extends TestCase {
 			course_code: 'COP1234',
 			course_name: 'TestCourse',
 			professor_ufid: self::PROFESSOR,
+			course_semester: TAAS_Semester::Fall,
+			course_year: 2026,
 			lab_hours: $lab_hours,
 			enrollment: $enrollment,
 		);
@@ -52,16 +54,16 @@ class MatchingTest extends TestCase {
 	/**
 	 * Build a student profile
 	 *
-	 * @param string                   $ufid          Student UFID
-	 * @param int|null                 $hours         Weekly hours available
-	 * @param TAAS_College_Status|null $status        Undergrad, masters, or PhD
-	 * @param bool                     $ta_experience Whether the student has been a TA before
+	 * @param string                      $ufid          Student UFID
+	 * @param int|null                    $hours         Weekly hours available
+	 * @param TAAS_Enrollment_Status|null $status        Program the student is in, e.g. MS or PhD
+	 * @param bool                        $ta_experience Whether the student has been a TA before
 	 */
-	private function profile( string $ufid, ?int $hours = 20, ?TAAS_College_Status $status = TAAS_College_Status::Phd, bool $ta_experience = false ): TAAS_Student_Profile {
+	private function profile( string $ufid, ?int $hours = 20, ?TAAS_Enrollment_Status $status = TAAS_Enrollment_Status::Phd, bool $ta_experience = false ): TAAS_Student_Profile {
 		return new TAAS_Student_Profile(
 			student_ufid: $ufid,
 			available_hours: $hours,
-			college_status: $status,
+			enrollment_status: $status,
 			has_ta_experience: $ta_experience,
 		);
 	}
@@ -337,10 +339,10 @@ class MatchingTest extends TestCase {
 				$this->app( 'PHD2', 'B', student_rank: 1, prof_rank: 2 ),
 			),
 			array(
-				$this->profile( 'PHD1', status: TAAS_College_Status::Phd ),
-				$this->profile( 'PHD2', status: TAAS_College_Status::Phd ),
-				$this->profile( 'PHDNEW', status: TAAS_College_Status::Phd ),
-				$this->profile( 'PHDTA', status: TAAS_College_Status::Phd, ta_experience: true ),
+				$this->profile( 'PHD1', status: TAAS_Enrollment_Status::Phd ),
+				$this->profile( 'PHD2', status: TAAS_Enrollment_Status::Phd ),
+				$this->profile( 'PHDNEW', status: TAAS_Enrollment_Status::Phd ),
+				$this->profile( 'PHDTA', status: TAAS_Enrollment_Status::Phd, ta_experience: true ),
 			)
 		);
 
@@ -362,8 +364,8 @@ class MatchingTest extends TestCase {
 				$this->app( 'S2', 'B', student_rank: 1 ),
 			),
 			array(
-				$this->profile( 'S1', hours: 10, status: TAAS_College_Status::Phd ),
-				$this->profile( 'S2', hours: 10, status: TAAS_College_Status::Phd ),
+				$this->profile( 'S1', hours: 10, status: TAAS_Enrollment_Status::Phd ),
+				$this->profile( 'S2', hours: 10, status: TAAS_Enrollment_Status::Phd ),
 			)
 		);
 
