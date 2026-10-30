@@ -76,13 +76,15 @@ class MatchingTest extends TestCase {
 	 * @param int|null $student_rank Student's rank of the course, null if the student did not rank it
 	 * @param int|null $prof_rank    Professor's rank of the student, null if the professor did not rank them
 	 * @param bool     $taken        Whether the student has taken the course
+	 * @param bool     $ta_for       Whether the student has previously TA'd the course
 	 */
-	private function app( string $ufid, string $course_id, ?int $student_rank = null, ?int $prof_rank = null, bool $taken = false ): TAAS_Application {
+	private function app( string $ufid, string $course_id, ?int $student_rank = null, ?int $prof_rank = null, bool $taken = false, bool $ta_for = false ): TAAS_Application {
 		return new TAAS_Application(
 			application_id: null,
 			student_ufid: $ufid,
 			applied_course_id: $course_id,
 			has_taken_course: $taken,
+			has_ta_for_course: $ta_for,
 			student_preference_rank: $student_rank,
 			professor_preference_rank: $prof_rank,
 		);
@@ -238,14 +240,15 @@ class MatchingTest extends TestCase {
 	 */
 	public function test_full_priority_order(): void {
 		$assigned = array();
-		$cth      = 60;
+		$cth      = 70;
 
 		$matches = taas_match_course(
-			$this->course( 'A', 60 ),
+			$this->course( 'A', 70 ),
 			array(
 				$this->app( 'APPLIED', 'A' ),
 				$this->app( 'TA', 'A' ),
 				$this->app( 'TAKEN', 'A', taken: true ),
+				$this->app( 'TAFOR', 'A', ta_for: true ),
 				$this->app( 'STUDENT', 'A', student_rank: 1 ),
 				$this->app( 'MUTUAL', 'A', student_rank: 5, prof_rank: 1 ),
 			),
@@ -253,6 +256,7 @@ class MatchingTest extends TestCase {
 				$this->profile( 'APPLIED', hours: 10 ),
 				$this->profile( 'TA', hours: 10, ta_experience: true ),
 				$this->profile( 'TAKEN', hours: 10 ),
+				$this->profile( 'TAFOR', hours: 10 ),
 				$this->profile( 'STUDENT', hours: 10 ),
 				$this->profile( 'MUTUAL', hours: 10 ),
 			),
@@ -260,9 +264,9 @@ class MatchingTest extends TestCase {
 			$cth
 		);
 
-		$this->assertSame( array( 'MUTUAL', 'STUDENT', 'TAKEN', 'TA', 'APPLIED' ), $this->ufids( $matches ) );
+		$this->assertSame( array( 'MUTUAL', 'STUDENT', 'TAFOR', 'TAKEN', 'TA', 'APPLIED' ), $this->ufids( $matches ) );
 		$this->assertSame(
-			array( 'professor_preference_1', 'student_preference_1', 'taken_course', 'ta_experience', 'applied' ),
+			array( 'professor_preference_1', 'student_preference_1', 'ta_for_course', 'taken_course', 'ta_experience', 'applied' ),
 			array_column( $matches, 'reason' )
 		);
 		$this->assertSame( 10, $cth );
@@ -329,7 +333,7 @@ class MatchingTest extends TestCase {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Every PhD student applies to every course, so tiers 4 and 5 place PhD students
+	 * Every PhD student applies to every course, so tiers 5 and 6 place PhD students
 	 * in courses they did not rank
 	 */
 	public function test_phd_priority(): void {

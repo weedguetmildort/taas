@@ -7,7 +7,7 @@
  *
  * Assumptions:
  * - Every application passed in has been approved by HR
- * - Every PhD student has applied to every course, so tier 5 is the catch-all for
+ * - Every PhD student has applied to every course, so tier 6 is the catch-all for
  *   unassigned PhD students and no separate pass over all PhD students is needed
  * - Courses are processed in the order given, so earlier courses get first pick in each pass
  * - Admin has final say in the matches and can edit, change, and finalize matches as needed
@@ -15,6 +15,8 @@
  * Notes: Arrays keyed by UFID or course_id are documented as array<string, ...>, but PHP
  * stores an all-digit key like '12345678' as an int. Read the ID from the value
  * (e.g. student_ufid) when it is needed as a string.
+ * 
+ * SPECIAL NOTE: MASTERS/UNDERGRAD STUDENTS ARE NOT CONSIDERED IN THIS VERSION
  *
  * @package TAAS_Core
  */
@@ -105,9 +107,10 @@ function taas_match_candidates( TAAS_Course $course, array $ufids, string $reaso
  * Tiers, in priority order:
  * 1. Professor-ranked applicants who also ranked the course, by professor rank
  * 2. Applicants who ranked the course, by student rank
- * 3. Applicants who have taken the course
- * 4. Applicants with previous TA experience
- * 5. Any remaining applicant
+ * 3. Applicants who have previously TA'd the course
+ * 4. Applicants who have taken the course
+ * 5. Applicants with previous TA experience
+ * 6. Any remaining applicant
  *
  * Matches are keyed by student UFID, in the order they were made.
  *
@@ -131,7 +134,7 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 
 		foreach ( $apps as $app ) {
 			if ( null === $rank_field ) {
-				$app_reason = $reason; // tiers 3–5: no rank given, use the reason as is
+				$app_reason = $reason; // tiers 3–6: no rank given, use the reason as is
 			} else {
 				$app_reason = $reason . '_' . $app->$rank_field; // tiers 1–2: add the rank to the end
 			}
@@ -164,21 +167,28 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 	);
 	$run_tier( $student_prefs, 'student_preference', 'student_preference_rank' );
 
-	// Tier 3: students who have taken the course
+	// Tier 3: students who have previously TA'd this course
+	$ta_for_course = array_filter(
+		$course_apps,
+		fn( TAAS_Application $app ) => $app->has_ta_for_course
+	);
+	$run_tier( $ta_for_course, 'ta_for_course' );
+
+	// Tier 4: students who have taken the course
 	$taken_course = array_filter(
 		$course_apps,
 		fn( TAAS_Application $app ) => $app->has_taken_course
 	);
 	$run_tier( $taken_course, 'taken_course' );
 
-	// Tier 4: previous TAs (of any course, the schema does not track which one)
+	// Tier 5: previous TAs of any course (from the student's profile)
 	$prev_tas = array_filter(
 		$course_apps,
 		fn( TAAS_Application $app ) => $profiles[ $app->student_ufid ]->has_ta_experience ?? false
 	);
 	$run_tier( $prev_tas, 'ta_experience' );
 
-	// Tier 5: anyone else who applied
+	// Tier 6: anyone else who applied
 	$run_tier( $course_apps, 'applied' );
 
 	return $matches;
@@ -222,7 +232,7 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 		$all_unfilled_hours[ $course->course_id ] = taas_calc_course_ta_hours( $course );
 	}
 
-	// PhD students (all are applicants), to the courses they applied to
+	// PhD students, to the courses they applied to
 	foreach ( $courses as $course ) {
 		$all_matches[ $course->course_id ] += taas_match_course(
 			$course,
