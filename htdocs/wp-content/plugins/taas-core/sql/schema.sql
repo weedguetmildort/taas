@@ -60,7 +60,7 @@ CREATE TABLE {prefix}academic_background (
 
 -- Courses: identification, owned by a professor
 CREATE TABLE {prefix}courses (
-	course_id varchar(20) NOT NULL,                     -- course section number
+	course_id varchar(20) NOT NULL,                     -- course section number only, e.g. 19963; string in case one has letters
 	course_code varchar(20) NOT NULL,
 	course_name varchar(255) NOT NULL,
 	course_semester tinyint unsigned NOT NULL,          -- 1 = Fall, 2 = Spring, 3 = SummerA, 4 = SummerB, 5 = SummerC
@@ -68,7 +68,6 @@ CREATE TABLE {prefix}courses (
 	is_online tinyint(1) NOT NULL DEFAULT 0,
 	course_description varchar(1000) DEFAULT NULL,
 	course_notes varchar(1000) DEFAULT NULL,            -- professor's notes/requests regarding matching
-	sections int DEFAULT NULL,
 	weekly_hours int DEFAULT NULL,                      -- total TA hours required, calculated by formula
 	lab_hours int NOT NULL DEFAULT 0,
 	enrollment int NOT NULL DEFAULT 0,

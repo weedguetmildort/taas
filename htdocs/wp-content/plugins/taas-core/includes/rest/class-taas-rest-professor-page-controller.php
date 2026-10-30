@@ -27,9 +27,9 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
 	/**
-	 * Route pattern for a course id, matching the resource controllers.
+	 * Route pattern for a course id, which is a bare section number.
 	 */
-	private const COURSE_ID_PATTERN = '(?P<course_id>[A-Za-z0-9_-]+)';
+	private const COURSE_ID_PATTERN = '(?P<course_id>[A-Za-z0-9]+)';
 
 	/**
 	 * Largest course_notes accepted, matching courses.course_notes varchar(1000).

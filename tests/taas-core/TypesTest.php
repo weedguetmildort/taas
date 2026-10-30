@@ -151,7 +151,6 @@ class TypesTest extends TestCase {
 				'is_online',
 				'course_description',
 				'course_notes',
-				'sections',
 				'weekly_hours',
 				'lab_hours',
 				'enrollment',
@@ -166,10 +165,35 @@ class TypesTest extends TestCase {
 	}
 
 	/**
+	 * Section numbers are strings, so one with a letter is fine
+	 */
+	public function test_course_id_accepts_section_number_with_letter(): void {
+		$course = new TAAS_Course( '1996A', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+
+		$this->assertSame( '1996A', $course->to_row()['course_id'] );
+	}
+
+	/**
+	 * A course id is the section number alone, never code + section
+	 */
+	public function test_course_rejects_code_plus_section_id(): void {
+		$this->expectException( InvalidArgumentException::class );
+		new TAAS_Course( 'COP4930-19633', 'COP4930', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+	}
+
+	/**
+	 * Applications point at the same bare section number
+	 */
+	public function test_application_rejects_code_plus_section_id(): void {
+		$this->expectException( InvalidArgumentException::class );
+		new TAAS_Application( null, '12345678', 'COP4930-19633' );
+	}
+
+	/**
 	 * The application's to_row() writes exactly the applications columns, in schema order
 	 */
 	public function test_application_to_row_matches_schema_columns(): void {
-		$row = ( new TAAS_Application( 7, '12345678', 'COP3502-1234', has_ta_for_course: true ) )->to_row();
+		$row = ( new TAAS_Application( 7, '12345678', '1234', has_ta_for_course: true ) )->to_row();
 
 		$this->assertSame(
 			array(
@@ -195,7 +219,7 @@ class TypesTest extends TestCase {
 	public function test_application_hydrates_has_ta_for_course(): void {
 		$base = array(
 			'student_ufid'      => '12345678',
-			'applied_course_id' => 'COP3502-1234',
+			'applied_course_id' => '1234',
 			'match_status'      => '1',
 		);
 

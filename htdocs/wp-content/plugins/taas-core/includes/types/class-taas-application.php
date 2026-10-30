@@ -22,14 +22,14 @@ final class TAAS_Application {
 	 *
 	 * @param int|null          $application_id            Auto-increment id; null on a new, unsaved record.
 	 * @param string            $student_ufid              Applicant's UFID, 1-8 characters.
-	 * @param string            $applied_course_id         Course section applied for.
+	 * @param string            $applied_course_id         Section number of the course applied for.
 	 * @param bool              $has_taken_course          Whether the student has taken the course.
 	 * @param bool              $has_ta_for_course         Whether the student has previously TA'd this course.
 	 * @param string|null       $student_statement         Statement of interest.
 	 * @param int|null          $student_preference_rank   Student's ranking of this course, 1 or greater.
 	 * @param int|null          $professor_preference_rank Professor's ranking of this student, 1 or greater.
 	 * @param TAAS_Match_Status $match_status              Matching outcome.
-	 * @throws InvalidArgumentException If the UFID or a rank is invalid.
+	 * @throws InvalidArgumentException If the UFID, course id or a rank is invalid.
 	 */
 	public function __construct(
 		public readonly ?int $application_id,
@@ -43,6 +43,7 @@ final class TAAS_Application {
 		public readonly TAAS_Match_Status $match_status = TAAS_Match_Status::Pending,
 	) {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
+		TAAS_Guard::course_id( 'applied_course_id', $applied_course_id );
 		TAAS_Guard::rank( 'student_preference_rank', $student_preference_rank );
 		TAAS_Guard::rank( 'professor_preference_rank', $professor_preference_rank );
 	}

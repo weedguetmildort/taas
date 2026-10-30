@@ -165,14 +165,14 @@ class RepositoryTest extends TestCase {
 	 * Updating notes writes only course_notes, keyed by course_id
 	 */
 	public function test_update_notes_writes_only_course_notes(): void {
-		$changed = ( new TAAS_Course_Repository() )->update_notes( 'COP4930-12345', 'Needs React.' );
+		$changed = ( new TAAS_Course_Repository() )->update_notes( '12345', 'Needs React.' );
 
 		$this->assertTrue( $changed );
 		$this->assertSame(
 			array(
 				'table' => 'wp_taas_core_courses',
 				'data'  => array( 'course_notes' => 'Needs React.' ),
-				'where' => array( 'course_id' => 'COP4930-12345' ),
+				'where' => array( 'course_id' => '12345' ),
 			),
 			$this->db->write
 		);
@@ -184,7 +184,7 @@ class RepositoryTest extends TestCase {
 	public function test_update_notes_clears_with_null(): void {
 		$this->db->update_result = 0;
 
-		$changed = ( new TAAS_Course_Repository() )->update_notes( 'COP4930-12345', null );
+		$changed = ( new TAAS_Course_Repository() )->update_notes( '12345', null );
 
 		$this->assertFalse( $changed );
 		$this->assertSame( array( 'course_notes' => null ), $this->db->write['data'] );
@@ -197,7 +197,7 @@ class RepositoryTest extends TestCase {
 		$this->db->update_result = false;
 
 		$this->expectException( RuntimeException::class );
-		( new TAAS_Course_Repository() )->update_notes( 'COP4930-12345', 'x' );
+		( new TAAS_Course_Repository() )->update_notes( '12345', 'x' );
 	}
 
 	/**
@@ -208,41 +208,41 @@ class RepositoryTest extends TestCase {
 			array(
 				'application_id'    => '1',
 				'student_ufid'      => '20000001',
-				'applied_course_id' => 'COP4930-12345',
+				'applied_course_id' => '12345',
 				'match_status'      => '1',
 			),
 			array(
 				'application_id'    => '2',
 				'student_ufid'      => '20000002',
-				'applied_course_id' => 'COP4930-12345',
+				'applied_course_id' => '12345',
 				'match_status'      => '4',
 			),
 			array(
 				'application_id'    => '3',
 				'student_ufid'      => '20000003',
-				'applied_course_id' => 'COP4930-12345',
+				'applied_course_id' => '12345',
 				'match_status'      => '2',
 			),
 		);
 
-		$active = ( new TAAS_Application_Repository() )->find_active_by_course( 'COP4930-12345' );
+		$active = ( new TAAS_Application_Repository() )->find_active_by_course( '12345' );
 
 		$this->assertSame( array( 1, 3 ), array_map( static fn( $a ) => $a->application_id, $active ) );
-		$this->assertStringContainsString( "`applied_course_id` = 'COP4930-12345'", $this->db->sql );
+		$this->assertStringContainsString( "`applied_course_id` = '12345'", $this->db->sql );
 	}
 
 	/**
 	 * The applicant list joins students and profiles, skips withdrawn and sorts by name
 	 */
 	public function test_applicants_for_course_builds_join(): void {
-		( new TAAS_Application_Repository() )->applicants_for_course( 'COP4930-12345' );
+		( new TAAS_Application_Repository() )->applicants_for_course( '12345' );
 
 		$sql = $this->db->sql;
 
 		$this->assertStringContainsString( 'FROM `wp_taas_core_applications` a', $sql );
 		$this->assertStringContainsString( 'INNER JOIN `wp_taas_core_students` s ON s.student_ufid = a.student_ufid', $sql );
 		$this->assertStringContainsString( 'LEFT JOIN `wp_taas_core_student_profiles` p ON p.student_ufid = a.student_ufid', $sql );
-		$this->assertStringContainsString( "WHERE a.applied_course_id = 'COP4930-12345' AND a.match_status <> 4", $sql );
+		$this->assertStringContainsString( "WHERE a.applied_course_id = '12345' AND a.match_status <> 4", $sql );
 		$this->assertStringEndsWith( 'ORDER BY s.student_name, a.application_id', $sql );
 	}
 
@@ -273,7 +273,7 @@ class RepositoryTest extends TestCase {
 			),
 		);
 
-		$rows = ( new TAAS_Application_Repository() )->applicants_for_course( 'COP4930-12345' );
+		$rows = ( new TAAS_Application_Repository() )->applicants_for_course( '12345' );
 
 		$this->assertSame(
 			array(
@@ -298,7 +298,7 @@ class RepositoryTest extends TestCase {
 	 * Saving a ranking clears the course's ranks first, then sets 1..n in order
 	 */
 	public function test_set_professor_ranks_resets_then_sets_in_order(): void {
-		( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( '20000002', '20000001' ) );
+		( new TAAS_Application_Repository() )->set_professor_ranks( '12345', array( '20000002', '20000001' ) );
 
 		$table = 'wp_taas_core_applications';
 
@@ -307,14 +307,14 @@ class RepositoryTest extends TestCase {
 				array(
 					'table' => $table,
 					'data'  => array( 'professor_preference_rank' => null ),
-					'where' => array( 'applied_course_id' => 'COP4930-12345' ),
+					'where' => array( 'applied_course_id' => '12345' ),
 				),
 				array(
 					'table' => $table,
 					'data'  => array( 'professor_preference_rank' => 1 ),
 					'where' => array(
 						'student_ufid'      => '20000002',
-						'applied_course_id' => 'COP4930-12345',
+						'applied_course_id' => '12345',
 					),
 				),
 				array(
@@ -322,7 +322,7 @@ class RepositoryTest extends TestCase {
 					'data'  => array( 'professor_preference_rank' => 2 ),
 					'where' => array(
 						'student_ufid'      => '20000001',
-						'applied_course_id' => 'COP4930-12345',
+						'applied_course_id' => '12345',
 					),
 				),
 			),
@@ -334,7 +334,7 @@ class RepositoryTest extends TestCase {
 	 * An empty ranking only clears
 	 */
 	public function test_set_professor_ranks_empty_only_clears(): void {
-		( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array() );
+		( new TAAS_Application_Repository() )->set_professor_ranks( '12345', array() );
 
 		$this->assertCount( 1, $this->db->writes );
 		$this->assertSame( array( 'professor_preference_rank' => null ), $this->db->writes[0]['data'] );
@@ -348,7 +348,7 @@ class RepositoryTest extends TestCase {
 
 		try {
 			TAAS_Transaction::run(
-				static fn() => ( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( '20000001' ) )
+				static fn() => ( new TAAS_Application_Repository() )->set_professor_ranks( '12345', array( '20000001' ) )
 			);
 			$this->fail( 'Expected a RuntimeException.' );
 		} catch ( RuntimeException $e ) {
@@ -384,7 +384,7 @@ class RepositoryTest extends TestCase {
 	 */
 	public function test_application_insert_writes_has_ta_for_course(): void {
 		( new TAAS_Application_Repository() )->insert(
-			new TAAS_Application( null, '12345678', 'COP3502-1234', has_taken_course: true, has_ta_for_course: true )
+			new TAAS_Application( null, '12345678', '1234', has_taken_course: true, has_ta_for_course: true )
 		);
 
 		$this->assertSame( 'wp_taas_core_applications', $this->db->write['table'] );
