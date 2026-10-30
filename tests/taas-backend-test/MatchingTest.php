@@ -189,10 +189,21 @@ class MatchingTest extends TestCase {
 
 		$this->assertSame( array( 'FIT20', 'FIT15' ), $this->ufids( $matches ) );
 		$this->assertSame(
-			array( 'student_ufid' => 'FIT20', 'hours' => 20, 'reason' => 'test_reason' ),
+			array(
+				'student_ufid' => 'FIT20',
+				'hours'        => 20,
+				'reason'       => 'test_reason',
+			),
 			$matches['FIT20']
 		);
-		$this->assertSame( array( 'TAKEN' => 'OTHER', 'FIT20' => 'A', 'FIT15' => 'A' ), $assigned );
+		$this->assertSame(
+			array(
+				'TAKEN' => 'OTHER',
+				'FIT20' => 'A',
+				'FIT15' => 'A',
+			),
+			$assigned
+		);
 		$this->assertSame( 5, $cth );
 	}
 
@@ -356,7 +367,14 @@ class MatchingTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( array( 'A' => 30, 'B' => 10, 'C' => 20 ), $result['unfilled_hours'] );
+		$this->assertSame(
+			array(
+				'A' => 30,
+				'B' => 10,
+				'C' => 20,
+			),
+			$result['unfilled_hours']
+		);
 		$this->assertSame( array( 'A', 'B', 'C' ), array_keys( $result['matches'] ) );
 		$this->assertSame( array(), $result['matches']['C'] );
 	}

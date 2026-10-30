@@ -51,10 +51,10 @@ function taas_calc_course_ta_hours( TAAS_Course $course ): int {
 		default => throw new InvalidArgumentException( sprintf( 'Course %s has unsupported lab_hours: %d.', esc_html( $course->course_id ), (int) $course->lab_hours ) ),
 	};
 
-    // Calculation of TA hours for the course
+	// Calculation of TA hours for the course
 	$hours = ( $course->enrollment * 10 ) / $students_per_10_hours;
 
-    // Round hours to nearest multiple of 5
+	// Round hours to nearest multiple of 5
 	return (int) ( round( $hours / 5 ) * 5 );
 }
 
@@ -153,7 +153,7 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 	// Sort by ranking (the professor's first preference is considered first, then second preference, etc.), breaking ties by UFID
 	usort(
 		$prof_prefs,
-		fn( $a, $b ) => [ $a->professor_preference_rank, $a->student_ufid ] <=> [ $b->professor_preference_rank, $b->student_ufid ]
+		fn( $a, $b ) => array( $a->professor_preference_rank, $a->student_ufid ) <=> array( $b->professor_preference_rank, $b->student_ufid )
 	);
 	$run_tier( $prof_prefs, 'professor_preference', 'professor_preference_rank' );
 
@@ -165,7 +165,7 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 	// Sort by ranking (students who prefer this course first, then students who prefer this course second, etc.), breaking ties by UFID
 	usort(
 		$student_prefs,
-		fn( $a, $b ) => [ $a->student_preference_rank, $a->student_ufid ] <=> [ $b->student_preference_rank, $b->student_ufid ]
+		fn( $a, $b ) => array( $a->student_preference_rank, $a->student_ufid ) <=> array( $b->student_preference_rank, $b->student_ufid )
 	);
 	$run_tier( $student_prefs, 'student_preference', 'student_preference_rank' );
 
@@ -214,8 +214,7 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 	usort( $phd_profiles, fn( $a, $b ) => $b->has_ta_experience <=> $a->has_ta_experience );
 	$phd_ufids = array_map( fn( TAAS_Student_Profile $profile ) => $profile->student_ufid, $phd_profiles );
 
-    $phd_apps_by_course   = array();
-	// $other_apps_by_course = array();
+	$phd_apps_by_course   = array();
 
 	// Get course applications accessed by course's ID, split by whether the applicant is a PhD student
 	foreach ( $apps as $app ) {
@@ -223,12 +222,7 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 
 		if ( $is_phd ) {
 			$phd_apps_by_course[ $app->applied_course_id ][] = $app;
-		} 
-        /*
-        else {
-			$other_apps_by_course[ $app->applied_course_id ][] = $app;
 		}
-        */
 	}
 
 	$assigned           = array();
@@ -263,19 +257,6 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 			$all_unfilled_hours[ $course->course_id ]
 		);
 	}
-
-    /*
-    // Pass 3: masters and undergrad applicants, to the courses they applied to
-    foreach ( $courses as $course ) {
-        $all_matches[ $course->course_id ] += taas_match_course(
-            $course,
-            $other_apps_by_course[ $course->course_id ] ?? array(),
-            $profiles_by_ufid,
-            $assigned,
-            $all_unfilled_hours[ $course->course_id ]
-        );
-    }
-    */
 
 	return array(
 		'matches'        => $all_matches,
