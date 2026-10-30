@@ -30,8 +30,9 @@ CREATE TABLE {prefix}student_profiles (
 	gpa decimal(3,2) DEFAULT NULL,                      -- most current GPA
 	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = AA, 2 = BS, 3 = MS, 4 = PhD (bind to PHP enum)
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
-	toefl_ibt_score int DEFAULT NULL,                   -- international students only
-	toefl_ibt_date date DEFAULT NULL,
+	english_test tinyint unsigned DEFAULT NULL,         -- international students only, 1 = SPEAK, 2 = TOEFL iBT (bind to PHP enum)
+	english_score int DEFAULT NULL,
+	english_test_date date DEFAULT NULL,
 	has_ta_experience tinyint(1) NOT NULL DEFAULT 0,
 	eap5836_status tinyint unsigned DEFAULT NULL,       -- (PhD) 1 = taken at uf, 2 = taken not at uf, 3 = taking, 4 = not taken
 	eap5837_status tinyint unsigned DEFAULT NULL,       -- (PhD) same php enum values as above

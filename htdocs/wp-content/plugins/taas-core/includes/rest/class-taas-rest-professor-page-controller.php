@@ -440,10 +440,11 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 					'country_code'        => $profile?->country_code,
 					'eap5836_status'      => $profile?->eap5836_status?->label(),
 					'eap5837_status'      => $profile?->eap5837_status?->label(),
+					'english_score'       => $profile?->english_score,
+					'english_test'        => $profile?->english_test?->label(),
+					'english_test_date'   => $profile?->english_test_date?->format( 'Y-m-d' ),
 					'resume_url'          => $profile?->resume_url,
 					'student_statement'   => $application->student_statement,
-					'toefl_ibt_score'     => $profile?->toefl_ibt_score,
-					'toefl_ibt_date'      => $profile?->toefl_ibt_date?->format( 'Y-m-d' ),
 				);
 			}
 		);

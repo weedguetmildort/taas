@@ -34,6 +34,7 @@ require_once TAAS_CORE_PATH . 'includes/func-taas-csv-ingest.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-enrollment-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-degree-type.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-course-taken-status.php';
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-english-test.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-match-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-semester.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-cast.php';
