@@ -206,11 +206,31 @@ class TypesTest extends TestCase {
 				'student_preference_rank',
 				'professor_preference_rank',
 				'match_status',
+				'assigned_hours',
 			),
 			array_keys( $row )
 		);
 		$this->assertSame( 0, $row['has_taken_course'] );
 		$this->assertSame( 1, $row['has_ta_for_course'] );
+		$this->assertSame( 0, $row['assigned_hours'] );
+	}
+
+	/**
+	 * The assigned_hours field hydrates as an int, and defaults to 0 when absent
+	 */
+	public function test_application_hydrates_assigned_hours(): void {
+		$base = array(
+			'student_ufid'      => '12345678',
+			'applied_course_id' => 'COP3502-1234',
+			'match_status'      => '2',
+		);
+
+		$assigned = TAAS_Application::from_row( $base + array( 'assigned_hours' => '10' ) );
+		$legacy   = TAAS_Application::from_row( $base );
+
+		$this->assertSame( 10, $assigned->assigned_hours );
+		$this->assertSame( 10, $assigned->to_row()['assigned_hours'] );
+		$this->assertSame( 0, $legacy->assigned_hours );
 	}
 
 	/**

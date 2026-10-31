@@ -90,7 +90,6 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * @param string $course_id Course section number.
 	 * @return array<int, array{
 	 *     application_id: int,
-	 *     student_ufid: string,
 	 *     student_name: string,
 	 *     major: ?string,
 	 *     gpa: ?float,
@@ -106,7 +105,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 
 		$rows = $this->select_rows(
 			$wpdb->prepare(
-				'SELECT a.application_id, a.student_ufid, s.student_name, p.major, p.gpa, p.enrollment_status,'
+				'SELECT a.application_id, s.student_name, p.major, p.gpa, p.enrollment_status,'
 				. ' a.has_taken_course, a.has_ta_for_course'
 				. ' FROM %i a'
 				. ' INNER JOIN %i s ON s.student_ufid = a.student_ufid'
@@ -124,7 +123,6 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 		return array_map(
 			static fn( array $r ) => array(
 				'application_id'    => TAAS_Cast::int( $r['application_id'] ),
-				'student_ufid'      => (string) $r['student_ufid'],
 				'student_name'      => (string) $r['student_name'],
 				'major'             => TAAS_Cast::string_or_null( $r['major'] ?? null ),
 				'gpa'               => TAAS_Cast::float_or_null( $r['gpa'] ?? null ),
@@ -140,27 +138,27 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * Replace a professor's whole ranking for one course.
 	 *
 	 * Every application for the course is first reset to unranked (NULL), then
-	 * the student at index i gets rank i + 1. A student left out of the list
-	 * therefore ends up unranked, which the matcher treats as equal last.
+	 * the application at index i gets rank i + 1. An application left out of the
+	 * list therefore ends up unranked, which the matcher treats as equal last.
 	 * Validate the ranking first (TAAS_Ranking::parse()) and call this inside
 	 * TAAS_Transaction::run() so a failure halfway cannot leave a partial ranking.
 	 *
-	 * @param string   $course_id     Course section number.
-	 * @param string[] $ordered_ufids Student UFIDs, best first; empty clears the ranking.
+	 * @param string $course_id   Course section number.
+	 * @param int[]  $ordered_ids Application ids, best first; empty clears the ranking.
 	 * @return void
 	 * @throws RuntimeException If an update fails.
 	 */
-	public function set_professor_ranks( string $course_id, array $ordered_ufids ): void {
+	public function set_professor_ranks( string $course_id, array $ordered_ids ): void {
 		$this->update_where(
 			array( 'professor_preference_rank' => null ),
 			array( 'applied_course_id' => $course_id )
 		);
 
-		foreach ( array_values( $ordered_ufids ) as $index => $student_ufid ) {
+		foreach ( array_values( $ordered_ids ) as $index => $application_id ) {
 			$this->update_where(
 				array( 'professor_preference_rank' => $index + 1 ),
 				array(
-					'student_ufid'      => (string) $student_ufid,
+					'application_id'    => (int) $application_id,
 					'applied_course_id' => $course_id,
 				)
 			);

@@ -21,6 +21,10 @@ defined( 'ABSPATH' ) || exit;
  * wrong default. Write routes (create, update, delete) are added per resource
  * as the frontend needs them.
  *
+ * Only HR and admins may see UFIDs. Every *_ufid column is removed from the
+ * response for anyone else (see row_for_caller()), whatever the route's
+ * read_permission() allows.
+ *
  * When an endpoint needs more than one table, do not stretch this class. Extend
  * TAAS_REST_Controller instead; its documentation covers composite reads, joins
  * and multi-table writes. A subclass here can still add extra routes that use
@@ -154,7 +158,25 @@ abstract class TAAS_REST_Resource_Controller extends TAAS_REST_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function prepare_item_for_response( $item, $request ) {
-		return new WP_REST_Response( $item->to_row() );
+		return new WP_REST_Response( $this->row_for_caller( $item ) );
+	}
+
+	/**
+	 * A row's columns, without any *_ufid column unless the caller is HR or an admin.
+	 *
+	 * @param object $item Row object from the repository.
+	 * @return array<string, mixed>
+	 */
+	protected function row_for_caller( object $item ): array {
+		if ( TAAS_Auth::has_role( TAAS_Auth::ROLE_ADMIN ) || TAAS_Auth::has_role( TAAS_Auth::ROLE_HR ) ) {
+			return $item->to_row();
+		}
+
+		return array_filter(
+			$item->to_row(),
+			static fn( string $column ) => ! str_ends_with( $column, '_ufid' ),
+			ARRAY_FILTER_USE_KEY
+		);
 	}
 
 	/**

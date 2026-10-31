@@ -137,7 +137,8 @@
       "student_statement": "I tutored this course content for two semesters.",
       "student_preference_rank": 1,
       "professor_preference_rank": 1,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000001",
@@ -145,7 +146,8 @@
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_preference_rank": 2,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000002",
@@ -155,7 +157,8 @@
       "student_statement": "Strong hardware background from my BS.",
       "student_preference_rank": 1,
       "professor_preference_rank": 1,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000003",
@@ -164,7 +167,8 @@
       "has_ta_for_course": 1,
       "student_preference_rank": 1,
       "professor_preference_rank": 2,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000001",
@@ -174,7 +178,8 @@
       "student_statement": "Built two React apps on my senior project team.",
       "student_preference_rank": 3,
       "professor_preference_rank": 1,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000002",
@@ -183,7 +188,8 @@
       "has_ta_for_course": 0,
       "student_preference_rank": 2,
       "professor_preference_rank": 2,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000003",
@@ -192,7 +198,8 @@
       "has_ta_for_course": 1,
       "student_statement": "I TA'd this course last summer.",
       "student_preference_rank": 2,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000003",
@@ -200,7 +207,8 @@
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_preference_rank": 3,
-      "match_status": 4
+      "match_status": 4,
+      "assigned_hours": 0
     },
     {
       "student_ufid": "20000002",
@@ -209,7 +217,8 @@
       "has_ta_for_course": 0,
       "student_statement": "My MS research is in distributed systems.",
       "student_preference_rank": 3,
-      "match_status": 1
+      "match_status": 1,
+      "assigned_hours": 0
     }
   ]
 }

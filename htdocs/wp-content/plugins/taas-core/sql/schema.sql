@@ -91,6 +91,7 @@ CREATE TABLE {prefix}applications (
 	student_preference_rank int DEFAULT NULL,           -- how the student ranks this course among their applications
 	professor_preference_rank int DEFAULT NULL,         -- how the professor ranks this applicant among theirs
 	match_status tinyint unsigned NOT NULL DEFAULT 1,   -- 1 = pending, 2 = matched, 3 = rejected, 4 = withdrawn (bind to PHP enum)
+	assigned_hours int NOT NULL DEFAULT 0,              -- TA hours assigned once match_status is matched
 	PRIMARY KEY  (application_id),
 	UNIQUE KEY student_course (student_ufid,applied_course_id),
 	KEY applied_course_id (applied_course_id),
