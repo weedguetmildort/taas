@@ -21,8 +21,7 @@ function taas_student_pages_init(): void {
 		return;
 	}
 	require_once TAAS_STUDENT_PAGES_PATH . 'includes/access.php';
-	require_once TAAS_STUDENT_PAGES_PATH . 'includes/form.php';
-	require_once TAAS_STUDENT_PAGES_PATH . 'includes/editor.php';
+	require_once TAAS_STUDENT_PAGES_PATH . 'includes/assets.php';
 	require_once TAAS_STUDENT_PAGES_PATH . 'pages/student-application.php';
 	require_once TAAS_STUDENT_PAGES_PATH . 'pages/check-application-status.php';
 	require_once TAAS_STUDENT_PAGES_PATH . 'pages/front-page.php';

@@ -11,6 +11,12 @@ function taas_student_homepage_assets(): void {
 	}
 	$file = 'assets/front-page.css';
 	wp_enqueue_style( 'taas-student-homepage', TAAS_STUDENT_PAGES_URL . $file, array(), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $file ) );
+	// TODO: Adapt this check with core's deferred multi-role fix.
+	$user = TAAS_Auth::current_user();
+	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) { return; }
+	$script = 'assets/front-page.js';
+	wp_enqueue_script( 'taas-student-homepage', TAAS_STUDENT_PAGES_URL . $script, array(), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $script ), true );
+	wp_add_inline_script( 'taas-student-homepage', 'window.TAASStudentHome = ' . wp_json_encode( taas_student_homepage_config(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';', 'before' );
 }
 
 /**
@@ -47,40 +53,17 @@ function taas_student_homepage_state() {
 	}
 }
 
-/** Render a managed navigation link with editor-owned wording. */
-function taas_student_homepage_link( array $attributes ): string {
-	// TODO: Core exposes only one role; update this check with its deferred multi-role fix.
-	$user = TAAS_Auth::current_user();
-	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) {
-		return '';
-	}
-	$labels = array(
-		'student-application' => 'Apply for TA Position',
-		'check-application-status' => 'Check Status of Application',
-		'professor-page' => 'PhD teaching an Undergrad class? Click here for Professor View',
+/** Supply data and managed URLs; homepage markup belongs to the HTML page. */
+function taas_student_homepage_config(): array {
+	$state = taas_student_homepage_state();
+	return array(
+		'urls' => array(
+			'student-application' => TAAS_Pages::url( 'student-application' ),
+			'check-application-status' => TAAS_Pages::url( 'check-application-status' ),
+			'professor-page' => TAAS_Pages::url( 'professor-page' ),
+		),
+		'unavailable' => is_wp_error( $state ),
+		'alreadyApplied' => ! is_wp_error( $state ) && $state['already_applied'],
+		'termLabel' => is_wp_error( $state ) ? '' : $state['period']['label'],
 	);
-	$destination = $attributes['destination'] ?? 'student-application';
-	if ( ! isset( $labels[ $destination ] ) ) {
-		return '';
-	}
-	$url = TAAS_Pages::url( $destination );
-	if ( '' === $url ) {
-		return '';
-	}
-	$label = '' !== ( $attributes['label'] ?? '' ) ? $attributes['label'] : $labels[ $destination ];
-	$professor = 'professor-page' === $destination;
-	$message = '';
-	if ( 'student-application' === $destination ) {
-		$state = taas_student_homepage_state();
-		if ( is_wp_error( $state ) ) {
-			$message = $attributes['unavailableMessage'];
-		} elseif ( $state['already_applied'] ) {
-			$message = str_replace( '{term}', $state['period']['label'], $attributes['alreadyAppliedMessage'] );
-		}
-	}
-	$id = wp_unique_id( 'student-home-application-note-' );
-	$description = '' !== $message ? ' aria-describedby="' . esc_attr( $id ) . '"' : '';
-	return '<div ' . get_block_wrapper_attributes( array( 'class' => 'student-home-link' ) ) . '><a class="' . ( $professor ? 'student-professor-button' : 'student-home-button' ) . '" href="' . esc_url( $url ) . '"' . $description . '>'
-		. esc_html( $label ) . ( $professor ? '' : '<span class="home-arrow" aria-hidden="true">→</span>' ) . '</a>'
-		. ( '' !== $message ? '<p class="student-home-application-note" id="' . esc_attr( $id ) . '">' . esc_html( $message ) . '</p>' : '' ) . '</div>';
 }

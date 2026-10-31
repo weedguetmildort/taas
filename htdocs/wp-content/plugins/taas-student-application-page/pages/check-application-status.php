@@ -21,11 +21,11 @@ function taas_check_application_status_assets(): void {
 		$term = add_query_arg( 'taas_role', 'student', $term );
 	}
 	$nonce = wp_create_nonce( 'wp_rest' );
-	taas_student_application_enqueue_form( array( 'mode' => 'edit', 'nonce' => $nonce ) );
+	taas_student_enqueue_assets( array( 'mode' => 'edit', 'nonce' => $nonce ) );
 	$css = 'assets/check-application-status.css';
 	wp_enqueue_style( 'taas-check-application-status', TAAS_STUDENT_PAGES_URL . $css, array( 'taas-student-application' ), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $css ) );
 	$file = 'assets/check-application-status.js';
-	wp_enqueue_script( 'taas-check-application-status', TAAS_STUDENT_PAGES_URL . $file, array( 'taas-student-application' ), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $file ), true );
+	wp_enqueue_script( 'taas-check-application-status', TAAS_STUDENT_PAGES_URL . $file, array( 'taas-student-application-edit' ), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $file ), true );
 	wp_add_inline_script(
 		'taas-check-application-status',
 		'window.TAASStudentStatus = ' . wp_json_encode(

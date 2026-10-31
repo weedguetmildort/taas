@@ -1,89 +1,241 @@
-<!-- wp:group {"className": "application-shell taas-application-form-root", "layout": {"type": "default"}} -->
 <div class="wp-block-group application-shell taas-application-form-root">
-<!-- wp:taas/application-term /-->
-<!-- wp:taas/application-notice /-->
-<!-- wp:taas/application-form -->
-<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-section">
-<!-- wp:heading -->
-<h2 class="wp-block-heading">Student Information</h2>
-<!-- /wp:heading -->
-<!-- wp:group {"className": "form-grid", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-grid">
-<!-- wp:taas/application-field {"field": "firstName"} /-->
-<!-- wp:taas/application-field {"field": "lastName"} /-->
-<!-- wp:taas/application-field {"field": "ufid"} /-->
-<!-- wp:taas/application-field {"field": "ufEmail"} /-->
-<!-- wp:taas/application-field {"field": "countryOfOrigin"} /-->
-<!-- wp:taas/application-field {"field": "startSemester"} /-->
-<!-- wp:taas/application-field {"field": "collegeStatus"} /-->
-<!-- wp:taas/application-field {"field": "phone"} /-->
+  <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+    <p class="term-banner" id="application-term" data-application-ui="term" role="status"><strong>Applying for:</strong> <span data-term-value>Loading application information…</span></p>
+    <section class="application-notice" id="existing-application-notice" data-application-ui="notice" hidden aria-label="Existing application">
+      <p>You have already applied for this term. You can view your course preferences on <a id="existing-application-link" data-application-ui="existingLink">Check Application Status</a>.</p>
+      <p>If you believe this is an error, you can start a new form. Your existing application will be preserved.</p>
+      <button type="button" id="start-recovery-form" data-application-ui="recovery">Start a new form</button>
+    </section>
+    <form id="student-application-form" data-application-form novalidate class="wp-block-taas-application-form">
+      <fieldset class="application-fields" id="application-fields" disabled>
+        <div class="wp-block-group form-section">
+          <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+            <h2 class="wp-block-heading">Student Information</h2>
+            <div class="wp-block-group form-grid">
+              <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                <div class="wp-block-taas-application-field">
+                  <label>First name <input name="firstName" type="text" required maxlength="255" autocomplete="given-name"></label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>Last name <input name="lastName" type="text" required maxlength="255" autocomplete="family-name"></label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>UFID <input name="ufid" readonly type="text" required maxlength="8" pattern="[0-9]{8}"><small>Your verified UFID is supplied by your account.</small></label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>UF email <input name="ufEmail" type="email" required maxlength="255" pattern=".+@[uU][fF][lL][.][eE][dD][uU]"></label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>
+                    Country of origin
+                    <input name="countryOfOrigin" type="text" required autocomplete="country-name" list="country-options">
+                    <datalist id="country-options"></datalist>
+                  </label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>
+                    Semester you started at UF
+                    <select name="startSemester" required id="start-semester">
+                      <option value="">Select semester</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>
+                    Current college status
+                    <select name="collegeStatus" required>
+                      <option value="">Select status</option>
+                      <option value="masters">Master's</option>
+                      <option value="phd">PhD</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>Phone number <input name="phone" type="tel" required maxlength="15" autocomplete="tel"></label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wp-block-group form-section">
+          <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+            <h2 class="wp-block-heading">Academic Background</h2>
+            <p class="section-help wp-block-paragraph">List at least one degree. For a degree in progress, enter your expected graduation date.</p>
+            <div id="academic-background-entries" data-application-ui="degreeHost" data-entry-label="Degree"></div>
+            <button type="button" id="add-degree" data-application-ui="addDegree">Add another degree</button>
+            <template id="degree-entry-template" data-application-ui="degreeTemplate">
+              <fieldset class="degree-entry">
+                <legend>Degree</legend>
+                <div class="form-grid">
+                  <label>University <input data-field="university" maxlength="255" required></label>
+                  <label>Major <input data-field="major" maxlength="255" required></label>
+                  <label>Degree type <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
+                  <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[0-9]{4}" maxlength="7" required></label>
+                  <div>
+                    <label>GPA (out of 4.0) <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
+                    <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> GPA not yet available</label>
+                  </div>
+                </div>
+                <div class="degree-actions">
+                  <button type="button" data-action="remove-degree">Remove degree</button>
+                </div>
+              </fieldset>
+            </template>
+            <datalist id="degree-type-options">
+              <option value="AA"></option>
+              <option value="BS"></option>
+              <option value="MS"></option>
+              <option value="PhD"></option>
+            </datalist>
+          </div>
+        </div>
+        <div class="wp-block-group form-section">
+          <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+            <h2 class="wp-block-heading">Eligibility Information</h2>
+            <p class="section-help wp-block-paragraph">Choose the status that applies to each course.</p>
+            <div class="wp-block-group form-grid">
+              <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                <div class="wp-block-taas-application-field">
+                  <label>
+                    EAP5836 status
+                    <select name="eap5836Status" required>
+                      <option value="">Select status</option>
+                      <option value="uf_taken">Taken at UF</option>
+                      <option value="currently_taking">Currently taking</option>
+                      <option value="not_taken">Not taken</option>
+                      <option value="other_university">Taken at another university</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>
+                    EAP5837 status
+                    <select name="eap5837Status" required>
+                      <option value="">Select status</option>
+                      <option value="uf_taken">Taken at UF</option>
+                      <option value="currently_taking">Currently taking</option>
+                      <option value="not_taken">Not taken</option>
+                      <option value="other_university">Taken at another university</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wp-block-group form-section">
+          <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+            <h2 class="wp-block-heading">Additional Information</h2>
+            <div class="wp-block-group form-grid">
+              <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                <div class="wp-block-taas-application-field">
+                  <label>
+                    Planned TA hours per week
+                    <select name="taHours" required>
+                      <option value="">Select hours</option>
+                      <option value="10">10 hours</option>
+                      <option value="20">20 hours</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="wp-block-taas-application-field">
+                  <label>
+                    English score (if applicable)
+                    <select name="englishScore">
+                      <option value="">Not applicable</option>
+                      <option value="SPEAK-20">SPEAK-20</option>
+                      <option value="SPEAK-25">SPEAK-25</option>
+                      <option value="SPEAK-30">SPEAK-30</option>
+                      <option value="SPEAK-35">SPEAK-35</option>
+                      <option value="SPEAK-40">SPEAK-40</option>
+                      <option value="SPEAK-45">SPEAK-45</option>
+                      <option value="SPEAK-50">SPEAK-50</option>
+                      <option value="SPEAK-55">SPEAK-55</option>
+                      <option value="SPEAK-60">SPEAK-60</option>
+                      <option value="TOEFL-6.0">TOEFL-6.0</option>
+                      <option value="TOEFL-5.5">TOEFL-5.5</option>
+                      <option value="TOEFL-5.0">TOEFL-5.0</option>
+                      <option value="TOEFL-4.5">TOEFL-4.5</option>
+                      <option value="TOEFL-4.0">TOEFL-4.0</option>
+                      <option value="TOEFL-3.5">TOEFL-3.5</option>
+                      <option value="TOEFL-3.0">TOEFL-3.0</option>
+                      <option value="TOEFL-2.5">TOEFL-2.5</option>
+                      <option value="TOEFL-2.0">TOEFL-2.0</option>
+                      <option value="TOEFL-1.5">TOEFL-1.5</option>
+                      <option value="TOEFL-1.0">TOEFL-1.0</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="wp-block-group full-width">
+                  <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                    <div class="wp-block-taas-application-field">
+                      <label>
+                        Anything else the professor should know, including planned travel
+                        <textarea rows="5" name="additionalInfo" maxlength="1000"></textarea>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="wp-block-group full-width">
+                  <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                    <div class="wp-block-taas-application-field">
+                      <label>Resume URL (optional) <input name="resumeUrl" type="url" maxlength="255" placeholder="https://…"></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wp-block-group form-section course-section">
+          <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+            <h2 class="wp-block-heading">Course Preferences</h2>
+            <p class="section-help wp-block-paragraph">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
+            <div class="course-selection-layout" data-course-copy='{
+                "chooserTitle": "Available courses",
+                "chooserHelp": "Check up to five courses.",
+                "rankingTitle": "Your course rankings",
+                "rankingHelp": "Set a different rank for each course and answer the course-history question.",
+                "rankLabel": "Preference rank",
+                "rankPlaceholder": "Select rank",
+                "completionLabel": "Have you completed this course?",
+                "completionPlaceholder": "Select answer",
+                "completedLabel": "Yes, I have completed this course",
+                "equivalentLabel": "I completed an equivalent course at another institution",
+                "incompleteLabel": "No, I have not completed this course",
+                "courseNumberLabel": "Course number",
+                "courseNameLabel": "Course name",
+                "instructorLabel": "Instructor",
+                "daysLabel": "Class days",
+                "timesLabel": "Class times",
+                "emptyRankings": "Select one or more courses to rank them here.",
+                "readOnlyEmptyRankings": "No active course preferences remain for this term."
+              }'>
+              <div class="course-chooser">
+                <h3>Available courses</h3>
+                <p class="course-subhelp">Check up to five courses.</p>
+                <div id="available-course-list" data-application-ui="courseList" class="available-course-list" aria-describedby="course-selection-message"></div>
+                <p id="course-selection-message" data-application-ui="courseMessage" class="course-selection-message" role="status" aria-live="polite"></p>
+              </div>
+              <div class="course-ranking-panel">
+                <h3>Your course rankings</h3>
+                <p class="course-subhelp">Set a different rank for each course and answer the course-history question.</p>
+                <div id="student-course-preferences" data-application-ui="rankings" class="preferences-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+      <footer class="form-actions">
+        <p class="student-app-message" id="form-message" data-application-ui="message" role="status" aria-live="polite">Loading your application…</p>
+        <button type="button" id="retry-application-load" data-application-ui="retry" hidden>Retry loading</button>
+        <button type="submit" data-saved-label="Application submitted" disabled>Submit Application</button>
+      </footer>
+    </form>
+    <dialog class="application-dialog" id="application-success" data-application-ui="dialog" aria-labelledby="application-success-title" aria-describedby="application-success-description">
+      <h2 id="application-success-title">Application submitted</h2>
+      <p id="application-success-description">Your form was successfully submitted. You can check your application's status on Check Application Status.</p>
+      <div class="dialog-actions"><a class="action-link" id="success-status-link" data-application-ui="statusLink">Check Application Status</a><a class="action-link" id="success-home-link" data-application-ui="homeLink">Back to homepage</a></div>
+    </dialog>
+  </div>
 </div>
-<!-- /wp:group -->
-</div>
-<!-- /wp:group -->
-<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-section">
-<!-- wp:heading -->
-<h2 class="wp-block-heading">Academic Background</h2>
-<!-- /wp:heading -->
-<!-- wp:paragraph {"className": "section-help"} -->
-<p class="section-help">List at least one degree. For a degree in progress, enter your expected graduation date.</p>
-<!-- /wp:paragraph -->
-<!-- wp:taas/academic-background /-->
-</div>
-<!-- /wp:group -->
-<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-section">
-<!-- wp:heading -->
-<h2 class="wp-block-heading">Eligibility Information</h2>
-<!-- /wp:heading -->
-<!-- wp:paragraph {"className": "section-help"} -->
-<p class="section-help">Choose the status that applies to each course.</p>
-<!-- /wp:paragraph -->
-<!-- wp:group {"className": "form-grid", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-grid">
-<!-- wp:taas/application-field {"field": "eap5836Status"} /-->
-<!-- wp:taas/application-field {"field": "eap5837Status"} /-->
-</div>
-<!-- /wp:group -->
-</div>
-<!-- /wp:group -->
-<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-section">
-<!-- wp:heading -->
-<h2 class="wp-block-heading">Additional Information</h2>
-<!-- /wp:heading -->
-<!-- wp:group {"className": "form-grid", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-grid">
-<!-- wp:taas/application-field {"field": "taHours"} /-->
-<!-- wp:taas/application-field {"field": "englishScore"} /-->
-<!-- wp:group {"className": "full-width", "layout": {"type": "default"}} -->
-<div class="wp-block-group full-width">
-<!-- wp:taas/application-field {"field": "additionalInfo"} /-->
-</div>
-<!-- /wp:group -->
-<!-- wp:group {"className": "full-width", "layout": {"type": "default"}} -->
-<div class="wp-block-group full-width">
-<!-- wp:taas/application-field {"field": "resumeUrl"} /-->
-</div>
-<!-- /wp:group -->
-</div>
-<!-- /wp:group -->
-</div>
-<!-- /wp:group -->
-<!-- wp:group {"className": "form-section course-section", "layout": {"type": "default"}} -->
-<div class="wp-block-group form-section course-section">
-<!-- wp:heading -->
-<h2 class="wp-block-heading">Course Preferences</h2>
-<!-- /wp:heading -->
-<!-- wp:paragraph {"className": "section-help"} -->
-<p class="section-help">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
-<!-- /wp:paragraph -->
-<!-- wp:taas/course-preferences /-->
-</div>
-<!-- /wp:group -->
-<!-- /wp:taas/application-form -->
-<!-- wp:taas/application-success /-->
-</div>
-<!-- /wp:group -->

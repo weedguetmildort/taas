@@ -1,17 +1,16 @@
-/* Page coordinator: load an application, open saved details, and submit changes. */
+/* Create a new application: load the form and submit it once. */
 (() => {
   'use strict';
 
-  function initializeApplicationPage() {
-    const formElement = document.querySelector('#student-application-form');
+  function initializeStudentApplication() {
+    const formElement = document.querySelector('form[data-application-form], #student-application-form');
     if (!formElement) {
       return;
     }
 
     const pageConfig = window.TAASStudentApplication;
-    const isEditing = pageConfig?.mode === 'edit';
     const applicationForm = window.TAASStudent.createApplicationForm(formElement, {
-      editing: isEditing,
+      editing: false,
       config: pageConfig
     });
     if (!applicationForm) {
@@ -19,32 +18,19 @@
     }
 
     const applicationApi = window.TAASStudent.createApplicationApi(pageConfig);
+    const endpoint = pageConfig?.endpoint;
     const state = {
       term: null,
-      canEdit: false,
-      revision: null,
-      endpoint: pageConfig?.endpoint,
-      phase: 'idle',
-      isLocked: false
+      isOpen: false,
+      phase: 'idle'
     };
 
     function canSubmitApplication() {
-      const isReady = state.phase === 'ready' && !state.isLocked;
-      const courseListAllowsSubmission = isEditing || applicationForm.hasCourses();
-      return state.canEdit && isReady && courseListAllowsSubmission;
+      return state.isOpen && state.phase === 'ready' && applicationForm.hasCourses();
     }
 
     function updateFormAvailability() {
-      const isReadOnly = isEditing && state.term !== null && !state.canEdit;
-      applicationForm.setAvailability(canSubmitApplication(), isReadOnly);
-    }
-
-    // The status page uses these events to update its controls and saved table.
-    function notifyStatusPage(eventName, detail) {
-      formElement.dispatchEvent(new CustomEvent(`taas:application-${eventName}`, {
-        bubbles: true,
-        detail
-      }));
+      applicationForm.setAvailability(canSubmitApplication(), false);
     }
 
     async function loadApplication() {
@@ -54,14 +40,14 @@
       updateFormAvailability();
 
       try {
-        const application = await applicationApi.load(state.endpoint);
+        const application = await applicationApi.load(endpoint);
         state.term = application.period;
-        state.canEdit = application.period.is_open;
+        state.isOpen = application.period.is_open;
         applicationForm.showInitial(application);
         state.phase = 'ready';
       } catch (error) {
         state.term = null;
-        state.canEdit = false;
+        state.isOpen = false;
         state.phase = 'error';
         applicationForm.setTerm('Application information unavailable');
         applicationForm.showMessage(error.message || 'Could not load the application. Please retry.', 'error');
@@ -69,22 +55,6 @@
       } finally {
         updateFormAvailability();
       }
-    }
-
-    function openSavedApplication(application, endpoint) {
-      state.endpoint = endpoint;
-      state.term = application.term;
-      state.canEdit = application.can_edit;
-      state.revision = application.revision;
-      state.phase = 'ready';
-      state.isLocked = false;
-      applicationForm.showSaved(application);
-
-      // Do not save a partial preference set when a saved course cannot be displayed.
-      if (applicationForm.hasMissingChoices()) {
-        state.canEdit = false;
-      }
-      updateFormAvailability();
     }
 
     async function submitApplication(event) {
@@ -98,66 +68,45 @@
         return;
       }
 
-      const submission = { ...enteredValues, term: state.term };
-      if (isEditing) {
-        submission.revision = state.revision;
-      }
-
       state.phase = 'saving';
       updateFormAvailability();
       applicationForm.showMessage('Submitting application…');
-      if (isEditing) {
-        notifyStatusPage('saving', { saving: true });
-      }
 
       try {
-        const savedApplication = await applicationApi.save(state.endpoint, submission);
-        if (isEditing) {
-          state.revision = savedApplication.revision;
-          applicationForm.showMessage('Your application changes were saved.', 'success');
-          notifyStatusPage('saved');
-        } else {
-          // Initial submissions stay locked after confirmation to prevent duplicates.
-          state.phase = 'saved';
-          applicationForm.showSuccess();
-        }
+        await applicationApi.save(endpoint, { ...enteredValues, term: state.term });
+        // A confirmed initial submission stays locked to prevent duplicate saves.
+        state.phase = 'saved';
       } catch (error) {
-        applicationForm.showMessage(error.message || 'Could not submit. Your entries have been kept; please retry.', 'error');
-        if (isEditing) {
-          notifyStatusPage('save-error', { status: error.status });
+        // Closed, unauthorized, or conflicting submissions require review/reload.
+        if ([403, 409].includes(error.status)) {
+          state.phase = 'blocked';
         }
+        applicationForm.showMessage(error.message || 'Could not submit. Your entries have been kept; please retry.', 'error');
       } finally {
         if (state.phase === 'saving') {
           state.phase = 'ready';
         }
         updateFormAvailability();
-        if (isEditing) {
-          notifyStatusPage('saving', { saving: false });
+      }
+
+      if (state.phase === 'saved') {
+        try {
+          applicationForm.showSuccess();
+        } catch (error) {
+          console.error('TAAS submission confirmation display failed:', error);
+          applicationForm.showMessage('Your application was successfully submitted. You can view it on Check Application Status.', 'success');
         }
       }
     }
 
     formElement.addEventListener('submit', submitApplication);
     applicationForm.onRetry(loadApplication);
-
-    if (isEditing) {
-      // Public interface used by check-application-status.js.
-      window.TAASStudentApplicationForm = {
-        open: openSavedApplication,
-        lock(isLocked) {
-          state.isLocked = isLocked;
-          updateFormAvailability();
-        }
-      };
-      document.dispatchEvent(new CustomEvent('taas:application-form-ready'));
-    } else {
-      loadApplication();
-    }
+    loadApplication();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApplicationPage, { once: true });
+    document.addEventListener('DOMContentLoaded', initializeStudentApplication, { once: true });
   } else {
-    initializeApplicationPage();
+    initializeStudentApplication();
   }
 })();

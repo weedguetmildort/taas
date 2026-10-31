@@ -14,6 +14,7 @@
     const selected = () => [...list.querySelectorAll('[name="selectedCourses"]:checked')].map(input => input.value);
     function courseMessage(text, error = false) {
       const node = message;
+      if (!node) return;
       node.textContent = text;
       node.dataset.state = error ? 'error' : '';
     }

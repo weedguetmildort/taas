@@ -18,7 +18,7 @@ class TAAS_Pages {
 	private const OPTION_PREFIX = 'taas_page_id_';
 
 	/**
-	 * Directory holding each page's block markup, relative to the plugin root
+	 * Directory holding each page's HTML content, relative to the plugin root
 	 */
 	private const CONTENT_DIR = 'pages/';
 
@@ -73,10 +73,10 @@ class TAAS_Pages {
 	}
 
 	/**
-	 * Load a page's block markup from pages/<slug>.html
+	 * Load a page's HTML content from pages/<slug>.html
 	 *
 	 * @param string $slug Page slug
-	 * @return string Raw block markup
+	 * @return string Raw HTML content
 	 */
 	private static function content( string $slug ): string {
 		$path = TAAS_CORE_PATH . self::CONTENT_DIR . $slug . '.html';
@@ -94,7 +94,12 @@ class TAAS_Pages {
 
 		$contents = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local plugin file, not remote.
 
-		return false === $contents ? '' : $contents;
+		if ( false === $contents ) { return ''; }
+		// Raw student HTML imports use WordPress's standard Custom HTML block.
+		if ( in_array( $slug, array( 'front-page', 'student-application', 'check-application-status' ), true ) && ! has_blocks( $contents ) ) {
+			return "<!-- wp:html -->\n" . $contents . "\n<!-- /wp:html -->";
+		}
+		return $contents;
 	}
 
 	/**
@@ -239,12 +244,12 @@ class TAAS_Pages {
 	}
 
 	/**
-	 * Sync repository-owned pages while preserving student pages edited in WordPress.
+	 * Sync repository-owned pages while preserving editable student pages.
 	 *
-	 * Student HTML files seed new installations. Existing student page content is
-	 * owned by the WordPress editor and is only replaced by an explicit import.
+	 * Student source files seed new pages. Saved WordPress content is authoritative
+	 * after that; replacing it requires an explicit import.
 	 *
-	 * @param bool     $force Explicitly import source, including editor-owned pages.
+	 * @param bool     $force Explicitly import source, including editable student pages.
 	 * @param string[] $slugs Optional subset to import.
 	 * @return int Number of pages updated
 	 */
@@ -386,12 +391,19 @@ class TAAS_Pages {
 
 			$path    = TAAS_CORE_PATH . self::CONTENT_DIR . $slug . '.html';
 			$current = file_exists( $path ) ? file_get_contents( $path ) : '';
+			$content = $page->post_content;
+			if ( in_array( $slug, array( 'front-page', 'student-application', 'check-application-status' ), true ) ) {
+				$blocks = array_values( array_filter( parse_blocks( $content ), static fn( $block ) => null !== $block['blockName'] || '' !== trim( $block['innerHTML'] ) ) );
+				if ( 1 === count( $blocks ) && 'core/html' === $blocks[0]['blockName'] ) {
+					$content = trim( $blocks[0]['innerHTML'] ) . "\n";
+				}
+			}
 
-			if ( $current === $page->post_content ) {
+			if ( $current === $content ) {
 				continue;
 			}
 
-			file_put_contents( $path, $page->post_content );
+			file_put_contents( $path, $content );
 			$changed[] = $slug;
 		}
 

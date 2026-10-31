@@ -8,10 +8,6 @@ function taas_home_check( bool $condition, string $message ): void {
 	if ( ! $condition ) { throw new RuntimeException( $message ); }
 	echo 'PASS: ' . $message . PHP_EOL;
 }
-function taas_home_render( string $destination = 'student-application', array $attributes = array() ): string {
-	return render_block( array( 'blockName' => 'taas/homepage-link', 'attrs' => $attributes + array( 'destination' => $destination ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
-}
-
 $original_get = $_GET;
 $_GET['taas_role'] = 'student';
 $owner = TAAS_Auth::current_user()['university_id'];
@@ -31,7 +27,7 @@ try {
 	while ( $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] ) || $applications->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] ) ) { --$period['year']; }
 	if ( ! $students->find( $owner ) ) { $students->insert( new TAAS_Student( $owner, 'Homepage test', 'home@ufl.edu' ) ); }
 	taas_home_check( false === taas_student_homepage_state()['already_applied'], 'Applications in other terms do not mark the configured term as applied' );
-	taas_home_check( ! str_contains( taas_home_render(), 'aria-describedby=' ), 'A new applicant sees no already-applied warning' );
+	taas_home_check( false === taas_student_homepage_config()['alreadyApplied'], 'New-applicant configuration has no already-applied warning' );
 	$other = '99995000';
 	while ( $students->find( $other ) ) { $other = (string) ( (int) $other - 1 ); }
 	$students->insert( new TAAS_Student( $other, 'Another student', 'other@example.invalid' ) );
@@ -40,14 +36,13 @@ try {
 	taas_home_check( false === taas_student_homepage_state()['already_applied'], 'Another student and a forged URL owner cannot affect homepage state' );
 	$submissions->save_for_term( $owner, TAAS_Semester::Fall, $period['year'], array( 'student_name' => 'Homepage test' ) );
 	taas_home_check( true === taas_student_homepage_state()['already_applied'], 'A term snapshot counts even with no active course preferences' );
-	$html = taas_home_render();
-	taas_home_check( str_contains( $html, 'You have already applied for Fall ' . $period['year'] ) && str_contains( $html, 'aria-describedby=' ) && ! str_contains( $html, ' title=' ), 'Existing applicants receive visible and accessible link descriptions without hover tooltips' );
-	taas_home_check( str_contains( $html, 'href="' . esc_url( TAAS_Pages::url( 'student-application' ) ) . '"' ) && ! str_contains( $html, 'aria-disabled=' ), 'Apply stays clickable using the managed WordPress URL' );
-	foreach ( array( 'check-application-status', 'professor-page' ) as $destination ) {
-		taas_home_check( str_contains( taas_home_render( $destination ), 'href="' . esc_url( TAAS_Pages::url( $destination ) ) . '"' ), $destination . ' uses the managed page URL' );
+	$config = taas_student_homepage_config();
+	taas_home_check( $config['alreadyApplied'] && $config['termLabel'] === 'Fall ' . $period['year'], 'Existing-applicant configuration supplies the correct term' );
+	foreach ( array( 'student-application', 'check-application-status', 'professor-page' ) as $destination ) {
+		taas_home_check( $config['urls'][ $destination ] === TAAS_Pages::url( $destination ), $destination . ' supplies the managed page URL' );
 	}
 	$period['is_open'] = false;
-	taas_home_check( true === taas_student_homepage_state()['already_applied'] && str_contains( taas_home_render(), 'href=' ), 'Closing applications preserves status feedback and navigation' );
+	taas_home_check( true === taas_student_homepage_config()['alreadyApplied'], 'Closing applications preserves status feedback and navigation' );
 	$period['is_open'] = true;
 	// Legacy course rows without a snapshot must match initial-form detection too.
 	$submissions->delete( $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] )->submission_id );
@@ -58,12 +53,10 @@ try {
 	$courses->insert( new TAAS_Course( $id, 'TEST', 'Homepage test course', $professor, TAAS_Semester::Fall, $period['year'] ) );
 	$applications->insert( new TAAS_Application( null, $owner, $id, true, false, null, 1, null, TAAS_Match_Status::Withdrawn ) );
 	taas_home_check( true === taas_student_homepage_state()['already_applied'], 'Withdrawn legacy course rows still count as an existing application' );
-	$custom = taas_home_render( 'student-application', array( 'label' => 'Apply & review <script>bad()</script>' ) );
-	taas_home_check( str_contains( $custom, 'Apply &amp; review' ) && ! str_contains( $custom, '<script>' ), 'WordPress-edited labels are escaped safely' );
 	$period = array();
-	taas_home_check( is_wp_error( taas_student_homepage_state() ) && str_contains( taas_home_render(), 'Application information is unavailable.' ), 'Missing configuration shows an unavailable state, not a false already-applied result' );
+	taas_home_check( is_wp_error( taas_student_homepage_state() ) && taas_student_homepage_config()['unavailable'], 'Missing configuration shows an unavailable state, not a false already-applied result' );
 	$_GET['taas_role'] = 'instructor';
-	taas_home_check( is_wp_error( taas_student_homepage_state() ) && '' === taas_home_render(), 'Non-students receive no personalized homepage controls' );
+	taas_home_check( is_wp_error( taas_student_homepage_state() ) && false === taas_student_homepage_config()['alreadyApplied'], 'Non-students receive no personalized homepage controls' );
 } finally {
 	$wpdb->query( 'ROLLBACK' );
 	remove_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );

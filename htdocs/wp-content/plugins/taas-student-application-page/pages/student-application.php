@@ -24,7 +24,7 @@ function taas_student_application_assets(): void {
 	if ( TAAS_Auth::is_local_dev() ) {
 		$endpoint = add_query_arg( 'taas_role', 'student', $endpoint );
 	}
-	taas_student_application_enqueue_form(
+	taas_student_enqueue_assets(
 		array(
 			'mode'      => 'create',
 			'endpoint'  => $endpoint,

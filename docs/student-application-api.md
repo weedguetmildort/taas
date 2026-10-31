@@ -138,10 +138,10 @@ Read-only details include pending, matched and rejected choices, retaining their
 saved ranks even when withdrawals leave gaps. Withdrawn choices stay unselected.
 The status page does not guess submission dates that the schema does not store.
 
-Both pages use core-managed WordPress content blocks rendered by the student
-plugin; repeatable degree controls use a shared partial. The form styles are scoped to avoid changing the
-status table or WordPress theme. The shared JavaScript runs in separate create
-and edit modes; each page has its own PHP setup, and the status page has a
+Both pages keep their presentation in plain HTML files, including degree
+templates, course containers, form controls and dialogs. PHP does not render those components. The form styles are scoped to avoid changing the
+status table or WordPress theme. Separate JavaScript coordinators handle creation
+and existing-term editing; each page has its own PHP setup, and the status page has a
 separate controller for term selection and table refresh. Editing uses the saved
 full-name string instead of guessing how to split it into first and last names.
 
@@ -186,42 +186,50 @@ team's HR review policy. Selecting that answer currently explains that HR guidan
 is required instead of silently treating it as a completed exact course.
 
 
-## Editing the student pages in WordPress
+## Editing the student HTML
 
-Student Application, Check Application Status and Student Home Page use editable
-WordPress blocks. Application sections use native Heading/Paragraph/Group blocks and
-TAAS blocks for integrated fields, repeated degrees, course selection and confirmation.
-Edit wording and grouping under **Pages**; select a TAAS block to edit labels/options
-in its settings. The original HTML's frontend styling is retained through scoped CSS
-that neutralizes extra Group containers and theme typography overrides.
+Frontend developers edit these repository files directly:
 
-Live courses, saved details, authentication, validation and submission stay in
-PHP/REST/JavaScript. Keep required controls and backend field identifiers intact;
-an incomplete application form disables submission. WordPress's block editor is
-enabled for the application page again.
+- `htdocs/wp-content/plugins/taas-core/pages/student-application.html`
+- `htdocs/wp-content/plugins/taas-core/pages/check-application-status.html`
+- `htdocs/wp-content/plugins/taas-core/pages/front-page.html`
 
-The source HTML files seed new installations. Normal `TAAS_Pages::sync_content()`
-preserves all three student pages, including Student Home Page, so WordPress edits
-survive plugin updates. Other teams' pages keep their existing synchronization.
-For an intentional import in local development, use
-`TAAS_Pages::sync_content(true, array('student-application', 'check-application-status'))`.
-This replaces those pages' editor content, so back it up first. Outside local
-mode an explicit import requires `manage_options`. Export editor changes with the
-existing local `TAAS_Pages::export()` workflow when they should be version controlled.
-Existing shortcode pages remain supported for compatibility, but new source pages
-use editable blocks instead of a full-page form shortcode. Existing installs
-need an explicit import to convert; custom editor content is never migrated silently.
+Repository sources are plain HTML fragments. Saved WordPress pages wrap that
+HTML in one standard Custom HTML block so the modern editor remains available.
+There are no custom block registrations or PHP presentation renderers. Existing CSS classes are retained to preserve appearance; they do not
+create WordPress blocks. Degree templates, course containers, term/notice/dialog,
+status controls and navigation markup are frontend-owned. Dynamic course/ranking
+rows remain frontend JavaScript. Preserve the named-input/component contracts below.
 
-Non-browser checks: `tests/integration/student-editor.php` covers raw HTML/block rendering,
-label escaping, stable field names, and preserving editor changes during sync.
-`tests/integration/student-pages.php` checks published markup, access, and API connections.
+WordPress's default modern editor handles these pages. Each saved page contains
+one standard Custom HTML block; edit its HTML there. `TAAS_Pages` wraps raw HTML
+when loading source files for installation or an explicit import. No custom editor
+activation, content-formatting overrides or global post-save wrapping hooks are needed.
+
+Saved WordPress content is authoritative. Edit it under **Pages**, then save/update
+the page. Repository file edits do not appear automatically. Source files seed new
+installations; normal synchronization preserves existing student-page edits.
+To deliberately replace selected WordPress content from files, use
+`TAAS_Pages::sync_content(true, array('student-application'))` in local development
+(or an authorized administrative import). Back up page content before importing.
+`TAAS_Pages::export()` exports WordPress content in local dev, removing the single
+Custom HTML block wrapper so the repository files remain plain HTML.
+
+WordPress owns routing, page IDs, saved page content, authentication and the
+surrounding theme. Frontend JavaScript and the REST contract remain independent of
+whether HTML was written in WordPress or imported from a file.
+
+`tests/integration/student-editor.php` checks plain source HTML, modern-editor settings,
+preservation of WordPress edits and explicit source imports.
+`tests/integration/student-pages.php` checks access/API integration and confirms
+source-file changes do not silently override published WordPress content.
 
 
 ### Student homepage
 
-`front-page` uses native content blocks and the `taas/homepage-link` block for
-managed application, status and existing professor-page links. Its label and notice
-wording are editable in WordPress; `{term}` inserts the configured academic term.
+`front-page` uses plain HTML links marked with
+`data-student-destination` for application, status and the existing professor page. Its label and notice
+wording are editable in its HTML file; `{term}` inserts the configured academic term.
 The Apply link remains clickable when an application already exists and shows the
 approved visible notice and accessible description. The destination's
 existing recovery/duplicate protections still apply.
@@ -229,16 +237,21 @@ existing recovery/duplicate protections still apply.
 `pages/front-page.php` in the student plugin reads only the authenticated owner's
 configured-term snapshot or course rows. A snapshot or any matching course row,
 including withdrawn rows, counts as already applied. Reads are server-side, so the
-homepage needs no form bootstrap request, course-list download or form JavaScript.
+homepage needs no form bootstrap request or course-list download. PHP passes only
+managed URLs and state through `window.TAASStudentHome`; `assets/front-page.js` binds
+links and displays the HTML-owned applied/unavailable messages. Those messages live
+in `[data-home-applied]` and `[data-home-unavailable]` elements.
 Personalized student pages already send no-cache headers through shared access checks.
 The existing professor link remains navigation only; it grants no instructor role.
 `tests/integration/student-homepage.php` covers ownership, term isolation, withdrawn
-records, missing configuration, labels and managed links using rolled-back fixtures.
+records, missing configuration and managed URLs using rolled-back fixtures.
+`tests/browser/student-homepage.cjs` checks published links, HTML-owned labels, accessible
+feedback, URL safety and unauthorized access.
 
 
 Status-page presentation retains its original HTML card, table, badge and button
 styling through scoped CSS overrides for theme typography and Gutenberg containers.
-The term selector, live course/rank/status columns and block-based in-page editor
+The term selector, live course/rank/status columns and HTML in-page editor
 remain connected. Desktop/mobile visual comparison and editor opening were verified.
 
 
@@ -250,42 +263,119 @@ checks remain; scheduling enforcement by the matching backend is a separate conc
 
 ## Frontend code guide
 
-Start with `assets/student-application.js`. Its job is to coordinate initial
-loading, opening saved applications, saving, and the existing status-page events.
-The single state object holds the term, edit permission, revision, endpoint, phase
-and external lock. Named conditions distinguish permission from loading/saving state.
+Start with the coordinator for the page you are changing:
 
-The remaining responsibilities are separated into four components:
+- `assets/student-application.js`: initial form loading, retries and one-time submission.
+- `assets/student-application-edit.js`: opening saved details, read-only permissions,
+  revision-aware edits and status-page events.
 
-- `application-api.js`: authenticated JSON requests, load/save response contracts,
+Each coordinator has its own state and contains only its page's workflow. The create
+state tracks term, open/closed availability and request phase. The edit state additionally
+tracks the saved revision, selected endpoint and temporary external lock.
+
+The remaining responsibilities are separated into five components:
+
+- `application-api-client.js`: authenticated JSON requests, load/save response contracts,
   HTTP errors and a 30-second timeout.
-- `application-form.js`: validate unique fields/blocks, prefill profile details, collect
-  the payload, and display initial/saved form feedback. Generated historical English-score options
-  are removed before prefilling another saved application.
+- `application-fields.js`: prefill named HTML inputs and use `FormData` to map their
+  values to REST details. It has no dependency on WordPress blocks or layout classes.
+- `application-form.js`: mount the degree/course components, assemble their data with
+  the field details, and display loading, errors, permissions and success.
 - `academic-background.js`: repeatable degree controls, degree validation and collection.
 - `course-preferences.js`: course display, saved choices, ranking and completion checks.
   Its read-only empty state is separate from the editable selection instruction.
 
 Each component exposes a small factory through `window.TAASStudent`. WordPress script
-dependencies in `includes/form.php` load components before the coordinator; no build
+dependencies in `includes/assets.php` load components before the selected coordinator; no build
 step or frontend framework is required. The public `TAASStudentApplicationForm.open`
 and `.lock` methods and `taas:application-*` events remain compatible with the status
-controller. Display/prefill methods and payload collection are separate.
+controller. The status controller depends on the edit coordinator; each page loads
+only its own coordinator. Display/prefill methods and payload collection are separate.
 
-Duplicate required names or singleton IDs keep the form disabled and display a
-configuration error. Timeout errors preserve browser entries. A timed-out write may
+Missing or duplicate contract input names keep the form disabled and display a
+configuration error. Extra input names are ignored rather than forwarded to the API. Timeout errors preserve browser entries. A timed-out write may
 still have committed, so the user is instructed to check saved status before retrying.
 
 Focused JavaScript checks:
 
 ```sh
-node --test tests/javascript/application-api.test.cjs
+node --test tests/javascript/application-api-client.test.cjs
 node tests/browser/student-application-status.cjs
 ```
 
 The browser test requires Playwright as before (or `TAAS_PLAYWRIGHT_MODULE`) and a
 running local WordPress site. Its API responses are fixtures and all writes are blocked.
 It covers finalized results, read-only withdrawal, historical English-score cleanup,
-pending edits and duplicate-field handling. The original initial-form browser test
+pending edits, repeated saves with fresh revisions, stale-edit recovery and duplicate-field handling. The original initial-form browser test
 still checks its existing flows; its final error assertion remains affected by the
 separate UF theme errors, which have deliberately not been suppressed.
+
+
+## Presentation contract
+
+The REST contract above stays authoritative. Saved WordPress HTML supplies the
+form; repository HTML can be imported explicitly. No backend changes are needed for new
+headings, labels, wrappers, CSS, field order, extra presentation-only inputs, or
+additional submit buttons.
+
+- Mount the coordinator on `form[data-application-form]`. The old form ID still works.
+- Keep the existing named inputs: `firstName`/`lastName` for creation, `studentName`
+  for edits, and `ufEmail`, `phone`, `countryOfOrigin`, `startSemester`, `collegeStatus`,
+  `taHours`, `eap5836Status`, `eap5837Status`. Labels/classes/IDs are independent.
+- `ufid` is optional display-only; ownership always comes from backend authentication.
+  `resumeUrl`, `englishScore`, `additionalInfo` can be omitted. Missing optional
+  controls preserve loaded values during edits; an existing empty control clears its value.
+- Keep one interactive mount per degree/course component:
+  `data-application-ui="degreeHost"`, `degreeTemplate`, `addDegree`, `courseList`,
+  and `rankings`. Their existing IDs remain supported for saved pages.
+- The repeatable degree template retains its component-local `data-field` attributes;
+  course controls retain their local input names. These components own their internal
+  markup and expose `prefill`, `validate` and `collect` to the form adapter.
+- Term/message/retry/notice/recovery/dialog/link hooks are optional. Use the
+  `data-application-ui` keys in `application-form.js` to place them anywhere inside
+  `[data-application-root]` (or the existing `.taas-application-form-root`).
+  A missing message element is generated accessibly. No dialog is required for success.
+  Without a recovery control, the form remains visible when an application exists;
+  the API still prevents conflicting creation.
+- The adapter locks form controls independently of a particular fieldset layout,
+  retaining component-disabled controls such as unavailable GPA inputs.
+
+Adding a newly stored business field still requires updating the API contract and
+its validation/storage, plus the field adapter. Extra unrecognized inputs are never
+silently persisted. HTML presentation no longer depends on custom WordPress block
+definitions or PHP rendering callbacks.
+
+`node tests/browser/student-presentation.cjs` exercises the contract using local HTML,
+without WordPress or API requests. It covers redesigned layouts, omitted optional
+controls, edit-value preservation, locks and missing required fields.
+
+
+### Converting existing custom components
+
+Current sources contain plain HTML; saved pages use one standard Custom HTML block. Saved WordPress HTML is
+authoritative; repository files are imported only when explicitly requested. For an existing installation, use
+`scripts/convert-student-components.php` **before deploying removal of the old block
+registration**, while the previous renderer is still installed. It renders legacy
+components once into Custom HTML, preserving each page's saved wording separately
+from the repository source. It converts complete containers together so their HTML
+remains balanced, and turns homepage links into static HTML hooks rather than
+freezing personalized state into the page.
+
+Run without arguments to preview. To apply, pass `--apply` and a new writable backup
+JSON filename (for example under ignored `real-data/`). The backup contains original
+and replacement source/page content. The converter rejects missing legacy renderers
+and concurrent edits; already-converted pages are unchanged. The local three pages
+have been converted, with their backup in `real-data/student-components-before-20261031.json`.
+
+The API still validates all submitted data and derives ownership from authentication.
+
+
+### Flattening older standard blocks
+
+`scripts/convert-student-pages-to-html.php` renders remaining standard blocks once
+into plain HTML, independently for repository and saved pages. Run without arguments
+to preview or with `--apply` and a new backup JSON path to convert. It preserves the
+rendered structure and guards against concurrent edits. This historical flattening step was completed before restoring the modern editor;
+original/replacement content is backed up under
+`real-data/student-plain-html-before-20261031.json`. No block conversion occurs on
+normal page requests.

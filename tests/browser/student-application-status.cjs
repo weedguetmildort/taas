@@ -31,15 +31,27 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       ]
     };
     const page = await context.newPage();
+    const savedPayloads = [];
+    let simulateConflict = false;
     await page.route(url => (url.searchParams.get('rest_route') || url.pathname).includes('/taas/v1/student/applications'), route => {
       const url = new URL(route.request().url());
       const path = url.searchParams.get('rest_route') || url.pathname;
+      if (path.endsWith('/1/2155') && route.request().method() === 'POST') {
+        const payload = route.request().postDataJSON();
+        savedPayloads.push(payload);
+        if (simulateConflict) return route.fulfill({ status: 409, json: { message: 'The application changed after you loaded it.' } });
+        fixture.details = payload.details;
+        fixture.revision = String.fromCharCode(97 + savedPayloads.length).repeat(64);
+        return route.fulfill({ json: { submission_id: fixture.submission_id, revision: fixture.revision } });
+      }
       return route.fulfill({ json: path.endsWith('/1/2155')
         ? fixture : { terms: [{ submission_id: 123, semester: 1, year: 2155, label: 'Fall 2155' }] } });
     });
     const origin = process.env.TAAS_TEST_ORIGIN || 'http://localhost:8080';
     const open = async () => {
       await page.goto(`${origin}/?pagename=check-application-status&taas_role=student`, { waitUntil: 'networkidle' });
+      assert.equal(await page.locator('script[src*="/assets/student-application-edit.js"]').count(), 1);
+      assert.equal(await page.locator('script[src*="/assets/student-application.js"]').count(), 0);
       await page.locator('#status-term option[value="1:2155"]').waitFor({ state: 'attached' });
       await page.locator('#status-term').selectOption('1:2155');
       await page.locator('#status-actions').waitFor({ state: 'visible' });
@@ -89,6 +101,34 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert.equal(writeRequests, 0);
     console.log('PASS: Open applications still prefill only pending choices and remain editable');
 
+    for (const phone of ['3525550199', '3525550198']) {
+      const loadedRevision = fixture.revision;
+      await page.locator('[name="phone"]').fill(phone);
+      await page.locator('#student-application-form [type="submit"]').click();
+      await page.locator('#status-message[data-state="success"]').waitFor({ state: 'visible' });
+      await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
+      const payload = savedPayloads.at(-1);
+      assert.equal(payload.revision, loadedRevision);
+      assert.equal(payload.details.profile.phone, phone);
+      assert.deepEqual(payload.term, { semester: 1, year: 2155 });
+      assert.equal(await page.locator('[name="phone"]').inputValue(), phone);
+    }
+    assert.equal(savedPayloads.length, 2);
+    console.log('PASS: The edit coordinator submits revisions and refreshes the saved form for subsequent edits');
+
+    simulateConflict = true;
+    await page.locator('[name="phone"]').fill('3525550197');
+    await page.locator('#student-application-form [type="submit"]').click();
+    await page.waitForFunction(() => document.querySelector('#status-message').textContent.includes('Use Reload saved application'));
+    assert(await page.locator('#application-fields').evaluate(node => node.disabled));
+    assert.equal(await page.locator('[name="phone"]').inputValue(), '3525550197');
+    await page.locator('#reload-saved-application').click();
+    await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
+    assert.equal(await page.locator('[name="phone"]').inputValue(), '3525550198');
+    simulateConflict = false;
+    assert.equal(writeRequests, 0);
+    console.log('PASS: A stale edit retains entries and blocks saving until the student reloads');
+
     const duplicate = await context.newPage();
     const errors = [];
     duplicate.on('pageerror', error => errors.push(error.message));
@@ -107,6 +147,6 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert(await duplicate.locator('#student-application-form [type="submit"]').isDisabled());
     assert(!errors.some(error => error.includes('addEventListener')));
     assert.equal(writeRequests, 0);
-    console.log('PASS: Duplicate WordPress field blocks produce a clear configuration error and keep submission disabled');
+    console.log('PASS: Duplicate named inputs produce a clear configuration error and keep submission disabled');
   } finally { await browser.close(); }
 })();

@@ -1,8 +1,8 @@
-/* Run with node --test tests/javascript/application-api.test.cjs. No network calls. */
+/* Run with node --test tests/javascript/application-api-client.test.cjs. No network calls. */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 global.window = {};
-require('../../htdocs/wp-content/plugins/taas-student-application-page/assets/application-api.js');
+require('../../htdocs/wp-content/plugins/taas-student-application-page/assets/application-api-client.js');
 const { createApplicationApi } = window.TAASStudent;
 
 async function withFetch(fetch, work) {

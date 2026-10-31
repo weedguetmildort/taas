@@ -1,32 +1,30 @@
-<!-- wp:group {"className": "student-homepage", "layout": {"type": "default"}} -->
 <div class="wp-block-group student-homepage">
-<!-- wp:group {"className": "student-professor-switch", "layout": {"type": "default"}} -->
-<div class="wp-block-group student-professor-switch">
-<!-- wp:taas/homepage-link {"destination": "professor-page"} /-->
+  <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+    <div class="wp-block-group student-professor-switch">
+      <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+        <div class="student-home-link wp-block-taas-homepage-link"><a class="student-professor-button" data-student-destination="professor-page">PhD teaching an Undergrad class? Click here for Professor View</a></div>
+      </div>
+    </div>
+    <div class="wp-block-group student-homepage-content">
+      <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+        <div class="wp-block-group student-welcome">
+          <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+            <h1 class="wp-block-heading">Welcome<br>Student!</h1>
+            <p class="wp-block-paragraph">Welcome to the TA Application System. Select an option to get started.</p>
+          </div>
+        </div>
+        <div class="wp-block-group student-homepage-menu">
+          <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+            <h2 class="wp-block-heading">Choose from one of the options below</h2>
+            <div class="student-home-link wp-block-taas-homepage-link">
+              <a class="student-home-button" data-student-destination="student-application">Apply for TA Position<span class="home-arrow" aria-hidden="true">→</span></a>
+              <p class="student-home-application-note" data-home-applied="" hidden="">You have already applied for {term}.</p>
+              <p class="student-home-application-note" data-home-unavailable="" hidden="">Application information is unavailable. You can still open the application page.</p>
+            </div>
+            <div class="student-home-link wp-block-taas-homepage-link"><a class="student-home-button" data-student-destination="check-application-status">Check Status of Application<span class="home-arrow" aria-hidden="true">→</span></a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-<!-- /wp:group -->
-<!-- wp:group {"className": "student-homepage-content", "layout": {"type": "default"}} -->
-<div class="wp-block-group student-homepage-content">
-<!-- wp:group {"className": "student-welcome", "layout": {"type": "default"}} -->
-<div class="wp-block-group student-welcome">
-<!-- wp:heading {"level":1} -->
-<h1 class="wp-block-heading">Welcome<br>Student!</h1>
-<!-- /wp:heading -->
-<!-- wp:paragraph -->
-<p>Welcome to the TA Application System. Select an option to get started.</p>
-<!-- /wp:paragraph -->
-</div>
-<!-- /wp:group -->
-<!-- wp:group {"className": "student-homepage-menu", "layout": {"type": "default"}} -->
-<div class="wp-block-group student-homepage-menu">
-<!-- wp:heading -->
-<h2 class="wp-block-heading">Choose from one of the options below</h2>
-<!-- /wp:heading -->
-<!-- wp:taas/homepage-link {"destination": "student-application"} /-->
-<!-- wp:taas/homepage-link {"destination": "check-application-status"} /-->
-</div>
-<!-- /wp:group -->
-</div>
-<!-- /wp:group -->
-</div>
-<!-- /wp:group -->
