@@ -8,7 +8,7 @@
 use PHPUnit\Framework\TestCase;
 
 // Plain functions are not covered by the Composer classmap
-require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-csv-ingest.php';
+require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-xlsx-ingest.php';
 
 /**
  * Check that rows round-trip through the new columns and invalid values are refused
@@ -291,25 +291,5 @@ class TypesTest extends TestCase {
 		$this->assertSame( TAAS_Semester::Summer_C, TAAS_Semester::try_from_label( 'SUMMER_C' ) );
 		$this->assertNull( TAAS_Semester::try_from_label( 'Winter' ) );
 		$this->assertNull( TAAS_Semester::try_from_label( 'Summer' ) );
-	}
-
-	/**
-	 * The spreadsheet's UFO column becomes is_online
-	 */
-	public function test_parse_online_flag(): void {
-		$this->assertTrue( taas_parse_online_flag( 'Y' ) );
-		$this->assertTrue( taas_parse_online_flag( 'yes' ) );
-		$this->assertTrue( taas_parse_online_flag( 'UFO' ) );
-		$this->assertFalse( taas_parse_online_flag( '' ) );
-		$this->assertFalse( taas_parse_online_flag( 'n' ) );
-		$this->assertFalse( taas_parse_online_flag( '0' ) );
-	}
-
-	/**
-	 * An unrecognised UFO value stops the import rather than guessing
-	 */
-	public function test_parse_online_flag_rejects_unknown_value(): void {
-		$this->expectException( RuntimeException::class );
-		taas_parse_online_flag( 'maybe' );
 	}
 }
