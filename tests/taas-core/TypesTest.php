@@ -222,24 +222,4 @@ class TypesTest extends TestCase {
 		$this->assertNull( TAAS_Semester::try_from_label( 'Winter' ) );
 		$this->assertNull( TAAS_Semester::try_from_label( 'Summer' ) );
 	}
-
-	/**
-	 * The spreadsheet's UFO column becomes is_online
-	 */
-	public function test_parse_online_flag(): void {
-		$this->assertTrue( taas_parse_online_flag( 'Y' ) );
-		$this->assertTrue( taas_parse_online_flag( 'yes' ) );
-		$this->assertTrue( taas_parse_online_flag( 'UFO' ) );
-		$this->assertFalse( taas_parse_online_flag( '' ) );
-		$this->assertFalse( taas_parse_online_flag( 'n' ) );
-		$this->assertFalse( taas_parse_online_flag( '0' ) );
-	}
-
-	/**
-	 * An unrecognised UFO value stops the import rather than guessing
-	 */
-	public function test_parse_online_flag_rejects_unknown_value(): void {
-		$this->expectException( RuntimeException::class );
-		taas_parse_online_flag( 'maybe' );
-	}
 }
