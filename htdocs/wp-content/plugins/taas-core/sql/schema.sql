@@ -28,7 +28,7 @@ CREATE TABLE {prefix}student_profiles (
 	available_hours int DEFAULT NULL,                   -- NULL = not yet provided, distinct from 0
 	major varchar(255) DEFAULT NULL,                    -- most recent/applicable major; string for multiple majors
 	gpa decimal(3,2) DEFAULT NULL,                      -- most current GPA
-	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = AA, 2 = BS, 3 = MS, 4 = PhD (bind to PHP enum)
+	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = Undergraduate, 2 = Masters, 3 = PhD (bind to PHP enum)
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
 	speak_score int DEFAULT NULL,                       -- international students only
 	speak_date date DEFAULT NULL,

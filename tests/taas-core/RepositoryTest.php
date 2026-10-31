@@ -258,7 +258,7 @@ class RepositoryTest extends TestCase {
 				'student_name'      => 'Priya Raman',
 				'major'             => 'Computer Science',
 				'gpa'               => '3.85',
-				'enrollment_status' => '4',
+				'enrollment_status' => '3',
 				'has_taken_course'  => '0',
 				'has_ta_for_course' => '1',
 			),

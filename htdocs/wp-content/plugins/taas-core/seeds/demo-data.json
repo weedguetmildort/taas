@@ -17,7 +17,7 @@
       "available_hours": 20,
       "major": "Computer Science",
       "gpa": 3.72,
-      "enrollment_status": 3,
+      "enrollment_status": 2,
       "resume_url": "https://example.com/resume/jblake",
       "has_ta_experience": 1,
       "country_code": "US",
@@ -30,7 +30,7 @@
       "available_hours": 10,
       "major": "Computer Science",
       "gpa": 3.85,
-      "enrollment_status": 4,
+      "enrollment_status": 3,
       "toefl_ibt_score": 108,
       "toefl_ibt_date": "2025-09-13",
       "has_ta_experience": 0,
@@ -43,7 +43,7 @@
       "admitted_semester": "Fall 2026",
       "major": "Computer Science",
       "gpa": 3.40,
-      "enrollment_status": 2,
+      "enrollment_status": 1,
       "has_ta_experience": 0,
       "country_code": "US"
     }

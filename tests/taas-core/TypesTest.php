@@ -24,7 +24,7 @@ class TypesTest extends TestCase {
 				'student_ufid'      => '12345678',
 				'major'             => 'Computer Science, Business',
 				'gpa'               => '3.50',
-				'enrollment_status' => '4',
+				'enrollment_status' => '3',
 				'speak_score'       => '55',
 				'speak_date'        => '2025-03-01',
 				'toefl_ibt_score'   => '5.5',

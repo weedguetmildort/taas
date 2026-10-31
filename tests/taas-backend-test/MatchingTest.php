@@ -56,7 +56,7 @@ class MatchingTest extends TestCase {
 	 *
 	 * @param string                      $ufid          Student UFID
 	 * @param int|null                    $hours         Weekly hours available
-	 * @param TAAS_Enrollment_Status|null $status        Program the student is in, e.g. MS or PhD
+	 * @param TAAS_Enrollment_Status|null $status        Program the student is in, e.g. Masters or PhD
 	 * @param bool                        $ta_experience Whether the student has been a TA before
 	 */
 	private function profile( string $ufid, ?int $hours = 20, ?TAAS_Enrollment_Status $status = TAAS_Enrollment_Status::Phd, bool $ta_experience = false ): TAAS_Student_Profile {
