@@ -7,7 +7,6 @@ CREATE TABLE `{prefix}courses` (
   `is_online` tinyint(1) NOT NULL DEFAULT '0',
   `course_description` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `course_notes` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
-  `sections` int DEFAULT NULL,
   `weekly_hours` int DEFAULT NULL,
   `lab_hours` int NOT NULL DEFAULT '0',
   `enrollment` int NOT NULL DEFAULT '0',
