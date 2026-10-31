@@ -9,7 +9,7 @@ declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Data access for courses, keyed by course_id (the section number).
+ * Data access for courses, keyed by course_id.
  */
 final class TAAS_Course_Repository extends TAAS_Repository {
 
@@ -90,12 +90,12 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	/**
 	 * Replace a course's professor notes, leaving every other column alone.
 	 *
-	 * @param string      $course_id Course section number.
+	 * @param int         $course_id Course ID.
 	 * @param string|null $notes     New notes, or null to clear them.
 	 * @return bool True if the notes changed.
 	 * @throws RuntimeException If the update fails.
 	 */
-	public function update_notes( string $course_id, ?string $notes ): bool {
+	public function update_notes( int $course_id, ?string $notes ): bool {
 		return $this->update_where(
 			array( 'course_notes' => $notes ),
 			array( 'course_id' => $course_id )

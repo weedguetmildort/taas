@@ -139,7 +139,7 @@ class TypesTest extends TestCase {
 	 * The course's to_row() writes exactly the courses columns, with no removed ones left over
 	 */
 	public function test_course_to_row_matches_schema_columns(): void {
-		$row = ( new TAAS_Course( '12345', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Summer_C, 2027, true ) )->to_row();
+		$row = ( new TAAS_Course( 12345, 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Summer_C, 2027, true ) )->to_row();
 
 		$this->assertSame(
 			array(
@@ -165,35 +165,62 @@ class TypesTest extends TestCase {
 	}
 
 	/**
-	 * Section numbers are strings, so one with a letter is fine
+	 * A new course has no id yet, so to_row() leaves it for the database to assign
 	 */
-	public function test_course_id_accepts_section_number_with_letter(): void {
-		$course = new TAAS_Course( '1996A', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+	public function test_course_to_row_omits_null_id(): void {
+		$row = ( new TAAS_Course( null, 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 ) )->to_row();
 
-		$this->assertSame( '1996A', $course->to_row()['course_id'] );
+		$this->assertArrayNotHasKey( 'course_id', $row );
 	}
 
 	/**
-	 * A course id is the section number alone, never code + section
+	 * Course ids from the database hydrate as ints, on both tables
 	 */
-	public function test_course_rejects_code_plus_section_id(): void {
-		$this->expectException( InvalidArgumentException::class );
-		new TAAS_Course( 'COP4930-19633', 'COP4930', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+	public function test_course_ids_hydrate_as_int(): void {
+		$course = TAAS_Course::from_row(
+			array(
+				'course_id'       => '12345',
+				'course_code'     => 'COP3502',
+				'course_name'     => 'Programming 1',
+				'course_semester' => '1',
+				'course_year'     => '2026',
+				'professor_ufid'  => '87654321',
+			)
+		);
+
+		$application = TAAS_Application::from_row(
+			array(
+				'student_ufid'      => '12345678',
+				'applied_course_id' => '12345',
+				'match_status'      => '1',
+			)
+		);
+
+		$this->assertSame( 12345, $course->course_id );
+		$this->assertSame( 12345, $application->applied_course_id );
 	}
 
 	/**
-	 * Applications point at the same bare section number
+	 * Auto-increment ids start at 1
 	 */
-	public function test_application_rejects_code_plus_section_id(): void {
+	public function test_course_rejects_id_below_one(): void {
 		$this->expectException( InvalidArgumentException::class );
-		new TAAS_Application( null, '12345678', 'COP4930-19633' );
+		new TAAS_Course( 0, 'COP4930', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+	}
+
+	/**
+	 * Applications must point at a real course id
+	 */
+	public function test_application_rejects_course_id_below_one(): void {
+		$this->expectException( InvalidArgumentException::class );
+		new TAAS_Application( null, '12345678', 0 );
 	}
 
 	/**
 	 * The application's to_row() writes exactly the applications columns, in schema order
 	 */
 	public function test_application_to_row_matches_schema_columns(): void {
-		$row = ( new TAAS_Application( 7, '12345678', '1234', has_ta_for_course: true ) )->to_row();
+		$row = ( new TAAS_Application( 7, '12345678', 1234, has_ta_for_course: true ) )->to_row();
 
 		$this->assertSame(
 			array(
@@ -278,7 +305,7 @@ class TypesTest extends TestCase {
 	 */
 	public function test_course_rejects_year_outside_mysql_range(): void {
 		$this->expectException( InvalidArgumentException::class );
-		new TAAS_Course( '12345', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 26 );
+		new TAAS_Course( 12345, 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 26 );
 	}
 
 	/**

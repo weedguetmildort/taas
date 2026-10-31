@@ -56,7 +56,7 @@
   ],
   "courses": [
     {
-      "course_id": "1234",
+      "course_id": 1234,
       "course_code": "COP3502",
       "course_name": "Programming Fundamentals 1",
       "course_semester": 1,
@@ -71,7 +71,7 @@
       "professor_ufid": "10000001"
     },
     {
-      "course_id": "5678",
+      "course_id": 5678,
       "course_code": "CDA3101",
       "course_name": "Introduction to Computer Organization",
       "course_semester": 1,
@@ -85,7 +85,7 @@
       "professor_ufid": "10000002"
     },
     {
-      "course_id": "12345",
+      "course_id": 12345,
       "course_code": "COP4930",
       "course_name": "Yet Another SWE Course",
       "course_semester": 4,
@@ -100,7 +100,7 @@
       "professor_ufid": "87654321"
     },
     {
-      "course_id": "54321",
+      "course_id": 54321,
       "course_code": "COP4930",
       "course_name": "Some Other CISE Elective",
       "course_semester": 4,
@@ -114,7 +114,7 @@
       "professor_ufid": "87654321"
     },
     {
-      "course_id": "18238",
+      "course_id": 18238,
       "course_code": "COP6767",
       "course_name": "Advanced Software Systems",
       "course_semester": 1,
@@ -131,7 +131,7 @@
   "applications": [
     {
       "student_ufid": "20000001",
-      "applied_course_id":"1234",
+      "applied_course_id":1234,
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_statement": "I tutored this course content for two semesters.",
@@ -142,7 +142,7 @@
     },
     {
       "student_ufid": "20000001",
-      "applied_course_id":"5678",
+      "applied_course_id":5678,
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_preference_rank": 2,
@@ -151,7 +151,7 @@
     },
     {
       "student_ufid": "20000002",
-      "applied_course_id":"5678",
+      "applied_course_id":5678,
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_statement": "Strong hardware background from my BS.",
@@ -162,7 +162,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_id":"1234",
+      "applied_course_id":1234,
       "has_taken_course": 1,
       "has_ta_for_course": 1,
       "student_preference_rank": 1,
@@ -172,7 +172,7 @@
     },
     {
       "student_ufid": "20000001",
-      "applied_course_id": "12345",
+      "applied_course_id": 12345,
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_statement": "Built two React apps on my senior project team.",
@@ -183,7 +183,7 @@
     },
     {
       "student_ufid": "20000002",
-      "applied_course_id": "12345",
+      "applied_course_id": 12345,
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_preference_rank": 2,
@@ -193,7 +193,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_id": "12345",
+      "applied_course_id": 12345,
       "has_taken_course": 1,
       "has_ta_for_course": 1,
       "student_statement": "I TA'd this course last summer.",
@@ -203,7 +203,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_id": "54321",
+      "applied_course_id": 54321,
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_preference_rank": 3,
@@ -212,7 +212,7 @@
     },
     {
       "student_ufid": "20000002",
-      "applied_course_id": "18238",
+      "applied_course_id": 18238,
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_statement": "My MS research is in distributed systems.",

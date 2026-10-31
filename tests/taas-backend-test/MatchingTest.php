@@ -24,21 +24,21 @@ class MatchingTest extends TestCase {
 	 *
 	 * A 2-hour lab gives 10 TA hours per 25 students, so 2.5 students per hour.
 	 *
-	 * @param string $course_id    Course section number
-	 * @param int    $hours_needed TA hours the course needs, a multiple of 5
+	 * @param int $course_id    Course ID
+	 * @param int $hours_needed TA hours the course needs, a multiple of 5
 	 */
-	private function course( string $course_id, int $hours_needed ): TAAS_Course {
+	private function course( int $course_id, int $hours_needed ): TAAS_Course {
 		return $this->course_with( $course_id, (int) ( $hours_needed * 2.5 ), 2 );
 	}
 
 	/**
 	 * Build a course with an explicit enrollment and lab length
 	 *
-	 * @param string $course_id  Course section number
-	 * @param int    $enrollment Enrolled students
-	 * @param int    $lab_hours  Lab hours per week
+	 * @param int $course_id  Course ID
+	 * @param int $enrollment Enrolled students
+	 * @param int $lab_hours  Lab hours per week
 	 */
-	private function course_with( string $course_id, int $enrollment, int $lab_hours ): TAAS_Course {
+	private function course_with( int $course_id, int $enrollment, int $lab_hours ): TAAS_Course {
 		return new TAAS_Course(
 			course_id: $course_id,
 			course_code: 'COP1234',
@@ -72,13 +72,13 @@ class MatchingTest extends TestCase {
 	 * Build an application
 	 *
 	 * @param string   $ufid         Student UFID
-	 * @param string   $course_id    Course section applied for
+	 * @param int      $course_id    Course applied for
 	 * @param int|null $student_rank Student's rank of the course, null if the student did not rank it
 	 * @param int|null $prof_rank    Professor's rank of the student, null if the professor did not rank them
 	 * @param bool     $taken        Whether the student has taken the course
 	 * @param bool     $ta_for       Whether the student has previously TA'd the course
 	 */
-	private function app( string $ufid, string $course_id, ?int $student_rank = null, ?int $prof_rank = null, bool $taken = false, bool $ta_for = false ): TAAS_Application {
+	private function app( string $ufid, int $course_id, ?int $student_rank = null, ?int $prof_rank = null, bool $taken = false, bool $ta_for = false ): TAAS_Application {
 		return new TAAS_Application(
 			application_id: null,
 			student_ufid: $ufid,
@@ -126,7 +126,7 @@ class MatchingTest extends TestCase {
 	 * @param TAAS_Application[]     $apps     Applications for the course
 	 * @param TAAS_Student_Profile[] $profiles Applicant profiles
 	 * @param int                    $cth      Hours to fill
-	 * @param array<string, string>  $assigned Existing assignments
+	 * @param array<string, int>     $assigned Existing assignments
 	 * @return array Matches keyed by UFID
 	 */
 	private function match_course( TAAS_Course $course, array $apps, array $profiles, int $cth, array $assigned = array() ): array {
@@ -141,12 +141,12 @@ class MatchingTest extends TestCase {
 	 * Test course calculations
 	 */
 	public function test_hours_formula_and_rounding(): void {
-		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( '1', 70, 0 ) ) );
-		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( '1', 60, 1 ) ) );
-		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( '1', 50, 2 ) ) );
-		$this->assertSame( 30, taas_calc_course_ta_hours( $this->course_with( '1', 100, 0 ) ) ); // 28.57 -> 30
-		$this->assertSame( 10, taas_calc_course_ta_hours( $this->course_with( '1', 31, 2 ) ) );  // 12.4  -> 10
-		$this->assertSame( 5, taas_calc_course_ta_hours( $this->course_with( '1', 10, 0 ) ) );   // 2.86  -> 5
+		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( 1, 70, 0 ) ) );
+		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( 1, 60, 1 ) ) );
+		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( 1, 50, 2 ) ) );
+		$this->assertSame( 30, taas_calc_course_ta_hours( $this->course_with( 1, 100, 0 ) ) ); // 28.57 -> 30
+		$this->assertSame( 10, taas_calc_course_ta_hours( $this->course_with( 1, 31, 2 ) ) );  // 12.4  -> 10
+		$this->assertSame( 5, taas_calc_course_ta_hours( $this->course_with( 1, 10, 0 ) ) );   // 2.86  -> 5
 	}
 
 	/**
@@ -155,7 +155,7 @@ class MatchingTest extends TestCase {
 	public function test_hours_reject_invalid_course(): void {
 		foreach ( array( array( 9, 0 ), array( -10, 0 ), array( 50, 3 ) ) as [ $enrollment, $lab_hours ] ) {
 			try {
-				taas_calc_course_ta_hours( $this->course_with( '1', $enrollment, $lab_hours ) );
+				taas_calc_course_ta_hours( $this->course_with( 1, $enrollment, $lab_hours ) );
 				$this->fail( "No exception for enrollment $enrollment, lab $lab_hours" );
 			} catch ( InvalidArgumentException $e ) {
 				$this->addToAssertionCount( 1 );
@@ -171,11 +171,11 @@ class MatchingTest extends TestCase {
 	 * Test matching candidates of a mix of assigned status/various hours, including edge cases
 	 */
 	public function test_candidates_skip_unavailable_and_update_state(): void {
-		$assigned = array( 'TAKEN' => 'OTHER' );
+		$assigned = array( 'TAKEN' => 99 );
 		$cth      = 40;
 
 		$matches = taas_match_candidates(
-			$this->course( 'A', 40 ),
+			$this->course( 1, 40 ),
 			array( 'TAKEN', 'NOHOURS', 'ZERO', 'OVER', 'FIT20', 'FIT15', 'SMALL' ),
 			'test_reason',
 			$this->by_ufid(
@@ -202,9 +202,9 @@ class MatchingTest extends TestCase {
 		);
 		$this->assertSame(
 			array(
-				'TAKEN' => 'OTHER',
-				'FIT20' => 'A',
-				'FIT15' => 'A',
+				'TAKEN' => 99,
+				'FIT20' => 1,
+				'FIT15' => 1,
 			),
 			$assigned
 		);
@@ -219,7 +219,7 @@ class MatchingTest extends TestCase {
 		$cth      = 20;
 
 		$matches = taas_match_candidates(
-			$this->course( 'A', 20 ),
+			$this->course( 1, 20 ),
 			array( 'EXACT' ),
 			'test_reason',
 			$this->by_ufid( $this->profile( 'EXACT', hours: 20 ) ),
@@ -243,14 +243,14 @@ class MatchingTest extends TestCase {
 		$cth      = 70;
 
 		$matches = taas_match_course(
-			$this->course( 'A', 70 ),
+			$this->course( 1, 70 ),
 			array(
-				$this->app( 'APPLIED', 'A' ),
-				$this->app( 'TA', 'A' ),
-				$this->app( 'TAKEN', 'A', taken: true ),
-				$this->app( 'TAFOR', 'A', ta_for: true ),
-				$this->app( 'STUDENT', 'A', student_rank: 1 ),
-				$this->app( 'MUTUAL', 'A', student_rank: 5, prof_rank: 1 ),
+				$this->app( 'APPLIED', 1 ),
+				$this->app( 'TA', 1 ),
+				$this->app( 'TAKEN', 1, taken: true ),
+				$this->app( 'TAFOR', 1, ta_for: true ),
+				$this->app( 'STUDENT', 1, student_rank: 1 ),
+				$this->app( 'MUTUAL', 1, student_rank: 5, prof_rank: 1 ),
 			),
 			$this->by_ufid(
 				$this->profile( 'APPLIED', hours: 10 ),
@@ -277,11 +277,11 @@ class MatchingTest extends TestCase {
 	 */
 	public function test_instructor_pick_skipped_when_unavailable_or_one_sided(): void {
 		$matches = $this->match_course(
-			$this->course( 'A', 50 ),
+			$this->course( 1, 50 ),
 			array(
-				$this->app( 'UNAVAIL', 'A', student_rank: 1, prof_rank: 1 ),
-				$this->app( 'ONESIDED', 'A', prof_rank: 2 ),
-				$this->app( 'MUTUAL', 'A', student_rank: 2, prof_rank: 3 ),
+				$this->app( 'UNAVAIL', 1, student_rank: 1, prof_rank: 1 ),
+				$this->app( 'ONESIDED', 1, prof_rank: 2 ),
+				$this->app( 'MUTUAL', 1, student_rank: 2, prof_rank: 3 ),
 			),
 			array(
 				$this->profile( 'UNAVAIL', hours: 10 ),
@@ -289,7 +289,7 @@ class MatchingTest extends TestCase {
 				$this->profile( 'MUTUAL', hours: 10 ),
 			),
 			50,
-			array( 'UNAVAIL' => 'OTHER' )
+			array( 'UNAVAIL' => 99 )
 		);
 
 		$this->assertSame( array( 'MUTUAL', 'ONESIDED' ), $this->ufids( $matches ) );
@@ -301,14 +301,14 @@ class MatchingTest extends TestCase {
 	 */
 	public function test_preference_ties_broken_by_ufid(): void {
 		$matches = $this->match_course(
-			$this->course( 'A', 100 ),
+			$this->course( 1, 100 ),
 			array(
-				$this->app( '30000000', 'A', student_rank: 1, prof_rank: 1 ),
-				$this->app( '00000001', 'A', student_rank: 1, prof_rank: 2 ),
-				$this->app( '10000000', 'A', student_rank: 1, prof_rank: 1 ),
-				$this->app( 'ZED', 'A', student_rank: 1 ),
-				$this->app( 'ABE', 'A', student_rank: 2 ),
-				$this->app( 'MAX', 'A', student_rank: 1 ),
+				$this->app( '30000000', 1, student_rank: 1, prof_rank: 1 ),
+				$this->app( '00000001', 1, student_rank: 1, prof_rank: 2 ),
+				$this->app( '10000000', 1, student_rank: 1, prof_rank: 1 ),
+				$this->app( 'ZED', 1, student_rank: 1 ),
+				$this->app( 'ABE', 1, student_rank: 2 ),
+				$this->app( 'MAX', 1, student_rank: 1 ),
 			),
 			array(
 				$this->profile( '30000000', hours: 10 ),
@@ -339,14 +339,14 @@ class MatchingTest extends TestCase {
 	public function test_phd_priority(): void {
 		// Course ID => UFID => [student rank, professor rank]; every other application is unranked
 		$ranks = array(
-			'B' => array(
+			2 => array(
 				'PHD1' => array( 1, 1 ),
 				'PHD2' => array( 1, 2 ),
 			),
 		);
 
 		$apps = array();
-		foreach ( array( 'A', 'B', 'C' ) as $course_id ) {
+		foreach ( array( 1, 2, 3 ) as $course_id ) {
 			foreach ( array( 'PHD1', 'PHD2', 'PHDNEW', 'PHDTA' ) as $ufid ) {
 				[ $student_rank, $prof_rank ] = $ranks[ $course_id ][ $ufid ] ?? array( null, null );
 				$apps[]                       = $this->app( $ufid, $course_id, student_rank: $student_rank, prof_rank: $prof_rank );
@@ -354,7 +354,7 @@ class MatchingTest extends TestCase {
 		}
 
 		$result = taas_run_matching(
-			array( $this->course( 'A', 30 ), $this->course( 'B', 30 ), $this->course( 'C', 30 ) ),
+			array( $this->course( 1, 30 ), $this->course( 2, 30 ), $this->course( 3, 30 ) ),
 			$apps,
 			array(
 				$this->profile( 'PHD1', status: TAAS_Enrollment_Status::Phd ),
@@ -364,12 +364,12 @@ class MatchingTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( array( 'PHD1' ), $this->ufids( $result['matches']['B'] ) );
-		$this->assertSame( 'professor_preference_1', $result['matches']['B']['PHD1']['reason'] );
-		$this->assertSame( array( 'PHDTA' ), $this->ufids( $result['matches']['A'] ) );
-		$this->assertSame( 'ta_experience', $result['matches']['A']['PHDTA']['reason'] );
-		$this->assertSame( array( 'PHD2' ), $this->ufids( $result['matches']['C'] ) );
-		$this->assertSame( 'applied', $result['matches']['C']['PHD2']['reason'] );
+		$this->assertSame( array( 'PHD1' ), $this->ufids( $result['matches'][2] ) );
+		$this->assertSame( 'professor_preference_1', $result['matches'][2]['PHD1']['reason'] );
+		$this->assertSame( array( 'PHDTA' ), $this->ufids( $result['matches'][1] ) );
+		$this->assertSame( 'ta_experience', $result['matches'][1]['PHDTA']['reason'] );
+		$this->assertSame( array( 'PHD2' ), $this->ufids( $result['matches'][3] ) );
+		$this->assertSame( 'applied', $result['matches'][3]['PHD2']['reason'] );
 	}
 
 	/**
@@ -377,10 +377,10 @@ class MatchingTest extends TestCase {
 	 */
 	public function test_unfilled_hours_reported_for_every_course(): void {
 		$result = taas_run_matching(
-			array( $this->course( 'A', 40 ), $this->course( 'B', 20 ), $this->course( 'C', 20 ) ),
+			array( $this->course( 1, 40 ), $this->course( 2, 20 ), $this->course( 3, 20 ) ),
 			array(
-				$this->app( 'S1', 'A', student_rank: 1 ),
-				$this->app( 'S2', 'B', student_rank: 1 ),
+				$this->app( 'S1', 1, student_rank: 1 ),
+				$this->app( 'S2', 2, student_rank: 1 ),
 			),
 			array(
 				$this->profile( 'S1', hours: 10, status: TAAS_Enrollment_Status::Phd ),
@@ -390,13 +390,13 @@ class MatchingTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'A' => 30,
-				'B' => 10,
-				'C' => 20,
+				1 => 30,
+				2 => 10,
+				3 => 20,
 			),
 			$result['unfilled_hours']
 		);
-		$this->assertSame( array( 'A', 'B', 'C' ), array_keys( $result['matches'] ) );
-		$this->assertSame( array(), $result['matches']['C'] );
+		$this->assertSame( array( 1, 2, 3 ), array_keys( $result['matches'] ) );
+		$this->assertSame( array(), $result['matches'][3] );
 	}
 }

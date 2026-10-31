@@ -22,7 +22,6 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
  */
 const TAAS_COURSE_HEADERS = array(
 	// Header           => array( schema_field, required )
-	'Section'            => array( 'course_id', true ),
 	'Prefix'             => array( 'course_code', true ),
 	'Title'              => array( 'course_name', true ),
 	'Semester'           => array( 'course_semester', true ),
@@ -235,7 +234,7 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
  *
  * Notes:
  * - Professors must already exist; each row's professor is found by name and GLID (email).
- * - A Section that already exists, in the database or earlier in the file, is replaced by the later row.
+ * - A course with the same term, year, code and name, in the database or earlier in the file, is replaced by the later row.
  *
  * @param string $file_path Path to a .xlsx file
  * @return array{courses: int, replaced: int, skipped: int, messages: array<array{row: int, header: string, message: string}>}
@@ -305,19 +304,26 @@ function taas_import_courses( string $file_path ): array {
 					);
 					$course     = null;
 				} else {
-					// A section that already exists is replaced by this row, so the latest version wins
-					$exists = null !== $wpdb->get_var(
-						$wpdb->prepare( 'SELECT 1 FROM %i WHERE course_id = %s', $courses, $course['course_id'] )
+					// A course that already exists is replaced by this row, keeping its id so its applications stay linked
+					$existing_id = $wpdb->get_var(
+						$wpdb->prepare(
+							'SELECT course_id FROM %i WHERE course_semester = %d AND course_year = %d AND course_code = %s AND course_name = %s',
+							$courses,
+							$course['course_semester'],
+							$course['course_year'],
+							$course['course_code'],
+							$course['course_name']
+						)
 					);
 
-					$saved = $exists
-						? $wpdb->update( $courses, $course, array( 'course_id' => $course['course_id'] ) )
-						: $wpdb->insert( $courses, $course );
+					$saved = null === $existing_id
+						? $wpdb->insert( $courses, $course )
+						: $wpdb->update( $courses, $course, array( 'course_id' => (int) $existing_id ) );
 
 					// If update/insert failed, skip row
 					if ( false === $saved ) {
 						$messages[] = array(
-							'header'  => 'Section',
+							'header'  => 'Prefix',
 							'message' => 'Could not save course (' . $wpdb->last_error . '), row skipped',
 						);
 						$course     = null;
@@ -329,7 +335,7 @@ function taas_import_courses( string $file_path ): array {
 			if ( null === $course ) {
 				++$result['skipped'];
 			} else {
-				++$result[ $exists ? 'replaced' : 'courses' ];
+				++$result[ null === $existing_id ? 'courses' : 'replaced' ];
 			}
 
 			foreach ( $messages as $message ) {

@@ -13,13 +13,14 @@ defined( 'ABSPATH' ) || exit;
  *
  * Immutable. from_row() accepts a row from $wpdb (object or ARRAY_A) and
  * to_row() returns column => value, ready for $wpdb->insert() or $wpdb->update().
+ * The auto-increment id is null on new, unsaved records and to_row() omits it then.
  */
 final class TAAS_Course {
 
 	/**
 	 * Create a course row.
 	 *
-	 * @param string        $course_id          Course section number.
+	 * @param int|null      $course_id          Auto-increment id; null on a new, unsaved record.
 	 * @param string        $course_code        Course code, e.g. COP3502.
 	 * @param string        $course_name        Course title.
 	 * @param string        $professor_ufid     Professor's UFID, 1-8 characters.
@@ -35,7 +36,7 @@ final class TAAS_Course {
 	 * @throws InvalidArgumentException If the course id, professor UFID or year is invalid.
 	 */
 	public function __construct(
-		public readonly string $course_id, // Course section number.
+		public readonly ?int $course_id,
 		public readonly string $course_code,
 		public readonly string $course_name,
 		public readonly string $professor_ufid,
@@ -71,7 +72,7 @@ final class TAAS_Course {
 		}
 
 		return new self(
-			course_id: (string) $r['course_id'],
+			course_id: TAAS_Cast::int_or_null( $r['course_id'] ?? null ),
 			course_code: (string) $r['course_code'],
 			course_name: (string) $r['course_name'],
 			professor_ufid: (string) $r['professor_ufid'],
@@ -100,8 +101,7 @@ final class TAAS_Course {
 	 * @return array<string, mixed>
 	 */
 	public function to_row(): array {
-		return array(
-			'course_id'          => $this->course_id,
+		$row = array(
 			'course_code'        => $this->course_code,
 			'course_name'        => $this->course_name,
 			'course_semester'    => $this->course_semester->value,
@@ -115,5 +115,11 @@ final class TAAS_Course {
 			'max_enrollment'     => $this->max_enrollment,
 			'professor_ufid'     => $this->professor_ufid,
 		);
+
+		if ( null !== $this->course_id ) {
+			$row = array( 'course_id' => $this->course_id ) + $row;
+		}
+
+		return $row;
 	}
 }
