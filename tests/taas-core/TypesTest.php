@@ -221,7 +221,7 @@ class TypesTest extends TestCase {
 	public function test_application_hydrates_assigned_hours(): void {
 		$base = array(
 			'student_ufid'      => '12345678',
-			'applied_course_id' => 'COP3502-1234',
+			'applied_course_id' => '1234',
 			'match_status'      => '2',
 		);
 
