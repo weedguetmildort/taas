@@ -8,7 +8,7 @@
 use PHPUnit\Framework\TestCase;
 
 // Plain functions are not covered by the Composer classmap
-require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-csv-ingest.php';
+require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-xlsx-ingest.php';
 
 /**
  * Check that rows round-trip through the new columns and invalid values are refused
