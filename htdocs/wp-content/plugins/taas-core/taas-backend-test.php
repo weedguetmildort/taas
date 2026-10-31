@@ -17,7 +17,7 @@ define( 'TAAS_BACKEND_TEST_URL', plugin_dir_url( __FILE__ ) );
 /*
  * Explicit requires
  */
-require_once TAAS_BACKEND_TEST_PATH . 'includes/func-taas-csv-ingest.php';
+require_once TAAS_BACKEND_TEST_PATH . 'includes/func-taas-xlsx-ingest.php';
 
 /**
  * Activate plugin
