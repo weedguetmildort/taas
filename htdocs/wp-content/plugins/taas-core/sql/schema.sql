@@ -56,6 +56,20 @@ CREATE TABLE {prefix}academic_background (
 	KEY student_ufid (student_ufid)
 );
 
+-- TODO: This table's schema is not finalized; review with the team before release.
+-- Preserve one submitted-details snapshot per student and academic term.
+-- submitted_details holds profile/identity fields and academic-background entries;
+-- course choices remain in applications. Same-term edits replace this snapshot.
+CREATE TABLE {prefix}student_submissions (
+	submission_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+	student_ufid varchar(8) NOT NULL,
+	semester tinyint unsigned NOT NULL,                 -- TAAS_Semester enum, same values as courses.course_semester
+	year year NOT NULL,
+	submitted_details json NOT NULL,
+	PRIMARY KEY  (submission_id),
+	UNIQUE KEY student_term (student_ufid,semester,year)
+);
+
 -- Courses: identification, owned by a professor
 CREATE TABLE {prefix}courses (
 	course_id varchar(20) NOT NULL,                     -- course section number

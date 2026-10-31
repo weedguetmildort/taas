@@ -14,6 +14,28 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_Course_Repository extends TAAS_Repository {
 
 	/**
+	 * Student course choices with instructor display names in one term.
+	 *
+	 * @param TAAS_Semester $semester Configured semester.
+	 * @param int           $year     Configured year.
+	 * @return array Display fields only; no professor email or applicant data.
+	 */
+	public function application_choices( TAAS_Semester $semester, int $year ): array {
+		global $wpdb;
+		return $this->select_rows(
+			$wpdb->prepare(
+				'SELECT c.course_id, c.course_code, c.course_name, p.professor_name AS instructor_name'
+				. ' FROM %i c INNER JOIN %i p ON p.professor_ufid = c.professor_ufid'
+				. ' WHERE c.course_semester = %d AND c.course_year = %d ORDER BY c.course_code, c.course_id',
+				$this->table(),
+				TAAS_Schema::table( 'professors' ),
+				$semester->value,
+				$year
+			)
+		);
+	}
+
+	/**
 	 * Bare table name.
 	 *
 	 * @return string

@@ -15,6 +15,7 @@
 # plugins/ keep the TAAS plugins only
 /htdocs/wp-content/plugins/*
 !/htdocs/wp-content/plugins/taas-core/
+!/htdocs/wp-content/plugins/taas-student-application-page/
 
 # Sensitive files
 wp-config.php

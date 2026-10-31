@@ -1,0 +1,19 @@
+<div id="academic-background-entries" data-entry-label="{{entryLabel}}"></div>
+<button type="button" id="add-degree">{{addLabel}}</button>
+<template id="degree-entry-template">
+      <fieldset class="degree-entry">
+        <legend>{{entryLabel}}</legend>
+        <div class="form-grid">
+          <label>{{universityLabel}} <input data-field="university" maxlength="255" required></label>
+          <label>{{majorLabel}} <input data-field="major" maxlength="255" required></label>
+          <label>{{degreeLabel}} <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
+          <label>{{graduationLabel}} <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[0-9]{4}" maxlength="7" required></label>
+          <div>
+            <label>{{gpaLabel}} <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
+            <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> {{unavailableLabel}}</label>
+          </div>
+        </div>
+        <div class="degree-actions"><button type="button" data-action="remove-degree">{{removeLabel}}</button></div>
+      </fieldset>
+    </template>
+    <datalist id="degree-type-options"><option value="AA"></option><option value="BS"></option><option value="MS"></option><option value="PhD"></option></datalist>

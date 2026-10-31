@@ -1,0 +1,89 @@
+<div class="application-shell taas-application-form-root" data-application-mode="{{mode}}">
+    <p class="term-banner" id="application-term" role="status">Loading application information…</p>
+    {{existing_notice}}
+    <noscript><p>JavaScript is required to load and submit this application.</p></noscript>
+    <form id="student-application-form" novalidate>
+      <fieldset class="application-fields" id="application-fields" disabled>
+      <section class="form-section" aria-labelledby="student-info-heading">
+        <h2 id="student-info-heading">Student Information</h2>
+        <div class="form-grid">
+          {{name_fields}}
+          <label>UFID <input name="ufid" readonly inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" required aria-describedby="ufid-help"><small id="ufid-help">Your verified UFID is supplied by your account.</small></label>
+          <label>UF email <input name="ufEmail" maxlength="255" type="email" pattern=".+@[uU][fF][lL][.][eE][dD][uU]" autocomplete="email" required></label>
+          <label>Country of origin <input name="countryOfOrigin" list="country-options" autocomplete="country-name" required><datalist id="country-options"></datalist></label>
+          <label>Semester you started at UF <select name="startSemester" id="start-semester" required><option value="">Select semester</option></select></label>
+          <label>Current college status <select name="collegeStatus" required><option value="">Select status</option><option value="masters">Master's</option><option value="phd">PhD</option></select></label>
+          <label>Phone number <input name="phone" maxlength="15" type="tel" autocomplete="tel" inputmode="tel" required></label>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="academic-heading">
+        <h2 id="academic-heading">Academic Background</h2>
+        <p class="section-help">List at least one degree. For a degree in progress, enter your expected graduation date.</p>
+        <div id="academic-background-entries"></div>
+        <button type="button" id="add-degree">Add another degree</button>
+      </section>
+
+      <section class="form-section" aria-labelledby="eligibility-heading">
+        <h2 id="eligibility-heading">Eligibility Information</h2>
+        <p class="section-help">Choose the status that applies to each course.</p>
+        <div class="form-grid">
+          <label>EAP5836 status <select name="eap5836Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
+          <label>EAP5837 status <select name="eap5837Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="additional-heading">
+        <h2 id="additional-heading">Additional Information</h2>
+        <div class="form-grid">
+          <label>Planned TA hours per week <select name="taHours" required><option value="">Select hours</option><option value="10">10 hours</option><option value="20">20 hours</option></select></label>
+          <label>English score (if applicable) <select name="englishScore"><option value="">Not applicable</option><optgroup label="SPEAK"><option>SPEAK-20</option><option>SPEAK-25</option><option>SPEAK-30</option><option>SPEAK-35</option><option>SPEAK-40</option><option>SPEAK-45</option><option>SPEAK-50</option><option>SPEAK-55</option><option>SPEAK-60</option></optgroup><optgroup label="TOEFL iBT"><option>TOEFL-6.0</option><option>TOEFL-5.5</option><option>TOEFL-5.0</option><option>TOEFL-4.5</option><option>TOEFL-4.0</option><option>TOEFL-3.5</option><option>TOEFL-3.0</option><option>TOEFL-2.5</option><option>TOEFL-2.0</option><option>TOEFL-1.5</option><option>TOEFL-1.0</option></optgroup></select></label>
+          <label class="full-width">Anything else the professor should know, including planned travel <textarea name="additionalInfo" rows="5" maxlength="1000"></textarea></label>
+          <label class="full-width">Resume URL (optional) <input name="resumeUrl" type="url" maxlength="255" placeholder="https://…"></label>
+        </div>
+      </section>
+
+      <section class="form-section course-section" aria-labelledby="preferences-heading">
+        <h2 id="preferences-heading">Course Preferences</h2>
+        <p class="section-help">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
+        <div class="course-selection-layout">
+          <div class="course-chooser">
+            <h3>Available courses</h3>
+            <p class="course-subhelp">Check up to five courses.</p>
+            <div id="available-course-list" class="available-course-list" aria-describedby="course-selection-message"></div>
+            <p id="course-selection-message" class="course-selection-message" role="status" aria-live="polite"></p>
+          </div>
+          <div class="course-ranking-panel">
+            <h3>Your course rankings</h3>
+            <p class="course-subhelp">Set a different rank for each course and answer the course-history question.</p>
+            <div id="student-course-preferences" class="preferences-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      </fieldset>
+      <footer class="form-actions">
+        <p class="student-app-message" id="form-message" role="status" aria-live="polite">Loading your application…</p>
+        <button type="button" id="retry-application-load" hidden>Retry loading</button>
+        <button type="submit" disabled>{{submit_label}}</button>
+      </footer>
+    </form>
+    <template id="degree-entry-template">
+      <fieldset class="degree-entry">
+        <legend>Degree</legend>
+        <div class="form-grid">
+          <label>University <input data-field="university" maxlength="255" required></label>
+          <label>Major <input data-field="major" maxlength="255" required></label>
+          <label>Degree type <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
+          <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[0-9]{4}" maxlength="7" required></label>
+          <div>
+            <label>GPA (out of 4.0) <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
+            <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> GPA not yet available</label>
+          </div>
+        </div>
+        <div class="degree-actions"><button type="button" data-action="remove-degree">Remove degree</button></div>
+      </fieldset>
+    </template>
+    <datalist id="degree-type-options"><option value="AA"></option><option value="BS"></option><option value="MS"></option><option value="PhD"></option></datalist>
+    {{success_dialog}}
+  </div>

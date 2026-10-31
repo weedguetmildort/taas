@@ -124,8 +124,8 @@ class TAAS_DB {
 	/**
 	 * Hash every file the installer reads, so any schema change is detected
 	 *
-	 * Covers the contents of sql/schema.sql, sql/constraints.sql and every
-	 * page file, plus the names of migrations. Names suffice for migrations,
+	 * Covers the contents of sql/schema.sql, sql/constraints.sql, every page
+	 * file and shared pages/partials template, plus migration names. Names suffice for migrations,
 	 * because the runner tracks them by filename and never re-runs one. Page
 	 * contents count, because the installer syncs them into existing pages.
 	 *
@@ -147,11 +147,12 @@ class TAAS_DB {
 		$parts[] = 'migrations:' . implode( ',', $names );
 
 		$pages = glob( $plugin_path . 'pages/*.html' );
-		$pages = false === $pages ? array() : $pages;
+		$partials = glob( $plugin_path . 'pages/partials/*.html' );
+		$pages = array_merge( false === $pages ? array() : $pages, false === $partials ? array() : $partials );
 		sort( $pages, SORT_STRING );
 
 		foreach ( $pages as $path ) {
-			$parts[] = 'pages/' . basename( $path ) . ':' . (string) hash_file( 'sha256', $path );
+			$parts[] = substr( $path, strlen( $plugin_path ) ) . ':' . (string) hash_file( 'sha256', $path );
 		}
 
 		return hash( 'sha256', implode( "\n", $parts ) );

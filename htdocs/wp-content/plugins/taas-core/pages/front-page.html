@@ -1,288 +1,32 @@
-<!-- wp:buttons -->
-<div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button"></a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
-<!-- wp:html -->
-<style data-wp-block-html="css">
-/* MAIN HOMEPAGE CARD */
-
-.student-homepage {
-    max-width: 1100px;
-    margin: 40px auto;
-    padding: 60px 50px;
-
-    background: #ffffff;
-    
-
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-
-    font-family: Arial, sans-serif;
-    box-sizing: border-box;
-}
-
-
-/* TWO COLUMN LAYOUT */
-
-.student-homepage-content {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr;
-    gap: 60px;
-    align-items: center;
-}
-
-
-/* WELCOME SECTION */
-
-.student-welcome h1 {
-    font-size: 46px;
-    font-weight: 700;
-    line-height: 1.1;
-
-    color: #111;
-    margin: 0 0 20px;
-}
-
-.student-welcome p {
-    font-size: 15px;
-    line-height: 1.6;
-    color: #555;
-}
-
-
-/* RIGHT SIDE MENU */
-
-.student-homepage-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.student-homepage-menu h2 {
-    font-size: 22px;
-    font-weight: 600;
-    text-align: center;
-
-    background: #f5f5f5;
-    color: #222;
-
-    padding: 20px;
-    margin: 0 0 5px;
-
-    border-radius: 6px;
-}
-
-
-/* ORANGE NAVIGATION BUTTONS */
-
-.student-home-button {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    padding: 25px 30px;
-
-    background: #f58220;
-    color: #ffffff !important;
-
-    text-decoration: none !important;
-    border-radius: 6px;
-
-    font-size: 21px;
-    font-weight: 500;
-
-    transition:
-        background-color 0.2s ease,
-        transform 0.2s ease;
-}
-
-.student-home-button:hover {
-    background: #e56d0a;
-    color: #ffffff !important;
-    transform: translateY(-2px);
-}
-
-.student-home-button:focus-visible {
-    outline: 3px solid #174ea6;
-    outline-offset: 3px;
-}
-
-
-/* ARROW */
-
-.home-arrow {
-    font-size: 25px;
-    margin-left: 15px;
-}
-
-
-/* MOBILE RESPONSIVE */
-
-@media (max-width: 768px) {
-
-    .student-homepage {
-        margin: 20px 10px;
-        padding: 30px 20px;
-    }
-
-    .student-homepage-content {
-        grid-template-columns: 1fr;
-        gap: 30px;
-    }
-
-    .student-welcome {
-        text-align: center;
-    }
-
-    .student-welcome h1 {
-        font-size: 34px;
-    }
-
-    .student-homepage-menu h2 {
-        font-size: 18px;
-    }
-
-    .student-home-button {
-        font-size: 17px;
-        padding: 20px;
-    }
-}
-
-/* PROFESSOR VIEW SWITCH - STUDENT HOMEPAGE */
-
-.student-professor-switch {
-    display: flex;
-    justify-content: flex-end;
-    width: 100%;
-    margin-bottom: 15px;
-}
-
-.student-professor-button {
-    display: inline-block;
-    max-width: 280px;
-    padding: 10px 14px;
-
-    background-color: #0021a5;
-    color: #ffffff !important;
-
-    border-radius: 4px;
-    text-decoration: none !important;
-    text-align: center;
-
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.5;
-
-    transition: background-color 0.2s ease;
-}
-
-.student-professor-button:hover {
-    background-color: #00166e;
-    color: #ffffff !important;
-}
-
-/* MOBILE RESPONSIVENESS */
-
-@media (max-width: 768px) {
-    .student-professor-switch {
-        justify-content: center;
-    }
-
-    .student-professor-button {
-        max-width: 100%;
-    }
-}
-</style>
-
-<div class="student-homepage">
-
-    <!-- PROFESSOR VIEW SWITCH -->
-    <div class="student-professor-switch">
-
-        <a href="/professor-page/" class="student-professor-button">
-            PhD teaching an Undergrad class? Click here for Professor View
-        </a>
-
-    </div>
-
-    <div class="student-homepage-content">
-
-        <!-- WELCOME SECTION -->
-        <div class="student-welcome">
-
-            <h1>
-                Welcome<br>Student!
-            </h1>
-
-            <p>
-                Welcome to the TA Application System.
-                Select an option to get started.
-            </p>
-
-        </div>
-
-        <!-- NAVIGATION SECTION -->
-        <div class="student-homepage-menu">
-
-            <h2>
-                Choose from one of the options below
-            </h2>
-
-            <!-- APPLY FOR TA POSITION -->
-            <a href="/student-application/" class="student-home-button">
-
-                Apply for TA Position
-
-                <span class="home-arrow">
-                    →
-                </span>
-
-            </a>
-
-            <!-- CHECK APPLICATION STATUS -->
-            <a href="/check-application-status/" class="student-home-button">
-
-                Check Status of Application
-
-                <span class="home-arrow">
-                    →
-                </span>
-
-            </a>
-
-        </div>
-
-    </div>
-
+<!-- wp:group {"className": "student-homepage", "layout": {"type": "default"}} -->
+<div class="wp-block-group student-homepage">
+<!-- wp:group {"className": "student-professor-switch", "layout": {"type": "default"}} -->
+<div class="wp-block-group student-professor-switch">
+<!-- wp:taas/homepage-link {"destination": "professor-page"} /-->
 </div>
-<!-- /wp:html -->
-
-<!-- wp:buttons -->
-<div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button"></a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
-<!-- wp:buttons -->
-<div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button"></a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
-<!-- wp:buttons -->
-<div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button"></a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
-<!-- wp:buttons -->
-<div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button"></a></div>
-<!-- /wp:button --></div>
-<!-- /wp:buttons -->
-
+<!-- /wp:group -->
+<!-- wp:group {"className": "student-homepage-content", "layout": {"type": "default"}} -->
+<div class="wp-block-group student-homepage-content">
+<!-- wp:group {"className": "student-welcome", "layout": {"type": "default"}} -->
+<div class="wp-block-group student-welcome">
+<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Welcome<br>Student!</h1>
+<!-- /wp:heading -->
 <!-- wp:paragraph -->
-<p></p>
+<p>Welcome to the TA Application System. Select an option to get started.</p>
 <!-- /wp:paragraph -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className": "student-homepage-menu", "layout": {"type": "default"}} -->
+<div class="wp-block-group student-homepage-menu">
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Choose from one of the options below</h2>
+<!-- /wp:heading -->
+<!-- wp:taas/homepage-link {"destination": "student-application"} /-->
+<!-- wp:taas/homepage-link {"destination": "check-application-status"} /-->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->

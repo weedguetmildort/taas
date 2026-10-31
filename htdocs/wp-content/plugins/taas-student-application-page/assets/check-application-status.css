@@ -1,0 +1,193 @@
+/* MAIN WHITE CARD */
+
+.application-status-container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 35px;
+
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+
+    font-family: Arial, sans-serif;
+    color: #222;
+
+    box-sizing: border-box;
+}
+
+/* HEADER */
+
+.application-status-header {
+    margin-bottom: 25px;
+}
+
+.application-status-header h2 {
+    font-size: 22px;
+    margin: 0 0 12px;
+    color: #222;
+}
+
+.application-status-header p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* TABLE WRAPPER */
+
+.application-status-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* TABLE */
+
+.application-status-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    text-align: left;
+}
+
+.application-status-table th {
+    background: #1733a5;
+    color: white;
+    padding: 14px 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.application-status-table td {
+    padding: 16px 15px;
+    border-bottom: 1px solid #ddd;
+    color: #333;
+}
+
+.application-status-table tbody tr:nth-child(odd) {
+    background: #f5f5f5;
+}
+
+.application-status-table tbody tr:nth-child(even) {
+    background: #ffffff;
+}
+
+.application-status-table tbody tr:hover {
+    background: #eaf2fb;
+}
+
+/* STATUS BADGES */
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* EDIT APPLICATION BUTTON */
+
+.edit-application-button {
+    display: inline-block;
+    padding: 9px 16px;
+
+    background: #ff7f11;
+    color: white !important;
+
+    text-decoration: none !important;
+    border-radius: 3px;
+
+    font-size: 13px;
+    font-weight: 500;
+
+    transition: background 0.2s ease;
+}
+
+.edit-application-button:hover {
+    background: #e66f08;
+    color: white !important;
+}
+
+.edit-application-button:focus-visible {
+    outline: 3px solid #1733a5;
+    outline-offset: 3px;
+}
+
+/* FOOTER NOTE */
+
+.application-status-note {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+    .application-status-container {
+        margin: 20px 10px;
+        padding: 20px;
+    }
+
+    .application-status-table th,
+    .application-status-table td {
+        padding: 12px 8px;
+        font-size: 12px;
+    }
+
+    .edit-application-button {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+.status-controls { display: grid; gap: 10px; margin: 20px 0; }
+.status-controls label { display: grid; gap: 6px; font-weight: 600; }
+.status-controls select { width: min(100%, 360px); min-height: 42px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font: inherit; }
+.status-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.application-status-container button { border: 0; cursor: pointer; }
+.application-status-container button:disabled { opacity: .65; cursor: default; }
+.status-message { min-height: 1.5em; }
+.status-message[data-state="error"] { color: #b42318; }
+.status-message[data-state="success"] { color: #18703a; }
+.status-withdrawn { background: #e9ecef; color: #495057; }
+#status-editor { margin-top: 25px; border-top: 1px solid #ddd; padding-top: 20px; }
+#status-editor .taas-application-form-root { width: 100%; padding: 0; }
+#status-editor .form-section { box-shadow: none; }
+.application-status-container [hidden] { display: none !important; }
+
+/* Block layout parity with the original HTML card; keep the nested form's own styles. */
+.application-status-container .wp-block-group__inner-container { display: contents; }
+.application-status-container { font-size: 16px; line-height: normal; }
+.application-status-container .application-status-header h2 {
+    font-family: inherit;
+    font-weight: 700;
+    line-height: normal;
+}
+.application-status-container .application-status-header p { font-family: inherit; color: inherit; }
+.application-status-container .application-status-table { line-height: normal; }
+.application-status-container .edit-application-button { font-family: Arial; line-height: normal; }
+.application-status-container .application-status-note {
+    font-family: inherit;
+    line-height: normal;
+    margin: 20px 0 1em;
+}
+.application-status-container .status-message {
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: normal;
+    margin: 1em 0;
+}

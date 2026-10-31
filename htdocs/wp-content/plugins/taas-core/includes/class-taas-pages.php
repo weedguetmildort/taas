@@ -239,14 +239,28 @@ class TAAS_Pages {
 	}
 
 	/**
-	 * Overwrite existing pages with the content from pages/<slug>.html
+	 * Sync repository-owned pages while preserving student pages edited in WordPress.
 	 *
+	 * Student HTML files seed new installations. Existing student page content is
+	 * owned by the WordPress editor and is only replaced by an explicit import.
+	 *
+	 * @param bool     $force Explicitly import source, including editor-owned pages.
+	 * @param string[] $slugs Optional subset to import.
 	 * @return int Number of pages updated
 	 */
-	public static function sync_content(): int {
+	public static function sync_content( bool $force = false, array $slugs = array() ): int {
+		if ( $force && ! TAAS_Auth::is_local_dev() && ! current_user_can( 'manage_options' ) ) {
+			return 0;
+		}
 		$updated = 0;
 
 		foreach ( array_keys( self::definitions() ) as $slug ) {
+			if ( $slugs && ! in_array( $slug, $slugs, true ) ) {
+				continue;
+			}
+			if ( ! $force && in_array( $slug, array( 'front-page', 'student-application', 'check-application-status' ), true ) ) {
+				continue;
+			}
 			$existing = get_page_by_path( $slug, OBJECT, 'page' );
 
 			if ( ! $existing instanceof WP_Post ) {

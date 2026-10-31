@@ -52,4 +52,28 @@ final class TAAS_Academic_Background_Repository extends TAAS_Repository {
 	public function find_by_student( string $student_ufid ): array {
 		return $this->find_by( 'student_ufid', $student_ufid );
 	}
+
+	/**
+	 * Replace current shared degree entries; term snapshots preserve past details.
+	 *
+	 * Call inside the submission transaction, after validating the entire form.
+	 *
+	 * @param string                     $student_ufid Verified owner.
+	 * @param TAAS_Academic_Background[] $entries      Validated degree entries.
+	 * @return void
+	 */
+	public function replace_for_student( string $student_ufid, array $entries ): void {
+		global $wpdb;
+		foreach ( $entries as $entry ) {
+			if ( ! $entry instanceof TAAS_Academic_Background || $entry->student_ufid !== $student_ufid ) {
+				throw new InvalidArgumentException( 'Academic-background ownership does not match.' );
+			}
+		}
+		if ( false === $wpdb->delete( $this->table(), array( 'student_ufid' => $student_ufid ) ) ) {
+			throw new RuntimeException( 'Replacing academic background failed: ' . esc_html( $wpdb->last_error ) );
+		}
+		foreach ( $entries as $entry ) {
+			$this->insert( $entry );
+		}
+	}
 }

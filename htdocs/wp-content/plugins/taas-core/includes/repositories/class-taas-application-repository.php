@@ -14,6 +14,56 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_Application_Repository extends TAAS_Repository {
 
 	/**
+	 * The student's choices for a term, including withdrawn records.
+	 *
+	 * @param string        $student_ufid Verified owner.
+	 * @param TAAS_Semester $semester     Application semester.
+	 * @param int           $year         Application year.
+	 * @param bool          $for_update Lock matched rows inside an edit transaction.
+	 * @return array Raw application rows, ordered by preference and ID.
+	 */
+	public function find_by_student_and_term( string $student_ufid, TAAS_Semester $semester, int $year, bool $for_update = false ): array {
+		global $wpdb;
+		return $this->select_rows(
+			$wpdb->prepare(
+				'SELECT a.* FROM %i a INNER JOIN %i c ON c.course_id = a.applied_course_id'
+				. ' WHERE a.student_ufid = %s AND c.course_semester = %d AND c.course_year = %d'
+				. ' ORDER BY a.student_preference_rank, a.application_id' . ( $for_update ? ' FOR UPDATE' : '' ),
+				$this->table(),
+				TAAS_Schema::table( 'courses' ),
+				$student_ufid,
+				$semester->value,
+				$year
+			)
+		);
+	}
+
+	/**
+	 * Change student-owned fields without overwriting a professor's ranking.
+	 *
+	 * Call after locking and validating the owner's term rows in a transaction.
+	 *
+	 * @param string            $student_ufid Verified owner.
+	 * @param int               $application_id Owned application ID.
+	 * @param int|null          $rank Student rank; null retains the previous rank.
+	 * @param TAAS_Match_Status $status Pending or Withdrawn.
+	 * @return void
+	 */
+	public function save_student_choice( string $student_ufid, int $application_id, ?int $rank, TAAS_Match_Status $status ): void {
+		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
+		TAAS_Guard::rank( 'student_preference_rank', $rank );
+		if ( ! in_array( $status, array( TAAS_Match_Status::Pending, TAAS_Match_Status::Withdrawn ), true ) ) {
+			throw new InvalidArgumentException( 'Unsupported student status transition.' );
+		}
+		$data = array( 'match_status' => $status->value );
+		if ( null !== $rank ) {
+			$data['student_preference_rank'] = $rank;
+			$data['has_taken_course']        = 1;
+		}
+		$this->update_where( $data, array( 'student_ufid' => $student_ufid, 'application_id' => $application_id ) );
+	}
+
+	/**
 	 * Bare table name.
 	 *
 	 * @return string

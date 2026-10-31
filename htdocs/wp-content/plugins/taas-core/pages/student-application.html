@@ -1,518 +1,89 @@
-<!-- wp:html -->
-<style data-wp-block-html="css">
-:root {
-  color-scheme: light;
-  --accent: #f5801d;
-  --accent-hover: #e8710c;
-  --text: #222;
-  --muted: #626262;
-  --border: #d2d2d2;
-  --surface: #fff;
-  --page: #f5f6f7;
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-* { box-sizing: border-box; }
-body { margin: 0; padding: 32px 16px; background: var(--page); color: var(--text); line-height: 1.5; }
-.application-shell { width: min(100%, 850px); margin: 0 auto; }
-.page-header { margin: 0 0 22px; }
-.page-header h1 { margin: 0 0 6px; font-size: clamp(1.7rem, 4vw, 2.2rem); }
-.page-header p, .section-help { margin: 0; color: var(--muted); }
-#student-application-form { display: grid; gap: 20px; }
-.form-section { min-width: 0; padding: clamp(18px, 4vw, 30px); background: var(--surface); border: 1px solid #e8e8e8; border-radius: 10px; box-shadow: 0 3px 10px rgb(0 0 0 / 5%); }
-.form-section h2 { margin: 0 0 18px; font-size: 1.3rem; }
-.section-help { margin: -8px 0 18px; font-size: .94rem; }
-.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; }
-label { display: flex; min-width: 0; flex-direction: column; gap: 6px; font-size: .92rem; font-weight: 600; }
-input, select, textarea { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); font: inherit; font-weight: 400; }
-textarea { resize: vertical; }
-input:focus, select:focus, textarea:focus { outline: 3px solid rgb(245 128 29 / 22%); border-color: var(--accent); }
-input:invalid:not(:placeholder-shown) { border-color: #b42318; }
-small { color: var(--muted); font-size: .78rem; font-weight: 400; }
-.full-width { grid-column: 1 / -1; }
-.preferences-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.student-app-preference { min-width: 0; margin: 0; padding: 15px; border: 1px solid #e2e2e2; border-radius: 8px; display: grid; gap: 12px; }
-.student-app-preference legend { padding: 0 5px; font-weight: 700; }
-.form-actions { display: grid; justify-items: end; gap: 12px; }
-.student-app-message { width: 100%; min-height: 1.4em; margin: 0; color: var(--muted); }
-.student-app-message[data-state="error"] { color: #b42318; }
-.student-app-message[data-state="success"] { color: #18703a; }
-button { min-height: 44px; padding: 11px 22px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; transition: background-color .15s ease; }
-button:hover { background: var(--accent-hover); }
-button:focus-visible { outline: 3px solid #222; outline-offset: 3px; }
-button:disabled { opacity: .65; cursor: wait; }
-@media (max-width: 620px) {
-  body { padding: 20px 10px; }
-  .form-grid, .preferences-grid { grid-template-columns: 1fr; }
-  .form-section { padding: 18px; }
-  .form-actions button { width: 100%; }
-}
-
-/* course selection and ranking */
-.course-selection-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-items: start; }
-.course-chooser, .course-ranking-panel { min-width: 0; }
-.course-chooser h3, .course-ranking-panel h3 { margin: 0 0 5px; font-size: 1.05rem; }
-.course-subhelp { margin: 0 0 12px; color: var(--muted); font-size: .87rem; }
-.available-course-list { display: block; max-height: 440px; overflow: auto; padding: 0; border: 1px solid #dcdcdc; border-radius: 6px; background: #fff; }
-.course-table-header, .available-course-option { display: grid; grid-template-columns: 18px minmax(64px, .8fr) minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(44px, .55fr) minmax(0, 1fr); align-items: center; gap: 0; min-width: 0; }
-.course-table-header { position: sticky; top: 0; z-index: 1; padding: 6px 5px; border-bottom: 2px solid #d4d4d4; background: #f0f1f2; color: #444; font-size: .65rem; font-weight: 700; text-transform: uppercase; }
-.course-table-header > span { min-width: 0; overflow-wrap: anywhere; }
-.available-course-option { padding: 5px; background: #fff; border-bottom: 1px solid #e8e8e8; font-weight: 400; cursor: pointer; }
-.available-course-option:last-child { border-bottom: 0; }
-.available-course-option:nth-child(even) { background: #f8f9fa; }
-.available-course-option input[type="checkbox"] { width: 18px; min-height: 18px; height: 18px; margin: 2px 0 0; padding: 0; accent-color: var(--accent); }
-.available-course-option:has(input:checked) { background: #fff4e9; box-shadow: inset 3px 0 var(--accent); }
-.course-selection-message { min-height: 1.4em; margin: 10px 0 0; color: var(--muted); font-size: .85rem; }
-.course-selection-message[data-state="error"] { color: #b42318; }
-.preferences-grid { grid-template-columns: 1fr; }
-.student-app-preference { padding: 13px; }
-.student-app-preference legend { max-width: 100%; overflow-wrap: anywhere; }
-.empty-course-rankings { margin: 0; padding: 16px; border: 1px dashed #ccc; border-radius: 8px; color: var(--muted); font-size: .9rem; }
-.course-section { width: 100%; }
-.course-information { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; width: 100%; }
-.available-course-option .course-information { display: contents; }
-.course-detail { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 1px 5px; overflow-wrap: anywhere; border-right: 1px solid #ededed; line-height: 1.2; }
-.course-detail:last-child { border-right: 0; }
-.course-detail-label { color: var(--muted); font-size: .66rem; font-weight: 700; }
-.course-detail > span:last-child { font-size: .76rem; }
-.course-ranking-information { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 4px; }
-@media (max-width: 720px) {
-  .course-selection-layout { grid-template-columns: 1fr; }
-  .available-course-list { max-height: 300px; }
-  .course-table-header { padding: 5px 3px; font-size: .58rem; }
-  .available-course-option { padding: 4px 3px; }
-  .course-detail { padding-right: 3px; padding-left: 3px; }
-  .course-detail > span:last-child { font-size: .7rem; }
-}
-
-</style>
-
-<script data-wp-block-html="js">
-(() => {
-  'use strict';
-
-  // Replace this placeholder with the endpoint for PHP plugin
-  const SUBMISSION_ENDPOINT = '/wp-json/your-plugin/v1/student-application';
-
-  // Sample courses for testing the course selection form
-  const sample_courses = [
-    {
-      value: 'course1',
-      courseNumber: 'CIS4930',
-      courseName: 'Intro to Cryptography',
-      instructorName: 'John Professor',
-      classDays: 'MWF',
-      classTimes: '12:50pm-1:40pm'
-    },
-    {
-      value: 'course2',
-      courseNumber: 'CIS4910',
-      courseName: 'Data Visualization',
-      instructorName: 'Jane Doe',
-      classDays: 'TR',
-      classTimes: '9:30am-10:45am'
-    },
-    {
-      value: 'course3',
-      courseNumber: 'COP4600',
-      courseName: 'Operating Systems',
-      instructorName: 'Julia Bush',
-      classDays: 'MWF',
-      classTimes: '10:40am-11:30am'
-    },
-    {
-      value: 'course4',
-      courseNumber: 'CEN3031',
-      courseName: 'Software Engineering',
-      instructorName: 'Neha Rani',
-      classDays: 'MWF',
-      classTimes: '11:45am-12:35pm'
-    },
-    {
-      value: 'course5',
-      courseNumber: 'CIS4301',
-      courseName: 'Information and Database Systems',
-      instructorName: 'Shashank Gutta',
-      classDays: 'TR',
-      classTimes: '11:00am-12:15pm'
-    },
-    {
-      value: 'course6',
-      courseNumber: 'CAP4730',
-      courseName: 'Computer Vision',
-      instructorName: 'Grace Toner',
-      classDays: 'MWF',
-      classTimes: '1:55pm-2:45pm'
-    },
-    {
-      value: 'course7',
-      courseNumber: 'CIS4930',
-      courseName: 'Intro to Machine Learning',
-      instructorName: 'Jack Professor',
-      classDays: 'TR',
-      classTimes: '12:50pm-2:05pm'
-    },
-    {
-      value: 'course8',
-      courseNumber: 'COT3100',
-      courseName: 'Discrete Structures',
-      instructorName: 'Albert Gator',
-      classDays: 'MWF',
-      classTimes: '9:35am-10:25am'
-    },
-    {
-      value: 'course9',
-      courseNumber: 'CEN4721',
-      courseName: 'Human-Computer Interaction',
-      instructorName: 'Alberta Gator',
-      classDays: 'TR',
-      classTimes: '2:00pm-3:15pm'
-    },
-    {
-      value: 'course10',
-      courseNumber: 'COP3530',
-      courseName: 'Data Structures and Algorithms',
-      instructorName: 'Alice Gator',
-      classDays: 'MWF',
-      classTimes: '3:00pm-3:50pm'
-    }
-  ];
-  const COURSE_HISTORY = [
-    { value: 'yes', label: 'Yes, I have taken this course' },
-    {value: 'other', label: 'I have taken an equivalent course at another institution'},
-    { value: 'no', label: 'No, I have not taken this course' }
-  ];
-  const MAX_COURSES = 5;
-
-  const suppliedCourses = Array.isArray(window.STUDENT_APPLICATION_COURSES)
-    ? window.STUDENT_APPLICATION_COURSES
-    : sample_courses;
-  const COURSES = suppliedCourses
-    .filter((course) => typeof course === 'string' || (course && typeof course === 'object'))
-    .map((course) => typeof course === 'string'
-      ? {
-        value: course,
-        courseNumber: course,
-        courseName: course,
-        instructorName: '',
-        classDays: '',
-        classTimes: ''
-      }
-      : {
-        value: String(course.value ?? course.courseCode ?? course.course_code ?? course.courseNumber ?? course.course_number ?? course.courseId ?? course.course_id ?? course.id ?? ''),
-        courseNumber: String(course.courseNumber ?? course.course_number ?? course.courseCode ?? course.course_code ?? course.value ?? course.id ?? ''),
-        courseName: String(course.courseName ?? course.course_name ?? course.name ?? course.title ?? course.label ?? course.value ?? ''),
-        instructorName: String(course.instructorName ?? course.instructor_name ?? course.instructor ?? ''),
-        classDays: String(course.classDays ?? course.class_days ?? course.days ?? ''),
-        classTimes: String(course.classTimes ?? course.class_times ?? course.classTime ?? course.class_time ?? course.times ?? '')
-      })
-    .filter((course) => course.value && course.courseName);
-
-  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[char]));
-
-  function getSelectedCourseValues() {
-    return [...document.querySelectorAll('input[name="selectedCourses"]:checked')].map((input) => input.value);
-  }
-
-  function showCourseMessage(message, state = '') {
-    const node = document.querySelector('#course-selection-message');
-    if (!node) return;
-    node.textContent = message;
-    node.dataset.state = state;
-  }
-
-  function courseDetailsMarkup(course, fields, includeLabels = true) {
-    return fields.map(([label, value]) => `
-      <span class="course-detail">
-        ${includeLabels ? `<span class="course-detail-label">${label}</span>` : ''}
-        <span>${escapeHtml(value || 'Not provided')}</span>
-      </span>`).join('');
-  }
-
-  function buildCourseChooser() {
-    const host = document.querySelector('#available-course-list');
-    if (!host) return;
-    if (!COURSES.length) {
-      host.textContent = 'No courses are currently available.';
-      return;
-    }
-    const courseFields = [
-      ['Course number', 'courseNumber'],
-      ['Course name', 'courseName'],
-      ['Instructor', 'instructorName'],
-      ['Class days', 'classDays'],
-      ['Class times', 'classTimes']
-    ];
-    host.innerHTML = `
-      <div class="course-table-header">
-        <span></span>
-        ${courseFields.map(([label]) => `<span>${label}</span>`).join('')}
-      </div>
-      ${COURSES.map((course) => `
-      <label class="available-course-option">
-        <input type="checkbox" name="selectedCourses" value="${escapeHtml(course.value)}">
-        <span class="course-information">${courseDetailsMarkup(course, courseFields.map(([label, key]) => [label, course[key]]), false)}</span>
-      </label>`).join('')}`;
-
-    host.querySelectorAll('input[name="selectedCourses"]').forEach((checkbox) => {
-      checkbox.addEventListener('change', () => {
-        const selected = getSelectedCourseValues();
-        if (selected.length > MAX_COURSES) {
-          checkbox.checked = false;
-          showCourseMessage('You can select no more than five courses.', 'error');
-          return;
-        }
-        showCourseMessage(`${selected.length} of ${MAX_COURSES} courses selected.`);
-        renderCourseRankings(selected);
-      });
-    });
-    showCourseMessage(`0 of ${MAX_COURSES} courses selected.`);
-  }
-
-  function renderCourseRankings(selectedValues) {
-    const host = document.querySelector('#student-course-preferences');
-    if (!host) return;
-    const previous = new Map([...host.querySelectorAll('.student-app-preference')].map((fieldset) => [
-      fieldset.dataset.course,
-      {
-        rank: fieldset.querySelector('[name="courseRank"]')?.value || '',
-        history: fieldset.querySelector('[name="courseHistory"]')?.value || ''
-      }
-    ]));
-
-    if (!selectedValues.length) {
-      host.innerHTML = '<p class="empty-course-rankings">Select one or more courses on the left to rank them here.</p>';
-      return;
-    }
-
-    host.innerHTML = selectedValues.map((value) => {
-      const course = COURSES.find((item) => item.value === value);
-      const oldRank = previous.get(value)?.rank || '';
-      const validOldRank = Number(oldRank) <= selectedValues.length ? oldRank : '';
-      const rankOptions = Array.from({ length: selectedValues.length }, (_, index) => {
-        const rank = index + 1;
-        return `<option value="${rank}" ${String(validOldRank) === String(rank) ? 'selected' : ''}>${rank}${rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th'} choice</option>`;
-      }).join('');
-      const old = previous.get(value) || {};
-      const historyOptions = COURSE_HISTORY.map((item) => `<option value="${item.value}" ${old.history === item.value ? 'selected' : ''}>${item.label}</option>`).join('');
-      return `<fieldset class="student-app-preference" data-course="${escapeHtml(value)}">
-        <legend>${escapeHtml(course ? `${course.courseNumber} — ${course.courseName}` : value)}</legend>
-        <input type="hidden" name="courseValue" value="${escapeHtml(value)}">
-        ${course ? `<div class="course-information course-ranking-information">${courseDetailsMarkup(course, [
-          ['Instructor', course.instructorName],
-          ['Class days', course.classDays],
-          ['Class times', course.classTimes]
-        ])}</div>` : ''}
-        <label>Preference rank
-          <select name="courseRank" required>
-            <option value="">Select rank</option>${rankOptions}
-          </select>
-        </label>
-        <label>Have you taken this course?
-          <select name="courseHistory" required>
-            <option value="">Select answer</option>${historyOptions}
-          </select>
-        </label>
-      </fieldset>`;
-    }).join('');
-
-    host.querySelectorAll('[name="courseRank"]').forEach((select) => {
-      select.addEventListener('change', updateRankOptions);
-    });
-    updateRankOptions();
-  }
-
-  function updateRankOptions() {
-    const selects = [...document.querySelectorAll('#student-course-preferences [name="courseRank"]')];
-    const selectedRanks = selects.map((select) => select.value).filter(Boolean);
-    const hasDuplicates = new Set(selectedRanks).size !== selectedRanks.length;
-
-    selects.forEach((select) => {
-      const otherRanks = new Set(selects.filter((other) => other !== select).map((other) => other.value).filter(Boolean));
-      [...select.options].forEach((option) => {
-        option.disabled = option.value !== '' && option.value !== select.value && otherRanks.has(option.value);
-      });
-      select.setCustomValidity(select.value && otherRanks.has(select.value)
-        ? 'Each selected course must have a different rank.' : '');
-    });
-    if (hasDuplicates) showCourseMessage('Each selected course must have a unique rank.', 'error');
-    else showCourseMessage(`${selects.length} of ${MAX_COURSES} courses selected.`);
-    return !hasDuplicates;
-  }
-
-  function validateUniqueRanks() {
-    return updateRankOptions();
-  }
-
-  function buildSemesters() {
-    const select = document.querySelector('#start-semester');
-    if (!select) return;
-    const currentYear = new Date().getFullYear();
-    const terms = ['Spring', 'Summer', 'Fall'];
-    for (let year = currentYear - 8; year <= currentYear + 1; year++) {
-      terms.forEach((term) => {
-        const option = document.createElement('option');
-        option.value = `${term} ${year}`;
-        option.textContent = `${term} ${year}`;
-        select.appendChild(option);
-      });
-    }
-  }
-
-  function showMessage(message, state = '') {
-    const node = document.querySelector('#form-message');
-    node.textContent = message;
-    node.dataset.state = state;
-  }
-
-  function collectApplication(form) {
-    const values = Object.fromEntries(new FormData(form).entries());
-    delete values.resume;
-    delete values.selectedCourses;
-    delete values.courseValue;
-    delete values.courseRank;
-    delete values.courseHistory;
-    values.studentStatus = values.collegeStatus; // Student-reported/self-proclaimed status.
-    values.coursePreferences = [...document.querySelectorAll('#student-course-preferences .student-app-preference')]
-      .map((fieldset) => ({
-        course: fieldset.dataset.course,
-        rank: Number(fieldset.querySelector('[name="courseRank"]').value),
-        hasTaken: fieldset.querySelector('[name="courseHistory"]').value
-      }));
-    return values;
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    buildSemesters();
-    buildCourseChooser();
-    renderCourseRankings([]);
-
-    const form = document.querySelector('#student-application-form');
-    if (!form) return;
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      if (!form.reportValidity()) return;
-
-      const selected = getSelectedCourseValues();
-      if (selected.length < 1 || selected.length > MAX_COURSES) {
-        showMessage('Please select between one and five courses.', 'error');
-        return;
-      }
-      if (!validateUniqueRanks()) {
-        showMessage('Please assign a unique rank to every selected course.', 'error');
-        return;
-      }
-      const missingCourseDetails = [...document.querySelectorAll('#student-course-preferences .student-app-preference')]
-        .some((fieldset) => !fieldset.querySelector('[name="courseRank"]').value || !fieldset.querySelector('[name="courseHistory"]').value);
-      if (missingCourseDetails) {
-        showMessage('Please rank each selected course and indicate whether you have taken it.', 'error');
-        return;
-      }
-
-      const resume = form.elements.resume.files[0];
-      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (resume && (resume.size > 5 * 1024 * 1024 || (!allowedTypes.includes(resume.type) && !/\.(pdf|doc|docx)$/i.test(resume.name)))) {
-        showMessage('Please attach a PDF, DOC, or DOCX file no larger than 5 MB.', 'error');
-        return;
-      }
-
-      const button = form.querySelector('button[type="submit"]');
-      button.disabled = true;
-      showMessage('Submitting application…');
-      const payload = new FormData();
-      payload.append('application', JSON.stringify(collectApplication(form)));
-      if (resume) payload.append('resume', resume);
-
-      try {
-        const response = await fetch(SUBMISSION_ENDPOINT, { method: 'POST', body: payload });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.message || `Submission failed (${response.status}).`);
-        showMessage(result.message || 'Application submitted successfully.', 'success');
-        form.reset();
-        renderCourseRankings([]);
-        showCourseMessage(`0 of ${MAX_COURSES} courses selected.`);
-      } catch (error) {
-        showMessage(error.message || 'Could not submit. Check the endpoint configuration and try again.', 'error');
-      } finally {
-        button.disabled = false;
-      }
-    });
-  });
-})();
-
-</script>
-
-<main class="application-shell">
-    <form id="student-application-form" enctype="multipart/form-data" novalidate>
-      <section class="form-section" aria-labelledby="student-info-heading">
-        <h2 id="student-info-heading">Student Information</h2>
-        <div class="form-grid">
-          <label>First name <input name="firstName" autocomplete="given-name" required></label>
-          <label>Last name <input name="lastName" autocomplete="family-name" required></label>
-          <label>UFID <input name="ufid" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" required aria-describedby="ufid-help"><small id="ufid-help">Enter your 8-digit UFID.</small></label>
-          <label>UF email <input name="ufEmail" type="email" pattern="[A-Za-z0-9._%+-]+@ufl\.edu" autocomplete="email" required></label>
-          <label>Country of origin <input name="countryOfOrigin" required></label>
-          <label>Semester you started at UF <select name="startSemester" id="start-semester" required><option value="">Select semester</option></select></label>
-          <label>Current college status <select name="collegeStatus" required><option value="">Select status</option><option value="masters">Master's</option><option value="graduate">Graduate</option><option value="phd">PhD</option></select></label>
-          <label>Phone number <input name="phone" type="tel" autocomplete="tel" inputmode="tel" required></label>
-        </div>
-      </section>
-
-      <section class="form-section" aria-labelledby="academic-heading">
-        <h2 id="academic-heading">Academic Background</h2>
-        <div class="form-grid">
-          <label>Undergraduate university <input name="undergraduateUniversity" required></label>
-          <label>Undergraduate major <input name="undergraduateMajor" required></label>
-          <label>Degree type <input name="degreeType" required></label>
-          <label>Graduation date (MM/YYYY) <input name="graduationDate" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[0-9]{4}" maxlength="7" title="Enter a date in MM/YYYY format" required></label>
-          <label>GPA (out of 4.0) <input name="gpa" type="number" min="0" max="4" step="0.01" placeholder="4.00" required></label>
-        </div>
-      </section>
-
-      <section class="form-section" aria-labelledby="eligibility-heading">
-        <h2 id="eligibility-heading">PhD Student Eligibility</h2>
-        <p class="section-help">Choose the status that applies to each course.</p>
-        <div class="form-grid">
-          <label>EAP5836 status <select name="eap5836Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
-          <label>EAP5837 status <select name="eap5837Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
-        </div>
-      </section>
-
-      <section class="form-section" aria-labelledby="additional-heading">
-        <h2 id="additional-heading">Additional Information</h2>
-        <div class="form-grid">
-          <label>Planned TA hours per week <select name="taHours" required><option value="">Select hours</option><option value="10">10 hours</option><option value="20">20 hours</option></select></label>
-          <label>English score (if applicable) <select name="englishScore"><option value="">Not applicable</option><optgroup label="SPEAK"><option>SPEAK-20</option><option>SPEAK-25</option><option>SPEAK-30</option><option>SPEAK-35</option><option>SPEAK-40</option><option>SPEAK-45</option><option>SPEAK-50</option><option>SPEAK-55</option><option>SPEAK-60</option></optgroup><optgroup label="TOEFL iBT"><option>TOEFL-6.0</option><option>TOEFL-5.5</option><option>TOEFL-5.0</option><option>TOEFL-4.5</option><option>TOEFL-4.0</option><option>TOEFL-3.5</option><option>TOEFL-3.0</option><option>TOEFL-2.5</option><option>TOEFL-2.0</option><option>TOEFL-1.5</option><option>TOEFL-1.0</option></optgroup></select></label>
-          <label class="full-width">Anything else the professor should know, including planned travel <textarea name="additionalInfo" rows="5"></textarea></label>
-          <label class="full-width">Resume (optional; PDF, DOC, or DOCX, max 5 MB) <input name="resume" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
-        </div>
-      </section>
-
-      <section class="form-section course-section" aria-labelledby="preferences-heading">
-        <h2 id="preferences-heading">Course Preferences</h2>
-        <p class="section-help">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and indicate whether you have taken it.</p>
-        <div class="course-selection-layout">
-          <div class="course-chooser">
-            <h3>Available courses</h3>
-            <p class="course-subhelp">Check up to five courses.</p>
-            <div id="available-course-list" class="available-course-list" aria-describedby="course-selection-message"></div>
-            <p id="course-selection-message" class="course-selection-message" role="status" aria-live="polite"></p>
-          </div>
-          <div class="course-ranking-panel">
-            <h3>Your course rankings</h3>
-            <p class="course-subhelp">Set a different rank for each course and answer the course-history question.</p>
-            <div id="student-course-preferences" class="preferences-grid"></div>
-          </div>
-        </div>
-      </section>
-
-      <footer class="form-actions">
-        <p class="student-app-message" id="form-message" role="status" aria-live="polite"></p>
-        <button type="submit">Submit Application</button>
-      </footer>
-    </form>
-  </main>
-<!-- /wp:html -->
+<!-- wp:group {"className": "application-shell taas-application-form-root", "layout": {"type": "default"}} -->
+<div class="wp-block-group application-shell taas-application-form-root">
+<!-- wp:taas/application-term /-->
+<!-- wp:taas/application-notice /-->
+<!-- wp:taas/application-form -->
+<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-section">
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Student Information</h2>
+<!-- /wp:heading -->
+<!-- wp:group {"className": "form-grid", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-grid">
+<!-- wp:taas/application-field {"field": "firstName"} /-->
+<!-- wp:taas/application-field {"field": "lastName"} /-->
+<!-- wp:taas/application-field {"field": "ufid"} /-->
+<!-- wp:taas/application-field {"field": "ufEmail"} /-->
+<!-- wp:taas/application-field {"field": "countryOfOrigin"} /-->
+<!-- wp:taas/application-field {"field": "startSemester"} /-->
+<!-- wp:taas/application-field {"field": "collegeStatus"} /-->
+<!-- wp:taas/application-field {"field": "phone"} /-->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-section">
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Academic Background</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph {"className": "section-help"} -->
+<p class="section-help">List at least one degree. For a degree in progress, enter your expected graduation date.</p>
+<!-- /wp:paragraph -->
+<!-- wp:taas/academic-background /-->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-section">
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Eligibility Information</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph {"className": "section-help"} -->
+<p class="section-help">Choose the status that applies to each course.</p>
+<!-- /wp:paragraph -->
+<!-- wp:group {"className": "form-grid", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-grid">
+<!-- wp:taas/application-field {"field": "eap5836Status"} /-->
+<!-- wp:taas/application-field {"field": "eap5837Status"} /-->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className": "form-section", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-section">
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Additional Information</h2>
+<!-- /wp:heading -->
+<!-- wp:group {"className": "form-grid", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-grid">
+<!-- wp:taas/application-field {"field": "taHours"} /-->
+<!-- wp:taas/application-field {"field": "englishScore"} /-->
+<!-- wp:group {"className": "full-width", "layout": {"type": "default"}} -->
+<div class="wp-block-group full-width">
+<!-- wp:taas/application-field {"field": "additionalInfo"} /-->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className": "full-width", "layout": {"type": "default"}} -->
+<div class="wp-block-group full-width">
+<!-- wp:taas/application-field {"field": "resumeUrl"} /-->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+</div>
+<!-- /wp:group -->
+<!-- wp:group {"className": "form-section course-section", "layout": {"type": "default"}} -->
+<div class="wp-block-group form-section course-section">
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Course Preferences</h2>
+<!-- /wp:heading -->
+<!-- wp:paragraph {"className": "section-help"} -->
+<p class="section-help">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
+<!-- /wp:paragraph -->
+<!-- wp:taas/course-preferences /-->
+</div>
+<!-- /wp:group -->
+<!-- /wp:taas/application-form -->
+<!-- wp:taas/application-success /-->
+</div>
+<!-- /wp:group -->
