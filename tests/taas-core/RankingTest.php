@@ -13,21 +13,21 @@ use PHPUnit\Framework\TestCase;
 class RankingTest extends TestCase {
 
 	/**
-	 * UFIDs with a live application in every test
+	 * Ids of the live applications in every test
 	 */
-	private const ELIGIBLE = array( '20000001', '20000002', '20000003' );
+	private const ELIGIBLE = array( 101, 102, 103 );
 
 	/**
 	 * Build one ranking entry
 	 *
 	 * @param mixed $rank Rank value.
-	 * @param mixed $ufid Student UFID.
+	 * @param mixed $id   Application id.
 	 * @return array
 	 */
-	private static function entry( $rank, $ufid ): array {
+	private static function entry( $rank, $id ): array {
 		return array(
-			'rank'         => $rank,
-			'student_ufid' => $ufid,
+			'rank'           => $rank,
+			'application_id' => $id,
 		);
 	}
 
@@ -47,18 +47,18 @@ class RankingTest extends TestCase {
 	}
 
 	/**
-	 * A valid ranking comes back as UFIDs in rank order, whatever order it was sent in
+	 * A valid ranking comes back as application ids in rank order, whatever order it was sent in
 	 */
-	public function test_valid_ranking_returns_ufids_in_rank_order(): void {
+	public function test_valid_ranking_returns_ids_in_rank_order(): void {
 		$ordered = TAAS_Ranking::parse(
 			array(
-				self::entry( 2, '20000001' ),
-				self::entry( 1, '20000003' ),
+				self::entry( 2, 101 ),
+				self::entry( 1, 103 ),
 			),
 			self::ELIGIBLE
 		);
 
-		$this->assertSame( array( '20000003', '20000001' ), $ordered );
+		$this->assertSame( array( 103, 101 ), $ordered );
 	}
 
 	/**
@@ -67,14 +67,14 @@ class RankingTest extends TestCase {
 	public function test_full_ranking_is_accepted(): void {
 		$ordered = TAAS_Ranking::parse(
 			array(
-				self::entry( 1, '20000002' ),
-				self::entry( 2, '20000003' ),
-				self::entry( 3, '20000001' ),
+				self::entry( 1, 102 ),
+				self::entry( 2, 103 ),
+				self::entry( 3, 101 ),
 			),
 			self::ELIGIBLE
 		);
 
-		$this->assertSame( array( '20000002', '20000003', '20000001' ), $ordered );
+		$this->assertSame( array( 102, 103, 101 ), $ordered );
 	}
 
 	/**
@@ -90,7 +90,7 @@ class RankingTest extends TestCase {
 	public function test_non_list_is_refused(): void {
 		$this->assert_refused( TAAS_Ranking::REASON_NOT_A_LIST, 'nope' );
 		$this->assert_refused( TAAS_Ranking::REASON_NOT_A_LIST, null );
-		$this->assert_refused( TAAS_Ranking::REASON_NOT_A_LIST, array( 'a' => self::entry( 1, '20000001' ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_NOT_A_LIST, array( 'a' => self::entry( 1, 101 ) ) );
 	}
 
 	/**
@@ -99,19 +99,20 @@ class RankingTest extends TestCase {
 	public function test_malformed_entries_are_refused(): void {
 		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( 'not an object' ) );
 		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( array( 'rank' => 1 ) ) );
-		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( array( 'student_ufid' => '20000001' ) ) );
-		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( '1', '20000001' ) ) );
-		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( 1.5, '20000001' ) ) );
-		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( 1, 20000001 ) ) );
-		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( 1, '' ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( array( 'application_id' => 101 ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( '1', 101 ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( 1.5, 101 ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( 1, '101' ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( 1, 0 ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_MALFORMED_ENTRY, array( self::entry( 1, -1 ) ) );
 	}
 
 	/**
 	 * Ranks start at 1
 	 */
 	public function test_rank_below_one_is_refused(): void {
-		$this->assert_refused( TAAS_Ranking::REASON_RANK_OUT_OF_RANGE, array( self::entry( 0, '20000001' ) ) );
-		$this->assert_refused( TAAS_Ranking::REASON_RANK_OUT_OF_RANGE, array( self::entry( -1, '20000001' ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_RANK_OUT_OF_RANGE, array( self::entry( 0, 101 ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_RANK_OUT_OF_RANGE, array( self::entry( -1, 101 ) ) );
 	}
 
 	/**
@@ -121,21 +122,21 @@ class RankingTest extends TestCase {
 		$this->assert_refused(
 			TAAS_Ranking::REASON_DUPLICATE_RANK,
 			array(
-				self::entry( 1, '20000001' ),
-				self::entry( 1, '20000002' ),
+				self::entry( 1, 101 ),
+				self::entry( 1, 102 ),
 			)
 		);
 	}
 
 	/**
-	 * A student cannot hold two ranks
+	 * An application cannot hold two ranks
 	 */
-	public function test_duplicate_student_is_refused(): void {
+	public function test_duplicate_application_is_refused(): void {
 		$this->assert_refused(
-			TAAS_Ranking::REASON_DUPLICATE_STUDENT,
+			TAAS_Ranking::REASON_DUPLICATE_APPLICATION,
 			array(
-				self::entry( 1, '20000001' ),
-				self::entry( 2, '20000001' ),
+				self::entry( 1, 101 ),
+				self::entry( 2, 101 ),
 			)
 		);
 	}
@@ -147,22 +148,22 @@ class RankingTest extends TestCase {
 		$this->assert_refused(
 			TAAS_Ranking::REASON_RANK_GAP,
 			array(
-				self::entry( 1, '20000001' ),
-				self::entry( 3, '20000002' ),
+				self::entry( 1, 101 ),
+				self::entry( 3, 102 ),
 			)
 		);
-		$this->assert_refused( TAAS_Ranking::REASON_RANK_GAP, array( self::entry( 2, '20000001' ) ) );
+		$this->assert_refused( TAAS_Ranking::REASON_RANK_GAP, array( self::entry( 2, 101 ) ) );
 	}
 
 	/**
-	 * Only students with a live application for the course may be ranked
+	 * Only live applications for the course may be ranked
 	 */
-	public function test_ineligible_student_is_refused(): void {
+	public function test_ineligible_application_is_refused(): void {
 		$this->assert_refused(
-			TAAS_Ranking::REASON_INELIGIBLE_STUDENT,
+			TAAS_Ranking::REASON_INELIGIBLE_APPLICATION,
 			array(
-				self::entry( 1, '20000001' ),
-				self::entry( 2, '99999999' ),
+				self::entry( 1, 101 ),
+				self::entry( 2, 999 ),
 			)
 		);
 	}
