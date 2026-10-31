@@ -26,7 +26,6 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-schema.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-migrations.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-seeds.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-snapshots.php';
-require_once TAAS_CORE_PATH . 'includes/func-taas-csv-ingest.php';
 
 /*
  * Types: enums and helpers first, then the row classes that depend on them.
