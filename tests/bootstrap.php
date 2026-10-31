@@ -30,4 +30,40 @@ if ( ! function_exists( 'esc_html' ) ) {
 	}
 }
 
+if ( ! function_exists( '__' ) ) {
+	/**
+	 * Stand-in for the WordPress translator; returns the text unchanged.
+	 *
+	 * @param string $text Text to translate.
+	 * @return string
+	 */
+	function __( $text ) {
+		return $text;
+	}
+}
+
+if ( ! function_exists( 'sanitize_key' ) ) {
+	/**
+	 * Stand-in for the WordPress key sanitizer.
+	 *
+	 * @param string $key Key to sanitize.
+	 * @return string
+	 */
+	function sanitize_key( $key ) {
+		return strtolower( (string) $key );
+	}
+}
+
+if ( ! function_exists( 'wp_unslash' ) ) {
+	/**
+	 * Stand-in for the WordPress unslasher; tests pass unslashed values.
+	 *
+	 * @param mixed $value Value to unslash.
+	 * @return mixed
+	 */
+	function wp_unslash( $value ) {
+		return $value;
+	}
+}
+
 require dirname( __DIR__ ) . '/vendor/autoload.php';

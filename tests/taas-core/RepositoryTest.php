@@ -239,6 +239,7 @@ class RepositoryTest extends TestCase {
 
 		$sql = $this->db->sql;
 
+		$this->assertStringStartsWith( 'SELECT a.application_id, s.student_name,', $sql );
 		$this->assertStringContainsString( 'FROM `wp_taas_core_applications` a', $sql );
 		$this->assertStringContainsString( 'INNER JOIN `wp_taas_core_students` s ON s.student_ufid = a.student_ufid', $sql );
 		$this->assertStringContainsString( 'LEFT JOIN `wp_taas_core_student_profiles` p ON p.student_ufid = a.student_ufid', $sql );
@@ -253,7 +254,6 @@ class RepositoryTest extends TestCase {
 		$this->db->rows = array(
 			array(
 				'application_id'    => '7',
-				'student_ufid'      => '20000002',
 				'student_name'      => 'Priya Raman',
 				'major'             => 'Computer Science',
 				'gpa'               => '3.85',
@@ -263,7 +263,6 @@ class RepositoryTest extends TestCase {
 			),
 			array(
 				'application_id'    => '8',
-				'student_ufid'      => '20000009',
 				'student_name'      => 'No Profile',
 				'major'             => null,
 				'gpa'               => null,
@@ -278,7 +277,6 @@ class RepositoryTest extends TestCase {
 		$this->assertSame(
 			array(
 				'application_id'    => 7,
-				'student_ufid'      => '20000002',
 				'student_name'      => 'Priya Raman',
 				'major'             => 'Computer Science',
 				'gpa'               => 3.85,
@@ -298,7 +296,7 @@ class RepositoryTest extends TestCase {
 	 * Saving a ranking clears the course's ranks first, then sets 1..n in order
 	 */
 	public function test_set_professor_ranks_resets_then_sets_in_order(): void {
-		( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( '20000002', '20000001' ) );
+		( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( 2, 1 ) );
 
 		$table = 'wp_taas_core_applications';
 
@@ -313,7 +311,7 @@ class RepositoryTest extends TestCase {
 					'table' => $table,
 					'data'  => array( 'professor_preference_rank' => 1 ),
 					'where' => array(
-						'student_ufid'      => '20000002',
+						'application_id'    => 2,
 						'applied_course_id' => 'COP4930-12345',
 					),
 				),
@@ -321,7 +319,7 @@ class RepositoryTest extends TestCase {
 					'table' => $table,
 					'data'  => array( 'professor_preference_rank' => 2 ),
 					'where' => array(
-						'student_ufid'      => '20000001',
+						'application_id'    => 1,
 						'applied_course_id' => 'COP4930-12345',
 					),
 				),
@@ -348,7 +346,7 @@ class RepositoryTest extends TestCase {
 
 		try {
 			TAAS_Transaction::run(
-				static fn() => ( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( '20000001' ) )
+				static fn() => ( new TAAS_Application_Repository() )->set_professor_ranks( 'COP4930-12345', array( 1 ) )
 			);
 			$this->fail( 'Expected a RuntimeException.' );
 		} catch ( RuntimeException $e ) {
