@@ -25,7 +25,9 @@ class TypesTest extends TestCase {
 				'major'             => 'Computer Science, Business',
 				'gpa'               => '3.50',
 				'enrollment_status' => '4',
-				'toefl_ibt_score'   => '108',
+				'speak_score'       => '55',
+				'speak_date'        => '2025-03-01',
+				'toefl_ibt_score'   => '5.5',
 				'toefl_ibt_date'    => '2025-09-13',
 				'has_ta_experience' => '0',
 			)
@@ -34,8 +36,30 @@ class TypesTest extends TestCase {
 		$this->assertSame( 'Computer Science, Business', $profile->major );
 		$this->assertSame( 3.5, $profile->gpa );
 		$this->assertSame( TAAS_Enrollment_Status::Phd, $profile->enrollment_status );
-		$this->assertSame( 108, $profile->toefl_ibt_score );
+		$this->assertSame( 55, $profile->speak_score );
+		$this->assertSame( '2025-03-01', $profile->speak_date->format( 'Y-m-d' ) );
+		$this->assertSame( 5.5, $profile->toefl_ibt_score );
 		$this->assertSame( '2025-09-13', $profile->toefl_ibt_date->format( 'Y-m-d' ) );
+	}
+
+	/**
+	 * Both English tests are optional and independent of each other
+	 */
+	public function test_english_tests_are_nullable_and_independent(): void {
+		$speak_only = TAAS_Student_Profile::from_row(
+			array(
+				'student_ufid' => '12345678',
+				'speak_score'  => '55',
+			)
+		);
+		$no_test    = TAAS_Student_Profile::from_row( array( 'student_ufid' => '12345678' ) );
+
+		$this->assertSame( 55, $speak_only->to_row()['speak_score'] );
+		$this->assertNull( $speak_only->toefl_ibt_score );
+		$this->assertNull( $no_test->speak_score );
+		$this->assertNull( $no_test->speak_date );
+		$this->assertNull( $no_test->toefl_ibt_score );
+		$this->assertNull( $no_test->toefl_ibt_date );
 	}
 
 	/**
@@ -75,6 +99,8 @@ class TypesTest extends TestCase {
 				'gpa',
 				'enrollment_status',
 				'resume_url',
+				'speak_score',
+				'speak_date',
 				'toefl_ibt_score',
 				'toefl_ibt_date',
 				'has_ta_experience',
@@ -125,7 +151,6 @@ class TypesTest extends TestCase {
 				'is_online',
 				'course_description',
 				'course_notes',
-				'sections',
 				'weekly_hours',
 				'lab_hours',
 				'enrollment',
@@ -140,10 +165,35 @@ class TypesTest extends TestCase {
 	}
 
 	/**
+	 * Section numbers are strings, so one with a letter is fine
+	 */
+	public function test_course_id_accepts_section_number_with_letter(): void {
+		$course = new TAAS_Course( '1996A', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+
+		$this->assertSame( '1996A', $course->to_row()['course_id'] );
+	}
+
+	/**
+	 * A course id is the section number alone, never code + section
+	 */
+	public function test_course_rejects_code_plus_section_id(): void {
+		$this->expectException( InvalidArgumentException::class );
+		new TAAS_Course( 'COP4930-19633', 'COP4930', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+	}
+
+	/**
+	 * Applications point at the same bare section number
+	 */
+	public function test_application_rejects_code_plus_section_id(): void {
+		$this->expectException( InvalidArgumentException::class );
+		new TAAS_Application( null, '12345678', 'COP4930-19633' );
+	}
+
+	/**
 	 * The application's to_row() writes exactly the applications columns, in schema order
 	 */
 	public function test_application_to_row_matches_schema_columns(): void {
-		$row = ( new TAAS_Application( 7, '12345678', 'COP3502-1234', has_ta_for_course: true ) )->to_row();
+		$row = ( new TAAS_Application( 7, '12345678', '1234', has_ta_for_course: true ) )->to_row();
 
 		$this->assertSame(
 			array(
@@ -171,7 +221,7 @@ class TypesTest extends TestCase {
 	public function test_application_hydrates_assigned_hours(): void {
 		$base = array(
 			'student_ufid'      => '12345678',
-			'applied_course_id' => 'COP3502-1234',
+			'applied_course_id' => '1234',
 			'match_status'      => '2',
 		);
 
@@ -189,7 +239,7 @@ class TypesTest extends TestCase {
 	public function test_application_hydrates_has_ta_for_course(): void {
 		$base = array(
 			'student_ufid'      => '12345678',
-			'applied_course_id' => 'COP3502-1234',
+			'applied_course_id' => '1234',
 			'match_status'      => '1',
 		);
 

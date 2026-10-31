@@ -56,7 +56,7 @@
   ],
   "courses": [
     {
-      "course_id": "COP3502-1234",
+      "course_id": "1234",
       "course_code": "COP3502",
       "course_name": "Programming Fundamentals 1",
       "course_semester": 1,
@@ -64,7 +64,6 @@
       "is_online": 0,
       "course_description": "Introduction to programming and problem solving.",
       "course_notes": "Needs TAs comfortable running lab sections.",
-      "sections": 3,
       "weekly_hours": 20,
       "lab_hours": 2,
       "enrollment": 280,
@@ -72,14 +71,13 @@
       "professor_ufid": "10000001"
     },
     {
-      "course_id": "CDA3101-5678",
+      "course_id": "5678",
       "course_code": "CDA3101",
       "course_name": "Introduction to Computer Organization",
       "course_semester": 1,
       "course_year": 2026,
       "is_online": 1,
       "course_description": "Machine level representation and processor design.",
-      "sections": 2,
       "weekly_hours": 10,
       "lab_hours": 1,
       "enrollment": 140,
@@ -87,7 +85,7 @@
       "professor_ufid": "10000002"
     },
     {
-      "course_id": "COP4930-12345",
+      "course_id": "12345",
       "course_code": "COP4930",
       "course_name": "Yet Another SWE Course",
       "course_semester": 4,
@@ -95,7 +93,6 @@
       "is_online": 0,
       "course_description": "Team-based software engineering project course.",
       "course_notes": "Looking for TAs with React experience.",
-      "sections": 1,
       "weekly_hours": 10,
       "lab_hours": 0,
       "enrollment": 60,
@@ -103,14 +100,13 @@
       "professor_ufid": "87654321"
     },
     {
-      "course_id": "COP4930-54321",
+      "course_id": "54321",
       "course_code": "COP4930",
       "course_name": "Some Other CISE Elective",
       "course_semester": 4,
       "course_year": 2026,
       "is_online": 1,
       "course_description": "Special topics elective, offered online.",
-      "sections": 1,
       "weekly_hours": 5,
       "lab_hours": 0,
       "enrollment": 40,
@@ -118,14 +114,13 @@
       "professor_ufid": "87654321"
     },
     {
-      "course_id": "COP6767-18238",
+      "course_id": "18238",
       "course_code": "COP6767",
       "course_name": "Advanced Software Systems",
       "course_semester": 1,
       "course_year": 2026,
       "is_online": 0,
       "course_description": "Graduate study of large-scale software systems.",
-      "sections": 1,
       "weekly_hours": 10,
       "lab_hours": 1,
       "enrollment": 35,
@@ -136,7 +131,7 @@
   "applications": [
     {
       "student_ufid": "20000001",
-      "applied_course_id":"COP3502-1234",
+      "applied_course_id":"1234",
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_statement": "I tutored this course content for two semesters.",
@@ -147,7 +142,7 @@
     },
     {
       "student_ufid": "20000001",
-      "applied_course_id":"CDA3101-5678",
+      "applied_course_id":"5678",
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_preference_rank": 2,
@@ -156,7 +151,7 @@
     },
     {
       "student_ufid": "20000002",
-      "applied_course_id":"CDA3101-5678",
+      "applied_course_id":"5678",
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_statement": "Strong hardware background from my BS.",
@@ -167,7 +162,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_id":"COP3502-1234",
+      "applied_course_id":"1234",
       "has_taken_course": 1,
       "has_ta_for_course": 1,
       "student_preference_rank": 1,
@@ -177,7 +172,7 @@
     },
     {
       "student_ufid": "20000001",
-      "applied_course_id": "COP4930-12345",
+      "applied_course_id": "12345",
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_statement": "Built two React apps on my senior project team.",
@@ -188,7 +183,7 @@
     },
     {
       "student_ufid": "20000002",
-      "applied_course_id": "COP4930-12345",
+      "applied_course_id": "12345",
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_preference_rank": 2,
@@ -198,7 +193,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_id": "COP4930-12345",
+      "applied_course_id": "12345",
       "has_taken_course": 1,
       "has_ta_for_course": 1,
       "student_statement": "I TA'd this course last summer.",
@@ -208,7 +203,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_id": "COP4930-54321",
+      "applied_course_id": "54321",
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_preference_rank": 3,
@@ -217,7 +212,7 @@
     },
     {
       "student_ufid": "20000002",
-      "applied_course_id": "COP6767-18238",
+      "applied_course_id": "18238",
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_statement": "My MS research is in distributed systems.",

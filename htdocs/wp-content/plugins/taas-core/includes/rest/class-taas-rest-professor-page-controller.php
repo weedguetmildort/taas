@@ -28,9 +28,9 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
 	/**
-	 * Route pattern for a course id, matching the resource controllers.
+	 * Route pattern for a course id, which is a bare section number.
 	 */
-	private const COURSE_ID_PATTERN = '(?P<course_id>[A-Za-z0-9_-]+)';
+	private const COURSE_ID_PATTERN = '(?P<course_id>[A-Za-z0-9]+)';
 
 	/**
 	 * Largest course_notes accepted, matching courses.course_notes varchar(1000).
@@ -440,6 +440,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 					'eap5836_status'      => $profile?->eap5836_status?->label(),
 					'eap5837_status'      => $profile?->eap5837_status?->label(),
 					'resume_url'          => $profile?->resume_url,
+					'speak_score'         => $profile?->speak_score,
+					'speak_date'          => $profile?->speak_date?->format( 'Y-m-d' ),
 					'student_statement'   => $application->student_statement,
 					'toefl_ibt_score'     => $profile?->toefl_ibt_score,
 					'toefl_ibt_date'      => $profile?->toefl_ibt_date?->format( 'Y-m-d' ),

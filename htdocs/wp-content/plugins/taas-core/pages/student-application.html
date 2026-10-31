@@ -199,7 +199,7 @@ button:disabled { opacity: .65; cursor: wait; }
         classTimes: ''
       }
       : {
-        value: String(course.value ?? course.courseCode ?? course.course_code ?? course.courseNumber ?? course.course_number ?? course.courseId ?? course.course_id ?? course.id ?? ''),
+        value: String(course.value ?? course.courseId ?? course.course_id ?? course.id ?? ''),
         courseNumber: String(course.courseNumber ?? course.course_number ?? course.courseCode ?? course.course_code ?? course.value ?? course.id ?? ''),
         courseName: String(course.courseName ?? course.course_name ?? course.name ?? course.title ?? course.label ?? course.value ?? ''),
         instructorName: String(course.instructorName ?? course.instructor_name ?? course.instructor ?? ''),

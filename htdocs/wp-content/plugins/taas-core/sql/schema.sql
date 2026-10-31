@@ -30,7 +30,9 @@ CREATE TABLE {prefix}student_profiles (
 	gpa decimal(3,2) DEFAULT NULL,                      -- most current GPA
 	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = AA, 2 = BS, 3 = MS, 4 = PhD (bind to PHP enum)
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
-	toefl_ibt_score int DEFAULT NULL,                   -- international students only
+	speak_score int DEFAULT NULL,                       -- international students only
+	speak_date date DEFAULT NULL,
+	toefl_ibt_score decimal(4,1) DEFAULT NULL,          -- international students only
 	toefl_ibt_date date DEFAULT NULL,
 	has_ta_experience tinyint(1) NOT NULL DEFAULT 0,
 	eap5836_status tinyint unsigned DEFAULT NULL,       -- (PhD) 1 = taken at uf, 2 = taken not at uf, 3 = taking, 4 = not taken
@@ -58,7 +60,7 @@ CREATE TABLE {prefix}academic_background (
 
 -- Courses: identification, owned by a professor
 CREATE TABLE {prefix}courses (
-	course_id varchar(20) NOT NULL,                     -- course section number
+	course_id varchar(20) NOT NULL,                     -- course section number only, e.g. 19963; string in case one has letters
 	course_code varchar(20) NOT NULL,
 	course_name varchar(255) NOT NULL,
 	course_semester tinyint unsigned NOT NULL,          -- 1 = Fall, 2 = Spring, 3 = SummerA, 4 = SummerB, 5 = SummerC
@@ -66,7 +68,6 @@ CREATE TABLE {prefix}courses (
 	is_online tinyint(1) NOT NULL DEFAULT 0,
 	course_description varchar(1000) DEFAULT NULL,
 	course_notes varchar(1000) DEFAULT NULL,            -- professor's notes/requests regarding matching
-	sections int DEFAULT NULL,
 	weekly_hours int DEFAULT NULL,                      -- total TA hours required, calculated by formula
 	lab_hours int NOT NULL DEFAULT 0,
 	enrollment int NOT NULL DEFAULT 0,
