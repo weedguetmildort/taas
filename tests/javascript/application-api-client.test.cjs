@@ -89,3 +89,55 @@ for (const method of ['GET', 'POST']) {
     });
   });
 }
+
+const initialResponse = () => ({
+  period: { semester: 1, year: 2026, label: 'Fall 2026', is_open: false, closes_at: null },
+  identity: { ufid: '12345678', email: 'student@ufl.edu' }, already_applied: false,
+  profile: null, english_test: null,
+  courses: [{ course_id: 'course-1', course_code: 'CS101', course_name: 'Example', instructor_name: null }],
+  academic_background: [{ university: 'Example', major: null, minor: null, degree_type: 2, grad_date: '2025-05-01', gpa: null }]
+});
+
+test('initial loading accepts closed periods and nullable profiles/degrees', async () => {
+  const fixture = initialResponse();
+  await withFetch(async () => new Response(JSON.stringify(fixture)), async () => {
+    const { load } = createApplicationApi({ nonce: 'test' });
+    assert.deepEqual(await load('/fixture'), fixture);
+  });
+  fixture.period.semester = 5;
+  fixture.courses = [];
+  fixture.academic_background = [];
+  await withFetch(async () => new Response(JSON.stringify(fixture)), async () => {
+    assert.deepEqual(await createApplicationApi({ nonce: 'test' }).load('/fixture'), fixture);
+  });
+});
+
+for (const [name, corrupt] of Object.entries({
+  'string open flag': data => { data.period.is_open = 'false'; },
+  'string already-applied flag': data => { data.already_applied = 'false'; },
+  'invalid semester': data => { data.period.semester = 6; },
+  'invalid year': data => { data.period.year = '2026'; },
+  'invalid deadline': data => { data.period.closes_at = 'tomorrow'; },
+  'missing label': data => { delete data.period.label; },
+  'empty identity': data => { data.identity = {}; },
+  'numeric UFID': data => { data.identity.ufid = 12345678; },
+  'invalid email type': data => { data.identity.email = {}; },
+  'null course': data => { data.courses = [null]; },
+  'missing course id': data => { delete data.courses[0].course_id; },
+  'invalid course name': data => { data.courses[0].course_name = {}; },
+  'null degree': data => { data.academic_background = [null]; },
+  'invalid degree date': data => { data.academic_background[0].grad_date = 2025; },
+  'invalid degree type': data => { data.academic_background[0].degree_type = 8; },
+  'invalid GPA': data => { data.academic_background[0].gpa = '3.5'; },
+  'invalid profile': data => { data.profile = []; },
+  'invalid country code': data => { data.profile = { country_code: 123 }; },
+  'invalid English test': data => { data.english_test = { type: 'TOEFL', score: '100' }; }
+})) {
+  test(`initial loading rejects ${name}`, async () => {
+    const fixture = initialResponse();
+    corrupt(fixture);
+    await withFetch(async () => new Response(JSON.stringify(fixture)), async () => {
+      await assert.rejects(createApplicationApi({ nonce: 'test' }).load('/fixture'), /could not be loaded/);
+    });
+  });
+}

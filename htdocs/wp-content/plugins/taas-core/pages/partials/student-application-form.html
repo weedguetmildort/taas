@@ -3,7 +3,7 @@
     {{existing_notice}}
     <noscript><p>JavaScript is required to load and submit this application.</p></noscript>
     <form id="student-application-form" novalidate>
-      <fieldset class="application-fields" id="application-fields" disabled>
+      <fieldset class="application-fields" id="application-fields" disabled data-application-loading-lock>
       <section class="form-section" aria-labelledby="student-info-heading">
         <h2 id="student-info-heading">Student Information</h2>
         <div class="form-grid">
@@ -50,7 +50,49 @@
           <div class="course-chooser">
             <h3>Available courses</h3>
             <p class="course-subhelp">Check up to five courses.</p>
-            <div id="available-course-list" class="available-course-list" aria-describedby="course-selection-message"></div>
+
+<!-- Course templates: edit layout here; keep input names and data hooks. -->
+<template data-course-template="emptyRankings">
+  <p class="empty-course-rankings">Select one or more courses to rank them here.</p>
+</template>
+<template data-course-template="readOnlyEmptyRankings">
+  <p class="empty-course-rankings">No active course preferences remain for this term.</p>
+</template>
+<template data-course-template="header">
+<div class="course-table-header"><span></span><span>Course number</span><span>Course name</span><span>Instructor</span><span>Class days</span><span>Class times</span></div>
+</template>
+<template data-course-template="row">
+<label class="available-course-option">
+  <input type="checkbox" name="selectedCourses">
+  <span class="course-detail"><span data-course-text="course_code">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="course_name">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="instructor_name">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="days">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="times">Not provided</span></span>
+</label>
+</template>
+<template data-course-template="ranking">
+<fieldset class="student-app-preference">
+  <legend><span data-course-text="course_code"></span> — <span data-course-text="course_name"></span></legend>
+  <div class="course-information course-ranking-information">
+    <span class="course-detail"><span class="course-detail-label">Instructor</span><span data-course-text="instructor_name">Not provided</span></span>
+    <span class="course-detail"><span class="course-detail-label">Class days</span><span data-course-text="days">Not provided</span></span>
+    <span class="course-detail"><span class="course-detail-label">Class times</span><span data-course-text="times">Not provided</span></span>
+  </div>
+  <label><span>Preference rank</span>
+    <select name="courseRank" required><option value="">Select rank</option></select>
+  </label>
+  <label><span>Have you completed this course?</span>
+    <select name="courseHistory" required>
+      <option value="">Select answer</option>
+      <option value="yes">Yes, I have completed this course</option>
+      <option value="other">I completed an equivalent course at another institution</option>
+      <option value="no">No, I have not completed this course</option>
+    </select>
+  </label>
+</fieldset>
+</template>
+<div id="available-course-list" class="available-course-list" aria-describedby="course-selection-message"></div>
             <p id="course-selection-message" class="course-selection-message" role="status" aria-live="polite"></p>
           </div>
           <div class="course-ranking-panel">
@@ -65,7 +107,7 @@
       <footer class="form-actions">
         <p class="student-app-message" id="form-message" role="status" aria-live="polite">Loading your application…</p>
         <button type="button" id="retry-application-load" hidden>Retry loading</button>
-        <button type="submit" disabled>{{submit_label}}</button>
+        <button type="submit" disabled data-application-loading-lock>{{submit_label}}</button>
       </footer>
     </form>
     <template id="degree-entry-template">
@@ -75,7 +117,7 @@
           <label>University <input data-field="university" maxlength="255" required></label>
           <label>Major <input data-field="major" maxlength="255" required></label>
           <label>Degree type <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
-          <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[0-9]{4}" maxlength="7" required></label>
+          <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[1-9][0-9]{3}" maxlength="7" required></label>
           <div>
             <label>GPA (out of 4.0) <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
             <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> GPA not yet available</label>

@@ -66,6 +66,35 @@ function html(editing, redesigned) {
     assert.equal(redesigned.details.academic_background[0].gpa, null);
     console.log('PASS: Plain HTML, redesigned wrappers, renamed component IDs, extra inputs/buttons and omitted optional elements produce the same REST payload');
 
+    const locks = await page.evaluate(() => {
+      const form = document.querySelector('form');
+      const section = document.createElement('fieldset');
+      section.disabled = true;
+      const input = document.createElement('input');
+      section.append(input);
+      const button = document.createElement('button');
+      button.type = 'submit';
+      button.disabled = true;
+      form.append(section, button);
+      for (let i = 0; i < 2; i++) {
+        window.adapter.setAvailability(false, false);
+        window.adapter.setAvailability(true, false);
+      }
+      const preserved = input.matches(':disabled') && button.disabled;
+      const primary = form.querySelector('[data-application-loading-lock][type="submit"]');
+      const initiallyUnlocked = !primary.disabled;
+      primary.disabled = true;
+      window.adapter.setAvailability(false, false);
+      window.adapter.setAvailability(true, false);
+      const laterDisablePreserved = primary.disabled;
+      primary.disabled = false;
+      section.remove();
+      button.remove();
+      return { preserved, initiallyUnlocked, laterDisablePreserved };
+    });
+    assert(locks.preserved && locks.initiallyUnlocked && locks.laterDisablePreserved);
+    console.log('PASS: Initial loading locks release once; intentional section/button locks survive repeated cycles');
+
     await page.evaluate(() => window.adapter.setAvailability(false, false));
     assert(await page.locator('[name="phone"]').isDisabled());
     await page.evaluate(() => window.adapter.setAvailability(true, false));
@@ -86,6 +115,178 @@ function html(editing, redesigned) {
     assert.equal(edited.details.profile.additional_info, 'Keep this');
     assert.deepEqual(edited.details.profile.english_test, { type: 'SPEAK', score: 42 });
     console.log('PASS: Omitted optional controls preserve saved values during edits');
+
+    assert(await open(true, false, saved));
+    const disabledDetails = await page.evaluate(() => {
+      const form = document.querySelector('form');
+      for (const name of ['resumeUrl', 'additionalInfo', 'englishScore']) form.elements[name].disabled = true;
+      return window.adapter.collect().details;
+    });
+    assert.equal(disabledDetails.profile.resume_url, saved.details.profile.resume_url);
+    assert.equal(disabledDetails.profile.additional_info, 'Keep this');
+    assert.deepEqual(disabledDetails.profile.english_test, { type: 'SPEAK', score: 42 });
+    console.log('PASS: Disabled optional controls retain their displayed values in the payload');
+
+    for (const name of ['firstName', 'lastName', 'studentName']) {
+      assert(await open(name === 'studentName', true, name === 'studentName' ? saved : fixture));
+      const result = await page.evaluate(name => {
+        const input = document.querySelector('form').elements[name];
+        input.value = '   ';
+        const rejected = window.adapter.collect() === null;
+        const error = input.validationMessage;
+        input.value = 'Alex';
+        input.dispatchEvent(new Event('input'));
+        return { rejected, error, recovered: window.adapter.collect() !== null };
+      }, name);
+      assert(result.rejected && result.recovered);
+      assert.match(result.error, /Enter your name/);
+    }
+    console.log('PASS: Whitespace-only names are rejected in both modes and recover after correction');
+    for (const editing of [false, true]) {
+      assert(await open(editing, true, editing ? saved : fixture));
+      const result = await page.evaluate(() => {
+        const phone = document.querySelector('form').elements.phone;
+        phone.value = '   ';
+        const rejected = window.adapter.collect() === null;
+        const error = phone.validationMessage;
+        phone.value = '3525550100';
+        phone.dispatchEvent(new Event('input'));
+        return { rejected, error, recovered: window.adapter.collect() !== null };
+      });
+      assert(result.rejected && result.recovered);
+      assert.match(result.error, /Enter your phone number/);
+    }
+    console.log('PASS: Whitespace-only phone numbers are rejected in both modes and recover after correction');
+    assert(await open(true, true, saved));
+
+    const degrees = await page.evaluate(() => {
+      const host = document.createElement('div');
+      const addButton = document.createElement('button');
+      const template = document.querySelector('template[data-application-ui="degreeTemplate"]');
+      const component = window.TAASStudent.createAcademicBackground({ host, template, addButton });
+      const saved = { university: 'Example', major: 'CS', minor: 'Math', degree_type: 4, grad_date: '2025-05-01', gpa: null };
+      component.prefill([saved]);
+      const roundTrip = component.collect()[0];
+      addButton.click();
+      const addedCount = host.querySelectorAll('.degree-entry').length;
+      host.querySelectorAll('[data-action="remove-degree"]')[1].click();
+      const entry = host.querySelector('.degree-entry');
+      const unavailable = entry.querySelector('[data-field="gpa_unavailable"]');
+      unavailable.checked = false;
+      unavailable.dispatchEvent(new Event('change'));
+      const gpa = entry.querySelector('[data-field="gpa"]');
+      gpa.value = '3.5';
+      return { roundTrip, addedCount, remainingCount: host.querySelectorAll('.degree-entry').length,
+        lastRemoveDisabled: entry.querySelector('[data-action="remove-degree"]').disabled,
+        gpaEnabled: !gpa.disabled && gpa.required, savedGpa: component.collect()[0].gpa };
+    });
+    assert.deepEqual(degrees.roundTrip, { university: 'Example', major: 'CS', minor: 'Math', degree_type: 4, grad_date: '2025-05-01', gpa: null });
+    assert.equal(degrees.addedCount, 2);
+    assert.equal(degrees.remainingCount, 1);
+    assert(degrees.lastRemoveDisabled && degrees.gpaEnabled);
+    assert.equal(degrees.savedGpa, 3.5);
+    console.log('PASS: Degree entries preserve saved data, support adding/removing, and restore GPA availability');
+
+    const dates = await page.evaluate(() => {
+      const host = document.createElement('div');
+      const template = document.querySelector('template[data-application-ui="degreeTemplate"]');
+      const component = window.TAASStudent.createAcademicBackground({ host, template, addButton: document.createElement('button') });
+      component.prefill();
+      const input = host.querySelector('[data-field="grad_date"]');
+      // Saved WordPress markup may still contain the older, looser pattern.
+      input.pattern = '(0[1-9]|1[0-2])/[0-9]{4}';
+      const valid = ['05/0000', '05/0999', '05/1000', '12/9999', '13/2026'].map(value => {
+        input.value = value;
+        component.validate();
+        return input.checkValidity();
+      });
+      input.value = '05/0999';
+      component.validate();
+      input.value = '05/2026';
+      input.dispatchEvent(new Event('input'));
+      return { valid, corrected: input.checkValidity() };
+    });
+    assert.deepEqual(dates, { valid: [false, false, true, true, false], corrected: true });
+    console.log('PASS: Graduation dates reject years below 1000 and clear errors after correction');
+
+    const minors = await page.evaluate(() => {
+      const template = document.querySelector('template[data-application-ui="degreeTemplate"]').cloneNode(true);
+      const minor = document.createElement('input');
+      minor.dataset.field = 'minor';
+      template.content.firstElementChild.append(minor);
+      const host = document.createElement('div');
+      const component = window.TAASStudent.createAcademicBackground({ host, template, addButton: document.createElement('button') });
+      component.prefill([{ minor: 'Math' }]);
+      const input = host.querySelector('[data-field="minor"]');
+      input.value = ' Physics ';
+      const edited = component.collect()[0].minor;
+      input.value = '';
+      return { edited, cleared: component.collect()[0].minor };
+    });
+    assert.deepEqual(minors, { edited: 'Physics', cleared: '' });
+    console.log('PASS: Optional minor controls save edits and intentional clearing');
+
+    for (const field of ['university', 'major', 'degree_type', 'grad_date', 'gpa', 'gpa_unavailable']) {
+      for (const defect of ['missing', 'duplicate', 'wrong-type']) {
+        await page.setContent(html(false, true));
+        const result = await page.evaluate(({ field, defect }) => {
+          const template = document.querySelector('template[data-application-ui="degreeTemplate"]');
+          const control = template.content.querySelector(`[data-field="${field}"]`);
+          if (defect === 'missing') control.remove();
+          if (defect === 'duplicate') control.after(control.cloneNode(true));
+          if (defect === 'wrong-type') {
+            const replacement = document.createElement('div');
+            replacement.dataset.field = field;
+            control.replaceWith(replacement);
+          }
+          return window.TAASStudent.createApplicationForm(document.querySelector('form'), { editing: false, config: {} });
+        }, { field, defect });
+        assert.equal(result, null, `${field}: ${defect} must fail during setup`);
+        assert.match(await page.getByRole('alert').textContent(), /incomplete/);
+        assert(await page.locator('[type="submit"]').first().isDisabled());
+      }
+    }
+    console.log('PASS: Missing, duplicate, and invalid degree controls fail safely during setup');
+
+    assert(await open(true, true, saved));
+
+    const rankIgnoresUnrelatedControl = await page.evaluate(() => {
+      const form = document.querySelector('form');
+      const unrelated = document.createElement('select');
+      unrelated.name = 'courseRank';
+      unrelated.append(new Option('Unrelated', '1'));
+      form.append(unrelated);
+      const rank = form.querySelector('[data-course] [name="courseRank"]');
+      rank.dispatchEvent(new Event('change', { bubbles: true }));
+      return rank.validity.valid;
+    });
+    assert(rankIgnoresUnrelatedControl);
+    console.log('PASS: Course ranking validation ignores controls outside the rankings container');
+
+    for (const name of ['selectedCourses', 'courseRank', 'courseHistory']) {
+      for (const defect of ['missing', 'duplicate', 'wrong-type', 'not-required']) {
+        if (name === 'selectedCourses' && defect === 'not-required') continue;
+        await page.setContent(html(false, true));
+        const result = await page.evaluate(({ name, defect }) => {
+          const templateName = name === 'selectedCourses' ? 'row' : 'ranking';
+          const template = document.querySelector(`[data-course-template="${templateName}"]`);
+          const control = template.content.querySelector(`[name="${name}"]`);
+          if (defect === 'missing') control.remove();
+          if (defect === 'duplicate') control.after(control.cloneNode(true));
+          if (defect === 'not-required') control.removeAttribute('required');
+          if (defect === 'wrong-type') {
+            const replacement = document.createElement('input');
+            replacement.name = name;
+            control.replaceWith(replacement);
+          }
+          return window.TAASStudent.createApplicationForm(document.querySelector('form'), { editing: false, config: {} });
+        }, { name, defect });
+        assert.equal(result, null, `${name}: ${defect} must fail during setup`);
+        assert.match(await page.getByRole('alert').textContent(), /incomplete/);
+        assert(await page.locator('[type="submit"]').first().isDisabled());
+      }
+    }
+    console.log('PASS: Missing, duplicated and invalid course template controls fail safely during setup');
 
     await page.setContent(html(false, true).replace('<input name="firstName" required>', ''));
     const failed = await page.evaluate(() => window.TAASStudent.createApplicationForm(document.querySelector('form'), { editing: false, config: {} }));

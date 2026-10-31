@@ -379,3 +379,50 @@ rendered structure and guards against concurrent edits. This historical flatteni
 original/replacement content is backed up under
 `real-data/student-plain-html-before-20261031.json`. No block conversion occurs on
 normal page requests.
+
+Course presentation uses five ordinary HTML `<template>` elements inside the
+form: `data-course-template="header"`, `"row"`, `"ranking"`, `"emptyRankings"`, and `"readOnlyEmptyRankings"`. Edit their layout
+in the page's Custom HTML block or the repository HTML before importing it.
+Keep `name="selectedCourses"`, `name="courseRank"`, `name="courseHistory"`, and
+`data-course-text` bindings intact. JavaScript clones these templates and fills
+course text using `textContent`; it does not generate course markup. Labels and empty-state messages are edited directly in these templates;
+there is no separate JSON label configuration. Missing templates disable
+form setup with the existing accessible configuration error.
+
+For existing local installations, `scripts/add-course-templates.php` adds only
+these templates to saved pages and requires a new backup filename when applying.
+It preserves the rest of the WordPress content and skips pages already migrated.
+
+For pages with the former JSON label configuration, `scripts/migrate-course-labels.php`
+preserves label overrides in HTML, adds empty-state templates, and removes the
+obsolete attributes. Applying requires `--apply` and a new backup filename.
+
+Status results use `data-status-template="course"` and `"empty"` HTML templates.
+The course row retains `data-status-text="code"`, `"name"`, `"rank"`, and `"status"`
+for safe text binding. Edit the templates in WordPress or import the source page.
+`scripts/add-status-templates.php --apply <new-backup-path>` adds templates to
+existing local pages without replacing other saved content.
+Status reads time out after 30 seconds, restore controls, and offer retry.
+Term and application response structures are checked before results are shown.
+
+Status-page wording is stored in `template[data-status-messages]` as paragraphs
+with stable `data-status-message` keys. Edit the text in WordPress; preserve
+`{term}` and `{status}` placeholders where needed. Templates and required message
+keys are validated before any API reads. The course-row template must contain
+exactly one binding for each of code, name, rank, and status.
+For existing local pages, `scripts/add-status-messages.php --apply <new-backup-path>`
+adds the message template without replacing other saved page content.
+
+The status controller uses `createApplicationApi().request()` for term/result
+reads, sharing authentication, timeout handling, JSON parsing, and HTTP errors
+with the application forms. Response validation stays in the status controller.
+The client accepts optional `messages` overrides (`connectionUnavailable`,
+`invalidResponse`, `requestFailed`, `loadTimeout`) so status wording still comes
+from its HTML message template. `requestFailed` supports a `{status}` placeholder;
+server-provided error messages take precedence.
+
+Controls disabled solely for initial loading use `data-application-loading-lock`.
+The form adapter releases these startup locks once; later lock/unlock cycles
+restore each control's previous disabled state. Do not put this attribute on
+sections or buttons intended to stay disabled. Existing local saved pages can
+be updated with `scripts/mark-form-loading-controls.php --apply <new-backup-path>`.

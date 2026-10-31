@@ -56,7 +56,7 @@
 .taas-application-form-root .student-app-message { width: 100%; min-height: 1.4em; margin: 0; color: var(--muted); font-size: 1rem; line-height: 1.5; }
 .taas-application-form-root .student-app-message[data-state="error"] { color: #b42318; }
 .taas-application-form-root .student-app-message[data-state="success"] { color: #18703a; }
-.taas-application-form-root button { min-height: 44px; padding: 11px 22px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; transition: background-color .15s ease; }
+.taas-application-form-root button { min-height: 44px; padding: 11px 22px; border: 0; border-radius: 6px; background: var(--accent); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; transition: background-color .15s ease; }
 .taas-application-form-root button:hover { background: var(--accent-hover); }
 .taas-application-form-root button:focus-visible { outline: 3px solid #222; outline-offset: 3px; }
 .taas-application-form-root button:disabled { opacity: .65; cursor: wait; }@media (max-width: 620px) {
@@ -112,6 +112,6 @@
 .taas-application-form-root .application-dialog { width: min(90vw, 500px); border: 1px solid var(--border); border-radius: 10px; padding: 24px; color: var(--text); }
 .taas-application-form-root .application-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .taas-application-form-root .dialog-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
-.taas-application-form-root .action-link { display: inline-block; padding: 11px 18px; border-radius: 6px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
+.taas-application-form-root .action-link { display: inline-block; padding: 11px 18px; border-radius: 6px; background: var(--accent); color: var(--text); font-weight: 700; text-decoration: none; }
 .taas-application-form-root .action-link:hover { background: var(--accent-hover); }
 .taas-application-form-root [hidden] { display: none !important; }

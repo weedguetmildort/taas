@@ -7,7 +7,7 @@
       <button type="button" id="start-recovery-form" data-application-ui="recovery">Start a new form</button>
     </section>
     <form id="student-application-form" data-application-form novalidate class="wp-block-taas-application-form">
-      <fieldset class="application-fields" id="application-fields" disabled>
+      <fieldset class="application-fields" id="application-fields" disabled data-application-loading-lock>
         <div class="wp-block-group form-section">
           <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
             <h2 class="wp-block-heading">Student Information</h2>
@@ -70,7 +70,7 @@
                   <label>University <input data-field="university" maxlength="255" required></label>
                   <label>Major <input data-field="major" maxlength="255" required></label>
                   <label>Degree type <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
-                  <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[0-9]{4}" maxlength="7" required></label>
+                  <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[1-9][0-9]{3}" maxlength="7" required></label>
                   <div>
                     <label>GPA (out of 4.0) <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
                     <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> GPA not yet available</label>
@@ -191,30 +191,53 @@
           <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
             <h2 class="wp-block-heading">Course Preferences</h2>
             <p class="section-help wp-block-paragraph">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
-            <div class="course-selection-layout" data-course-copy='{
-                "chooserTitle": "Available courses",
-                "chooserHelp": "Check up to five courses.",
-                "rankingTitle": "Your course rankings",
-                "rankingHelp": "Set a different rank for each course and answer the course-history question.",
-                "rankLabel": "Preference rank",
-                "rankPlaceholder": "Select rank",
-                "completionLabel": "Have you completed this course?",
-                "completionPlaceholder": "Select answer",
-                "completedLabel": "Yes, I have completed this course",
-                "equivalentLabel": "I completed an equivalent course at another institution",
-                "incompleteLabel": "No, I have not completed this course",
-                "courseNumberLabel": "Course number",
-                "courseNameLabel": "Course name",
-                "instructorLabel": "Instructor",
-                "daysLabel": "Class days",
-                "timesLabel": "Class times",
-                "emptyRankings": "Select one or more courses to rank them here.",
-                "readOnlyEmptyRankings": "No active course preferences remain for this term."
-              }'>
+            <div class="course-selection-layout">
               <div class="course-chooser">
                 <h3>Available courses</h3>
                 <p class="course-subhelp">Check up to five courses.</p>
-                <div id="available-course-list" data-application-ui="courseList" class="available-course-list" aria-describedby="course-selection-message"></div>
+
+<!-- Course templates: edit layout here; keep input names and data hooks. -->
+<template data-course-template="emptyRankings">
+  <p class="empty-course-rankings">Select one or more courses to rank them here.</p>
+</template>
+<template data-course-template="readOnlyEmptyRankings">
+  <p class="empty-course-rankings">No active course preferences remain for this term.</p>
+</template>
+<template data-course-template="header">
+<div class="course-table-header"><span></span><span>Course number</span><span>Course name</span><span>Instructor</span><span>Class days</span><span>Class times</span></div>
+</template>
+<template data-course-template="row">
+<label class="available-course-option">
+  <input type="checkbox" name="selectedCourses">
+  <span class="course-detail"><span data-course-text="course_code">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="course_name">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="instructor_name">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="days">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="times">Not provided</span></span>
+</label>
+</template>
+<template data-course-template="ranking">
+<fieldset class="student-app-preference">
+  <legend><span data-course-text="course_code"></span> — <span data-course-text="course_name"></span></legend>
+  <div class="course-information course-ranking-information">
+    <span class="course-detail"><span class="course-detail-label">Instructor</span><span data-course-text="instructor_name">Not provided</span></span>
+    <span class="course-detail"><span class="course-detail-label">Class days</span><span data-course-text="days">Not provided</span></span>
+    <span class="course-detail"><span class="course-detail-label">Class times</span><span data-course-text="times">Not provided</span></span>
+  </div>
+  <label><span>Preference rank</span>
+    <select name="courseRank" required><option value="">Select rank</option></select>
+  </label>
+  <label><span>Have you completed this course?</span>
+    <select name="courseHistory" required>
+      <option value="">Select answer</option>
+      <option value="yes">Yes, I have completed this course</option>
+      <option value="other">I completed an equivalent course at another institution</option>
+      <option value="no">No, I have not completed this course</option>
+    </select>
+  </label>
+</fieldset>
+</template>
+<div id="available-course-list" data-application-ui="courseList" class="available-course-list" aria-describedby="course-selection-message"></div>
                 <p id="course-selection-message" data-application-ui="courseMessage" class="course-selection-message" role="status" aria-live="polite"></p>
               </div>
               <div class="course-ranking-panel">
@@ -229,7 +252,7 @@
       <footer class="form-actions">
         <p class="student-app-message" id="form-message" data-application-ui="message" role="status" aria-live="polite">Loading your application…</p>
         <button type="button" id="retry-application-load" data-application-ui="retry" hidden>Retry loading</button>
-        <button type="submit" data-saved-label="Application submitted" disabled>Submit Application</button>
+        <button type="submit" data-saved-label="Application submitted" disabled data-application-loading-lock>Submit Application</button>
       </footer>
     </form>
     <dialog class="application-dialog" id="application-success" data-application-ui="dialog" aria-labelledby="application-success-title" aria-describedby="application-success-description">
