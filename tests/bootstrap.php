@@ -66,4 +66,41 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 	}
 }
 
+if ( ! function_exists( 'is_wp_error' ) ) {
+	/**
+	 * Stand-in for the WordPress error check.
+	 *
+	 * @param mixed $thing Value to check.
+	 * @return bool
+	 */
+	function is_wp_error( $thing ) {
+		return $thing instanceof WP_Error;
+	}
+}
+
+if ( ! function_exists( 'rest_ensure_response' ) ) {
+	/**
+	 * Stand-in for the WordPress REST response wrapper.
+	 *
+	 * @param mixed $response Response so far.
+	 * @return mixed
+	 */
+	function rest_ensure_response( $response ) {
+		return $response instanceof WP_Error || $response instanceof WP_REST_Response ? $response : new WP_REST_Response( $response );
+	}
+}
+
+if ( ! function_exists( 'apply_filters' ) ) {
+	/**
+	 * Stand-in for the WordPress filter runner; no filters are hooked in tests.
+	 *
+	 * @param string $hook_name Filter name.
+	 * @param mixed  $value     Value to filter.
+	 * @return mixed
+	 */
+	function apply_filters( $hook_name, $value ) {
+		return $value;
+	}
+}
+
 require dirname( __DIR__ ) . '/vendor/autoload.php';

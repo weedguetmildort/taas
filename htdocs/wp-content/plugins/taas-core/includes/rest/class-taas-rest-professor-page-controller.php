@@ -27,10 +27,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
-	/**
-	 * Route pattern for a course id.
-	 */
-	private const COURSE_ID_PATTERN = '(?P<course_id>\d+)';
+	use TAAS_REST_Term_Params;
 
 	/**
 	 * Largest course_notes accepted, matching courses.course_notes varchar(1000).
@@ -129,21 +126,7 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_courses' ),
 					'permission_callback' => array( $this, 'professor_permissions_check' ),
-					'args'                => array(
-						'term' => array(
-							'description'       => __( 'Semester, e.g. Fall, Spring, SummerA, SummerB or SummerC.', 'taas-core' ),
-							'type'              => 'string',
-							'required'          => true,
-							'validate_callback' => array( $this, 'validate_term' ),
-						),
-						'year' => array(
-							'description' => __( 'Four-digit year, e.g. 2026.', 'taas-core' ),
-							'type'        => 'integer',
-							'required'    => true,
-							'minimum'     => 1901,
-							'maximum'     => 2155,
-						),
-					),
+					'args'                => $this->term_args( true ),
 				),
 			)
 		);
@@ -223,24 +206,6 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 					),
 				),
 			)
-		);
-	}
-
-	/**
-	 * Validate the term query parameter against TAAS_Semester.
-	 *
-	 * @param mixed $value Raw parameter value.
-	 * @return true|WP_Error
-	 */
-	public function validate_term( $value ) {
-		if ( is_string( $value ) && null !== TAAS_Semester::try_from_label( $value ) ) {
-			return true;
-		}
-
-		return new WP_Error(
-			'rest_invalid_param',
-			__( 'term must be one of Fall, Spring, SummerA, SummerB or SummerC.', 'taas-core' ),
-			array( 'status' => 400 )
 		);
 	}
 
@@ -501,21 +466,6 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 		$course = $this->courses->find( $course_id );
 
 		return null !== $course && $course->professor_ufid === $ufid ? $course : null;
-	}
-
-	/**
-	 * A parameter from the route path only.
-	 *
-	 * $request[ $key ] checks the JSON body and query string before the path,
-	 * so a stray ?course_id= or body course_id would silently replace the id
-	 * in the URL. Path ids are always read through here instead.
-	 *
-	 * @param WP_REST_Request $request Current request.
-	 * @param string          $key     Path parameter name, e.g. 'course_id'.
-	 * @return string
-	 */
-	private function path_param( $request, string $key ): string {
-		return (string) ( $request->get_url_params()[ $key ] ?? '' );
 	}
 
 	/**

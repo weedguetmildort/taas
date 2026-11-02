@@ -12,6 +12,8 @@ defined( 'ABSPATH' ) || exit;
  * Values for applications.match_status.
  */
 enum TAAS_Match_Status: int {
+	use TAAS_Label_Lookup;
+
 	case Pending   = 1;
 	case Matched   = 2;
 	case Rejected  = 3;
