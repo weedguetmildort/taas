@@ -12,7 +12,7 @@
  * - Courses are processed in the order given, so earlier courses get first pick in each pass
  * - Admin has final say in the matches and can edit, change, and finalize matches as needed
  *
- * Notes: Arrays keyed by UFID or course_id are documented as array<string, ...>, but PHP
+ * Notes: Arrays keyed by UFID are documented as array<string, ...>, but PHP
  * stores an all-digit key like '12345678' as an int. Read the ID from the value
  * (e.g. student_ufid) when it is needed as a string.
  *
@@ -37,7 +37,7 @@ function taas_calc_course_ta_hours( TAAS_Course $course ): int {
 	// TODO: save the result to course->weekly_hours in the db
 
 	if ( $course->enrollment < 10 ) {
-		throw new InvalidArgumentException( sprintf( 'Course %s has negative enrollment.', esc_html( $course->course_id ) ) );
+		throw new InvalidArgumentException( sprintf( 'Course %d has negative enrollment.', (int) $course->course_id ) );
 	}
 
 	// Students covered by each 10 hours of TA support
@@ -45,7 +45,7 @@ function taas_calc_course_ta_hours( TAAS_Course $course ): int {
 		0       => 35,
 		1       => 30,
 		2       => 25,
-		default => throw new InvalidArgumentException( sprintf( 'Course %s has unsupported lab_hours: %d.', esc_html( $course->course_id ), (int) $course->lab_hours ) ),
+		default => throw new InvalidArgumentException( sprintf( 'Course %d has unsupported lab_hours: %d.', (int) $course->course_id, (int) $course->lab_hours ) ),
 	};
 
 	// Calculation of TA hours for the course
@@ -62,7 +62,7 @@ function taas_calc_course_ta_hours( TAAS_Course $course ): int {
  * @param string[]                            $ufids    Candidate student UFIDs, in priority order
  * @param string                              $reason   Reason recorded on each match
  * @param array<string, TAAS_Student_Profile> $profiles Profiles keyed by student_ufid
- * @param array<string, string>               $assigned Student UFID => course_id, updated in place
+ * @param array<string, int>                  $assigned Student UFID => course_id, updated in place
  * @param int                                 $cth      Course hours left to fill, updated in place
  * @return array<string, array{student_ufid: string, hours: int, reason: string}> Matches keyed by student UFID
  */
@@ -117,7 +117,7 @@ function taas_match_candidates( TAAS_Course $course, array $ufids, string $reaso
  * @param TAAS_Course                         $course      Course to staff
  * @param TAAS_Application[]                  $course_apps Applications for this course
  * @param array<string, TAAS_Student_Profile> $profiles    Profiles keyed by student_ufid
- * @param array<string, string>               $assigned    Student UFID => course_id, updated in place
+ * @param array<string, int>                  $assigned    Student UFID => course_id, updated in place
  * @param int                                 $cth         Course hours left to fill, updated in place
  * @return array<string, array{student_ufid: string, hours: int, reason: string}> Matches keyed by student UFID
  */
@@ -200,7 +200,7 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
  * @param TAAS_Course[]          $courses  Courses to staff, which is ordered by admin's choice
  * @param TAAS_Application[]     $apps     Applications across all courses
  * @param TAAS_Student_Profile[] $profiles Profiles of the applicants
- * @return array{matches: array<string, array>, unfilled_hours: array<string, int>} Both keyed by course_id
+ * @return array{matches: array<int, array>, unfilled_hours: array<int, int>} Both keyed by course_id
  * @throws InvalidArgumentException If any course's TA hours cannot be calculated.
  */
 function taas_run_matching( array $courses, array $apps, array $profiles ): array {

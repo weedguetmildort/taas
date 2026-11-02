@@ -1,5 +1,5 @@
 CREATE TABLE `{prefix}courses` (
-  `course_id` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `course_id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `course_code` varchar(20) COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `course_name` varchar(255) COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `course_semester` tinyint unsigned NOT NULL,
@@ -13,6 +13,7 @@ CREATE TABLE `{prefix}courses` (
   `max_enrollment` int NOT NULL DEFAULT '0',
   `professor_ufid` varchar(8) COLLATE utf8mb4_unicode_520_ci NOT NULL,
   PRIMARY KEY (`course_id`),
+  UNIQUE KEY `course_offering` (`course_semester`,`course_year`,`course_code`,`course_name`),
   KEY `course_code` (`course_code`),
   KEY `professor_ufid` (`professor_ufid`),
   CONSTRAINT `fk_courses_professor` FOREIGN KEY (`professor_ufid`) REFERENCES `{prefix}professors` (`professor_ufid`),

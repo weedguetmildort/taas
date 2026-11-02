@@ -28,9 +28,9 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
 	/**
-	 * Route pattern for a course id, which is a bare section number.
+	 * Route pattern for a course id.
 	 */
-	private const COURSE_ID_PATTERN = '(?P<course_id>[A-Za-z0-9]+)';
+	private const COURSE_ID_PATTERN = '(?P<course_id>\d+)';
 
 	/**
 	 * Largest course_notes accepted, matching courses.course_notes varchar(1000).
@@ -115,10 +115,9 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function register_routes() {
 		$course_id_arg = array(
 			'course_id' => array(
-				'description' => __( 'Course section number.', 'taas-core' ),
-				'type'        => 'string',
-				'minLength'   => 1,
-				'maxLength'   => 20,
+				'description' => __( 'Course ID.', 'taas-core' ),
+				'type'        => 'integer',
+				'minimum'     => 1,
 			),
 		);
 
@@ -287,7 +286,7 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function get_applicants( $request ) {
 		return $this->respond(
 			function () use ( $request ) {
-				$course = $this->owned_course( $this->path_param( $request, 'course_id' ) );
+				$course = $this->owned_course( (int) $this->path_param( $request, 'course_id' ) );
 
 				if ( null === $course ) {
 					return $this->not_found();
@@ -320,7 +319,7 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function get_ranking( $request ) {
 		return $this->respond(
 			function () use ( $request ) {
-				$course = $this->owned_course( $this->path_param( $request, 'course_id' ) );
+				$course = $this->owned_course( (int) $this->path_param( $request, 'course_id' ) );
 
 				return null === $course ? $this->not_found() : $this->ranking_body( $course );
 			}
@@ -338,7 +337,7 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function update_ranking( $request ) {
 		return $this->respond(
 			function () use ( $request ) {
-				$course = $this->owned_course( $this->path_param( $request, 'course_id' ) );
+				$course = $this->owned_course( (int) $this->path_param( $request, 'course_id' ) );
 
 				if ( null === $course ) {
 					return $this->not_found();
@@ -488,11 +487,11 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	/**
 	 * The course with this id, if the caller teaches it.
 	 *
-	 * @param string $course_id Course section number from the request.
+	 * @param int $course_id Course ID from the request.
 	 * @return TAAS_Course|null Null if the course is missing or belongs to someone else.
 	 * @throws RuntimeException If the query fails.
 	 */
-	private function owned_course( string $course_id ): ?TAAS_Course {
+	private function owned_course( int $course_id ): ?TAAS_Course {
 		$ufid = $this->current_ufid();
 
 		if ( '' === $ufid ) {

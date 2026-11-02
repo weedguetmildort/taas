@@ -22,7 +22,7 @@ final class TAAS_Application {
 	 *
 	 * @param int|null          $application_id            Auto-increment id; null on a new, unsaved record.
 	 * @param string            $student_ufid              Applicant's UFID, 1-8 characters.
-	 * @param string            $applied_course_id         Section number of the course applied for.
+	 * @param int               $applied_course_id         ID of the course applied for.
 	 * @param bool              $has_taken_course          Whether the student has taken the course.
 	 * @param bool              $has_ta_for_course         Whether the student has previously TA'd this course.
 	 * @param string|null       $student_statement         Statement of interest.
@@ -35,7 +35,7 @@ final class TAAS_Application {
 	public function __construct(
 		public readonly ?int $application_id,
 		public readonly string $student_ufid,
-		public readonly string $applied_course_id,
+		public readonly int $applied_course_id,
 		public readonly bool $has_taken_course = false,
 		public readonly bool $has_ta_for_course = false,
 		public readonly ?string $student_statement = null,
@@ -68,7 +68,7 @@ final class TAAS_Application {
 		return new self(
 			application_id: TAAS_Cast::int_or_null( $r['application_id'] ?? null ),
 			student_ufid: (string) $r['student_ufid'],
-			applied_course_id: (string) $r['applied_course_id'],
+			applied_course_id: TAAS_Cast::int( $r['applied_course_id'] ?? 0 ),
 			has_taken_course: TAAS_Cast::bool( $r['has_taken_course'] ?? 0 ),
 			has_ta_for_course: TAAS_Cast::bool( $r['has_ta_for_course'] ?? 0 ),
 			student_statement: TAAS_Cast::string_or_null( $r['student_statement'] ?? null ),

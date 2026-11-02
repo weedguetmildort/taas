@@ -27,15 +27,15 @@ final class TAAS_Guard {
 	}
 
 	/**
-	 * Check that a course id is a bare section number, e.g. 19963, not a code like COP4930-19963.
+	 * Check that a course id is 1 or greater, or null on a new, unsaved course.
 	 *
-	 * @param string $field Column name, used in the error message.
-	 * @param string $value Course id to check.
-	 * @throws InvalidArgumentException If the id is not 1-20 letters or digits.
+	 * @param string   $field Column name, used in the error message.
+	 * @param int|null $value Course id, or null.
+	 * @throws InvalidArgumentException If the id is below 1.
 	 */
-	public static function course_id( string $field, string $value ): void {
-		if ( 1 !== preg_match( '/^[A-Za-z0-9]{1,20}$/', $value ) ) {
-			throw new InvalidArgumentException( sprintf( '%s must be a section number of 1-20 letters or digits.', esc_html( $field ) ) );
+	public static function course_id( string $field, ?int $value ): void {
+		if ( null !== $value && $value < 1 ) {
+			throw new InvalidArgumentException( sprintf( '%s must be 1 or greater.', esc_html( $field ) ) );
 		}
 	}
 
