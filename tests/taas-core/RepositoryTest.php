@@ -394,6 +394,8 @@ class RepositoryTest extends TestCase {
 	 * Both per-course experience flags reach the applications insert as 0/1
 	 */
 	public function test_application_insert_writes_has_ta_for_course(): void {
+		$this->db->insert_id = 1;
+
 		( new TAAS_Application_Repository() )->insert(
 			new TAAS_Application( null, '12345678', 1234, has_taken_course: true, has_ta_for_course: true )
 		);
