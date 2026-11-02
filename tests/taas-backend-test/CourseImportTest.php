@@ -267,6 +267,13 @@ class CourseImportTest extends TestCase {
 		$this->assertNull( taas_cast_cell( '3.5', $fields['enrollment'] ) );
 		$this->assertNull( taas_cast_cell( '2147483648', $fields['enrollment'] ) );
 
+		$this->assertSame( 2147483648, taas_cast_cell( '2147483648', $fields['course_id'] ) );
+		$this->assertSame( PHP_INT_MAX, taas_cast_cell( '9223372036854775807', $fields['course_id'] ) );
+		$this->assertNull( taas_cast_cell( '9223372036854775808', $fields['course_id'] ) );
+		$this->assertNull( taas_cast_cell( '-1', $fields['course_id'] ) );
+		$this->assertNull( taas_cast_cell( '3.5', $fields['course_id'] ) );
+		$this->assertSame( PHP_INT_MIN, taas_cast_cell( '-9223372036854775808', self::field( 'signed_id', 'bigint(20)' ) ) );
+
 		$this->assertSame( 2026, taas_cast_cell( '2026', $fields['course_year'] ) );
 		$this->assertNull( taas_cast_cell( '1900', $fields['course_year'] ) );
 

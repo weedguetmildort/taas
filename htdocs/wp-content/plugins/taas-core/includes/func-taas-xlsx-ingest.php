@@ -147,6 +147,10 @@ function taas_cast_cell( string $value, array $field ) {
 		// Integer fields: a whole number in MySQL's int range
 		$min = $is_unsigned ? 0 : -2147483648;
 		$max = $is_unsigned ? 4294967295 : 2147483647;
+	} elseif ( 'bigint' === $type_name ) {
+		// Bigint fields: a whole number in MySQL's bigint range, capped at the largest int PHP can hold
+		$min = $is_unsigned ? 0 : PHP_INT_MIN;
+		$max = PHP_INT_MAX;
 	} else {
 		// Text fields: anything fits as long as it is not too long
 		if ( null !== $type_size && mb_strlen( $value ) > $type_size ) {
