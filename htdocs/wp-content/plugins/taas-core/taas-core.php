@@ -69,6 +69,7 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-resource-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/trait-taas-rest-term-params.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-status-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-me-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-cycle-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-controller.php';
