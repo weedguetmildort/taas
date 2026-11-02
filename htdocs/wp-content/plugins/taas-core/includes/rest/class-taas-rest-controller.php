@@ -74,7 +74,8 @@ defined( 'ABSPATH' ) || exit;
  * data from every table it reads, so its permission must be at least as strict
  * as the strictest of those tables. Ownership checks (a student sees only
  * their own rows) belong in the controller that needs them, never in the
- * request body.
+ * request body. Which stage a non-admin may act in is not a controller's
+ * concern: TAAS_Stage_Gate covers every route in the namespace.
  */
 abstract class TAAS_REST_Controller extends WP_REST_Controller {
 

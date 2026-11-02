@@ -21,6 +21,7 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-logger.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-version.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-db.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-auth.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-stage-gate.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-pages.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-schema.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-migrations.php';
@@ -81,6 +82,7 @@ TAAS_REST::init();
 /**
  * Apply the database schema and any pending migrations
  *
+TAAS_Stage_Gate::init();
  * @return void
  */
 function taas_core_install(): void {

@@ -88,8 +88,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	/**
 	 * Permission callback for every route here, reads and the ranking write alike.
 	 *
-	 * Professors hold the taas_instructor role in TAAS_Auth. Phase gating (only
-	 * professors may write during the ranking week) is not enforced yet.
+	 * Professors hold the taas_instructor role in TAAS_Auth. TAAS_Stage_Gate
+	 * closes every route here, reads included, outside professor_ranking.
 	 *
 	 * @return callable Returns true or WP_Error when called.
 	 */
