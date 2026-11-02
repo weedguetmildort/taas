@@ -35,6 +35,7 @@ require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-degree-type.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-course-taken-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-match-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-semester.php';
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-cycle-stage.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-cast.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-guard.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-ranking.php';
@@ -44,6 +45,7 @@ require_once TAAS_CORE_PATH . 'includes/types/class-taas-student-profile.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-academic-background.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-course.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-application-cycle.php';
 
 /*
  * Repositories layer for direct DB access.
@@ -56,6 +58,7 @@ require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-profile-
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-academic-background-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-course-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-repository.php';
+require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-cycle-repository.php';
 
 /*
  * RESTful API controllers.
@@ -63,6 +66,7 @@ require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-repo
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-resource-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-status-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-cycle-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-profile-controller.php';

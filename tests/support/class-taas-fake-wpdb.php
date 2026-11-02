@@ -166,6 +166,17 @@ class TAAS_Fake_Wpdb {
 	}
 
 	/**
+	 * Record the replace
+	 *
+	 * @param string $table Table name.
+	 * @param array  $data Column => value.
+	 * @return int|false
+	 */
+	public function replace( $table, $data ) {
+		return $this->insert( $table, $data );
+	}
+
+	/**
 	 * Record the update
 	 *
 	 * @param string $table Table name.

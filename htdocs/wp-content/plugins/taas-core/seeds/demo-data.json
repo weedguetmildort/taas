@@ -220,5 +220,8 @@
       "match_status": 1,
       "assigned_hours": 0
     }
+  ],
+  "application_cycle": [
+    { "cycle_id": 1, "cycle_semester": 1, "cycle_year": 2026, "student_application_start_at": "2026-01-01 00:00:00" }
   ]
 }

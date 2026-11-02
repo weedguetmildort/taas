@@ -30,6 +30,7 @@ final class TAAS_REST {
 	public static function register_routes(): void {
 		$controllers = array(
 			new TAAS_REST_Status_Controller(),
+			new TAAS_REST_Application_Cycle_Controller(),
 			new TAAS_REST_Professor_Controller(),
 			new TAAS_REST_Student_Controller(),
 			new TAAS_REST_Student_Profile_Controller(),
