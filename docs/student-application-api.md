@@ -32,9 +32,9 @@ These values are server-owned; no student endpoint writes configuration.
 |---|---|---|
 | GET | `/student/application` | Configured period, authenticated UFID/email, saved profile/background, already-applied flag, all courses in configured term |
 | POST | `/student/application` | Initial submission; 201 on create, 200 for an identical pending retry |
-| GET | `/student/applications` | Own submitted academic terms, without loading every JSON snapshot |
-| GET | `/student/applications/{semester}/{year}` | Own saved term details and course applications; 404 if no snapshot exists |
-| POST/PATCH/PUT | `/student/applications/{semester}/{year}` | Explicit updates to an existing term; requires the revision token returned by GET |
+| GET | `/student/application/terms` | Own submitted academic terms, without loading every JSON snapshot |
+| GET | `/student/application/{semester}/{year}` | Own saved term details and course applications; 404 if no snapshot exists |
+| POST/PATCH/PUT | `/student/application/{semester}/{year}` | Explicit updates to an existing term; requires the revision token returned by GET |
 
 Student-specific successful reads are marked no-store. Course response fields:
 course_id, course_code, course_name, instructor_name. Class days/times are not in
@@ -91,6 +91,53 @@ revised representation remains a high-priority team question.
 An existing TOEFL date is preserved when its stored score is unchanged. Changing
 the score, switching test type, or removing the test clears the old TOEFL date.
 
+## Submitted-details snapshot contract
+
+`student_submissions.submitted_details` stores **only the normalized `details`
+object**, not the complete REST request. PHP reads it as an associative array;
+the database stores it as a JSON object. The model's constructor PHPDoc documents
+the same structure for IDE navigation.
+
+| Field | Stored type and meaning |
+|---|---|
+| `student_name` | String; submitted full name |
+| `student_email` | String; submitted university email |
+| `profile.phone` | String; submitted phone number |
+| `profile.country_code` | String; supported uppercase two-letter country code |
+| `profile.admitted_semester` | String, such as `Fall 2025` |
+| `profile.available_hours` | Integer; currently 10 or 20 |
+| `profile.enrollment_status` | Integer; currently MS=3 or PhD=4 |
+| `profile.eap5836_status` | Integer 1–4; taken at UF, taken elsewhere, taking, not taken |
+| `profile.eap5837_status` | Integer 1–4; same mapping as EAP5836 |
+| `profile.resume_url` | HTTP/HTTPS URL string, or null |
+| `profile.additional_info` | String; empty when omitted |
+| `profile.english_test` | Null, or an object with `type` (`TOEFL`/`SPEAK`) and integer `score` (rounded half up) |
+| `academic_background` | Ordered array with at least one degree; first is current/most recent, the rest are previous degrees |
+| `academic_background[].university` | String; university name |
+| `academic_background[].degree_type` | Integer; AA=1, BS=2, MS=3, PhD=4 |
+| `academic_background[].major` | String; degree's major |
+| `academic_background[].minor` | String; empty when omitted |
+| `academic_background[].grad_date` | String in `YYYY-MM-01` format, including expected graduation dates |
+| `academic_background[].gpa` | Number 0–4 rounded to two decimal places, or null when unavailable |
+
+All fields above are present after normalization. Optional resume/test values
+become null; optional minor/additional-info text becomes an empty string. Degree
+order is preserved, and duplicate degree types remain separate entries. Database
+degree IDs are not included in the snapshot.
+
+The owner UFID, semester and year are separate columns in the snapshot row.
+Course selections, student/professor rankings and match statuses live in
+`applications`; they are not part of this JSON. TA experience and TOEFL test dates
+are not currently captured by the submitted-details contract. A resume URL
+preserves the address, not the document contents at that address.
+
+`TAAS_Student_Application_Input::parse()` validates the full field contract before
+the service saves it. The model/repository handle storage and basic structural
+checks; they do not independently validate every nested field. Reading a snapshot
+rejects invalid JSON, a non-object JSON root, and invalid/missing semesters.
+Editing replaces the JSON for that student and term; other terms remain unchanged.
+There is no per-edit revision history in this table.
+
 ## Persistence and conflicts
 
 Server validation enforces 1–5 distinct same-term courses, unique ranks 1..N, and
@@ -107,9 +154,16 @@ to another term.
 
 Snapshots keep all validated submitted details. Current shared degree entries
 are refreshed from the submitted list, while older term snapshots remain intact.
-Shared profile major/GPA are preserved because there is no agreed rule selecting
-one degree to populate those columns. A resume URL snapshot does not preserve
+The first academic-background entry is the current or most recent degree; its
+major and GPA populate the shared profile. A null GPA clears the shared GPA.
+Subsequent entries represent previous degrees. A resume URL snapshot does not preserve
 external document contents.
+
+Professor applicant lists read the snapshot matching the course's semester and
+year, including the first degree's major/GPA. Missing snapshots are treated as
+integrity errors; current shared profiles are never substituted. The individual
+professor applicant-detail endpoint still reads shared data and needs a separate
+snapshot mapping, including a decision for fields not currently captured.
 
 ## Existing-term editing
 
@@ -426,3 +480,24 @@ The form adapter releases these startup locks once; later lock/unlock cycles
 restore each control's previous disabled state. Do not put this attribute on
 sections or buttons intended to stay disabled. Existing local saved pages can
 be updated with `scripts/mark-form-loading-controls.php --apply <new-backup-path>`.
+
+Saved application reads load the term snapshot and its course-application rows in
+one SQL statement (`find_application_for_term`). This prevents interleaved saves
+from mixing submitted details with course preferences from another version and
+keeps the returned revision consistent. Snapshots without course rows still load.
+
+Service concurrency and rollback verification:
+
+```sh
+docker compose exec -T wordpress php /var/www/taas/tests/integration/student-application-concurrency.php
+```
+
+This CLI integration test boots separate PHP workers with independent MySQL
+connections, synchronizes their starts, and holds the student lock briefly to
+exercise competing saves. It covers identical/different initial submissions,
+edits sharing one revision, and a final-snapshot failure after earlier edit
+writes. The test calls the service directly; REST authorization remains covered
+by the REST integration suites. Unlike the rollback-only suites, workers need
+committed fixtures to share: this test creates uniquely owned student/professor
+and course fixtures, then removes them in `finally`. Run against local development
+only. Temporary barrier files and worker processes are also cleaned up.

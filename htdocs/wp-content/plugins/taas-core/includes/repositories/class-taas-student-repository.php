@@ -18,9 +18,12 @@ final class TAAS_Student_Repository extends TAAS_Repository {
 	 *
 	 * Initial submissions use the lock to serialize duplicate requests for a
 	 * student. Only verified account identity may supply student_ufid.
+	 * Call inside a transaction to retain the lock until commit or rollback;
+	 * without one, the lock is released when this statement completes.
 	 *
 	 * @param TAAS_Student $student Validated identity.
 	 * @return void
+	 * @throws RuntimeException If the database write fails.
 	 */
 	public function save_identity( TAAS_Student $student ): void {
 		global $wpdb;

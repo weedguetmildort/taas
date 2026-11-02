@@ -18,10 +18,15 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 *
 	 * @param TAAS_Semester $semester Configured semester.
 	 * @param int           $year     Configured year.
-	 * @return array Display fields only; no professor email or applicant data.
+	 * @return list<array{
+	 *   course_id: string, course_code: string, course_name: string, instructor_name: string
+	 * }> Display fields only, ordered by course code and ID.
+	 * @throws InvalidArgumentException If the year is invalid.
+	 * @throws RuntimeException If the query fails.
 	 */
 	public function application_choices( TAAS_Semester $semester, int $year ): array {
 		global $wpdb;
+		TAAS_Guard::year( 'year', $year );
 		return $this->select_rows(
 			$wpdb->prepare(
 				'SELECT c.course_id, c.course_code, c.course_name, p.professor_name AS instructor_name'
@@ -67,9 +72,11 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 *
 	 * @param string $professor_ufid Professor's UFID.
 	 * @return TAAS_Course[]
+	 * @throws InvalidArgumentException If the UFID is invalid.
 	 * @throws RuntimeException If the query fails.
 	 */
 	public function find_by_professor( string $professor_ufid ): array {
+		TAAS_Guard::ufid( 'professor_ufid', $professor_ufid );
 		return $this->find_by( 'professor_ufid', $professor_ufid );
 	}
 
@@ -79,9 +86,11 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 * @param TAAS_Semester $semester Semester to match.
 	 * @param int           $year     Year to match.
 	 * @return TAAS_Course[]
+	 * @throws InvalidArgumentException If the year is invalid.
 	 * @throws RuntimeException If the query fails.
 	 */
 	public function find_by_term( TAAS_Semester $semester, int $year ): array {
+		TAAS_Guard::year( 'year', $year );
 		return $this->find_where(
 			array(
 				'course_semester' => $semester->value,
@@ -97,9 +106,12 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 * @param TAAS_Semester $semester       Semester to match.
 	 * @param int           $year           Year to match.
 	 * @return TAAS_Course[]
+	 * @throws InvalidArgumentException If the UFID or year is invalid.
 	 * @throws RuntimeException If the query fails.
 	 */
 	public function find_by_professor_and_term( string $professor_ufid, TAAS_Semester $semester, int $year ): array {
+		TAAS_Guard::ufid( 'professor_ufid', $professor_ufid );
+		TAAS_Guard::year( 'year', $year );
 		return $this->find_where(
 			array(
 				'professor_ufid'  => $professor_ufid,

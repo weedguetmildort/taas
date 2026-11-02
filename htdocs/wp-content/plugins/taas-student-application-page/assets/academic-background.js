@@ -46,10 +46,13 @@
     function updateEntryLabels() {
       const entries = getEntries();
       entries.forEach((entry, index) => {
-        entry.querySelector('legend').textContent = `${host.dataset.entryLabel || 'Degree'} ${index + 1}`;
+        const label = index === 0
+          ? host.dataset.currentEntryLabel || 'Current Degree / Most Recent Degree'
+          : `${host.dataset.previousEntryLabel || 'Previous Degree'} ${index}`;
+        entry.querySelector('legend').textContent = label;
         const remove = entry.querySelector('[data-action="remove-degree"]');
         remove.disabled = entries.length === 1;
-        remove.setAttribute('aria-label', `${remove.textContent.trim()} ${index + 1}`);
+        remove.setAttribute('aria-label', `${remove.textContent.trim()}: ${label}`);
       });
     }
 

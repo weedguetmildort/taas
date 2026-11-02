@@ -53,11 +53,13 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert.equal(await page.locator('[name="firstName"]').inputValue(), '');
     assert.equal(await page.locator('[name="ufEmail"]').inputValue(), 'test.student@ufl.edu');
     assert.equal(await page.locator('.degree-entry').count(), 2);
+    assert.equal(await page.locator('.degree-entry legend').first().textContent(), 'Current Degree / Most Recent Degree');
+    assert.equal(await page.locator('.degree-entry legend').nth(1).textContent(), 'Previous Degree 1');
     assert(await page.locator('.degree-entry').nth(1).locator('[data-field="gpa"]').isDisabled());
     assert(await page.locator('.degree-entry').nth(1).locator('[data-field="gpa_unavailable"]').isChecked());
     await page.locator('#add-degree').click();
     assert.equal(await page.locator('.degree-entry').count(), 3);
-    await page.getByRole('button', { name: 'Remove degree 3', exact: true }).click();
+    await page.getByRole('button', { name: 'Remove degree: Previous Degree 2', exact: true }).click();
     assert.equal(await page.locator('.degree-entry').count(), 2);
     assert.equal(await page.locator('.degree-entry').first().locator('[data-field="university"]').inputValue(), 'Example University');
     console.log('PASS: Identity, saved degrees, optional GPA, and add/remove controls work');

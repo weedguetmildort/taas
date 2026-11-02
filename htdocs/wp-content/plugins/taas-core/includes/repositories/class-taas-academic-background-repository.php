@@ -45,11 +45,16 @@ final class TAAS_Academic_Background_Repository extends TAAS_Repository {
 	/**
 	 * Every degree a student has listed.
 	 *
+	 * Ordered by background_id ascending. When replacement entries have null
+	 * IDs, their generated IDs preserve the submitted order (current degree first).
+	 *
 	 * @param string $student_ufid Student's UFID.
 	 * @return TAAS_Academic_Background[]
+	 * @throws InvalidArgumentException If the UFID is invalid.
 	 * @throws RuntimeException If the query fails.
 	 */
 	public function find_by_student( string $student_ufid ): array {
+		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
 		return $this->find_by( 'student_ufid', $student_ufid );
 	}
 
@@ -57,16 +62,25 @@ final class TAAS_Academic_Background_Repository extends TAAS_Repository {
 	 * Replace current shared degree entries; term snapshots preserve past details.
 	 *
 	 * Call inside the submission transaction, after validating the entire form.
+	 * The caller must roll back on failure so deletion and insertion stay atomic.
+	 * Entries must have null IDs. Fresh IDs preserve the submitted display order
+	 * when reading them back; entries with existing IDs are rejected before deletion.
 	 *
 	 * @param string                     $student_ufid Verified owner.
 	 * @param TAAS_Academic_Background[] $entries      Validated degree entries.
 	 * @return void
+	 * @throws InvalidArgumentException If the UFID, entry type, ownership or ID is invalid.
+	 * @throws RuntimeException If deletion or insertion fails.
 	 */
 	public function replace_for_student( string $student_ufid, array $entries ): void {
 		global $wpdb;
+		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
 		foreach ( $entries as $entry ) {
 			if ( ! $entry instanceof TAAS_Academic_Background || $entry->student_ufid !== $student_ufid ) {
 				throw new InvalidArgumentException( 'Academic-background ownership does not match.' );
+			}
+			if ( null !== $entry->background_id ) {
+				throw new InvalidArgumentException( 'Replacement academic-background entries must have null IDs.' );
 			}
 		}
 		if ( false === $wpdb->delete( $this->table(), array( 'student_ufid' => $student_ufid ) ) ) {

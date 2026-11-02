@@ -14,8 +14,8 @@ function taas_check_application_status_assets(): void {
 	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) {
 		return;
 	}
-	$list = rest_url( 'taas/v1/student/applications' );
-	$term = rest_url( 'taas/v1/student/applications/__semester__/__year__' );
+	$list = rest_url( 'taas/v1/student/application/terms' );
+	$term = rest_url( 'taas/v1/student/application/__semester__/__year__' );
 	if ( TAAS_Auth::is_local_dev() ) {
 		$list = add_query_arg( 'taas_role', 'student', $list );
 		$term = add_query_arg( 'taas_role', 'student', $term );

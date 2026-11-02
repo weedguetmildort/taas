@@ -39,7 +39,11 @@ try {
 			TAAS_Student_Application_Service::update( $owner, TAAS_Student_Application_Input::parse( $request, true ), TAAS_Student_Application_Service::revision( $snapshot, array() ) );
 		};
 		$body['details']['profile']['phone'] = '3525550199';
+		$body['details']['academic_background'][] = array( 'university' => 'Previous University', 'degree_type' => 1, 'major' => 'Mathematics', 'grad_date' => '2020-05-01', 'gpa' => 3.9 );
 		$save( $body );
+		taas_profile_check( 'CS' === $profiles->find( $owner )->major && 3.5 === $profiles->find( $owner )->gpa, 'The first degree supplies the shared major and GPA, rather than a previous degree' );
+		$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
+		taas_profile_check( 2 === count( $snapshot->submitted_details['academic_background'] ), 'The snapshot preserves both current and previous degrees' );
 		taas_profile_check( '2026-02-10' === $profiles->find( $owner )->toefl_ibt_date?->format( 'Y-m-d' ), 'An unrelated phone edit preserves the unchanged TOEFL test date' );
 		taas_profile_check( '3525550199' === $profiles->find( $owner )->phone, 'The requested profile edit still saves' );
 		$body['details']['profile']['english_test']['score'] = 5;
@@ -53,6 +57,31 @@ try {
 		$body['details']['profile']['english_test'] = null;
 		$save( $body );
 		taas_profile_check( null === $profiles->find( $owner )->toefl_ibt_date && null === $profiles->find( $owner )->toefl_ibt_score, 'Removing the English test clears its TOEFL metadata' );
+		$body['details']['academic_background'][0]['major'] = 'Computer Engineering';
+		$body['details']['academic_background'][0]['gpa'] = null;
+		$save( $body );
+		taas_profile_check( 'Computer Engineering' === $profiles->find( $owner )->major && null === $profiles->find( $owner )->gpa, 'An updated first degree replaces the shared major and clears an unavailable GPA' );
+		$backgrounds = new TAAS_Academic_Background_Repository();
+		$saved_degrees = $backgrounds->find_by_student( $owner );
+		$before_degrees = array_map( static fn( TAAS_Academic_Background $degree ) => $degree->to_row(), $saved_degrees );
+		$fresh_entry = new TAAS_Academic_Background(
+			background_id: null, student_ufid: $owner, university: 'New University',
+			degree_type: TAAS_Degree_Type::from( 3 ), grad_date: new DateTimeImmutable( '2027-05-01' )
+		);
+		try {
+			$backgrounds->replace_for_student( $owner, array( $fresh_entry, $saved_degrees[1] ) );
+			throw new LogicException( 'Replacement accepted an existing degree ID.' );
+		} catch ( InvalidArgumentException $error ) {
+			taas_profile_check( 'Replacement academic-background entries must have null IDs.' === $error->getMessage(), 'Replacement rejects an existing ID even after a valid new entry' );
+		}
+		taas_profile_check( $before_degrees === array_map( static fn( TAAS_Academic_Background $degree ) => $degree->to_row(), $backgrounds->find_by_student( $owner ) ), 'Rejected replacement preserves all saved degrees and their IDs' );
+		$body['details']['academic_background'] = array_reverse( $body['details']['academic_background'] );
+		$save( $body );
+		$reordered_degrees = $backgrounds->find_by_student( $owner );
+		taas_profile_check( array( 'Mathematics', 'Computer Engineering' ) === array_map( static fn( TAAS_Academic_Background $degree ) => $degree->major, $reordered_degrees )
+			&& $reordered_degrees[0]->background_id > $saved_degrees[1]->background_id,
+			'Reordering through the application creates fresh IDs and preserves the new degree order' );
+		taas_profile_check( 'Mathematics' === $profiles->find( $owner )->major && 3.9 === $profiles->find( $owner )->gpa, 'Reordering makes the new first degree supply the shared profile summary' );
 		throw $sentinel;
 	} );
 } catch ( Throwable $error ) {

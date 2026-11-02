@@ -22,9 +22,17 @@ final class TAAS_Application_Period {
 	 * The admin UI is not implemented here. Both manual closure and a passed
 	 * deadline close the period; no grace behavior is implemented.
 	 *
-	 * @return array|WP_Error
+	 * @return array{
+	 *   semester: int,
+	 *   year: int,
+	 *   label: string,
+	 *   is_open: bool,
+	 *   closes_at: int|null
+	 * }|WP_Error Validated configuration, or a 503 error when unconfigured.
+	 *            is_open includes both the manual flag and the deadline check.
+	 *            closes_at is a UTC Unix timestamp; null means no deadline.
 	 */
-	public static function current() {
+	public static function current(): array|WP_Error {
 		$value = get_option( self::OPTION, null );
 		if ( ! is_array( $value )
 			|| ! is_int( $value['semester'] ?? null )

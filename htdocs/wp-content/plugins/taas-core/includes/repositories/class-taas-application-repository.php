@@ -16,14 +16,27 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	/**
 	 * The student's choices for a term, including withdrawn records.
 	 *
+	 * When $for_update is true, call inside a transaction; locks remain until
+	 * commit or rollback. Without a transaction they end with this statement.
+	 * Authentication, ownership authorization and deadlines belong to callers.
+	 *
 	 * @param string        $student_ufid Verified owner.
 	 * @param TAAS_Semester $semester     Application semester.
 	 * @param int           $year         Application year.
 	 * @param bool          $for_update Lock matched rows inside an edit transaction.
-	 * @return array Raw application rows, ordered by preference and ID.
+	 * @return list<array{
+	 *   application_id: string, student_ufid: string, applied_course_id: string,
+	 *   has_taken_course: string, has_ta_for_course: string,
+	 *   student_statement: string|null, student_preference_rank: string|null,
+	 *   professor_preference_rank: string|null, match_status: string
+	 * }> Raw database values, ordered by student preference and application ID.
+	 * @throws InvalidArgumentException If the UFID or year is invalid.
+	 * @throws RuntimeException If the query fails.
 	 */
 	public function find_by_student_and_term( string $student_ufid, TAAS_Semester $semester, int $year, bool $for_update = false ): array {
 		global $wpdb;
+		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
+		TAAS_Guard::year( 'year', $year );
 		return $this->select_rows(
 			$wpdb->prepare(
 				'SELECT a.* FROM %i a INNER JOIN %i c ON c.course_id = a.applied_course_id'
@@ -48,6 +61,8 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * @param int|null          $rank Student rank; null retains the previous rank.
 	 * @param TAAS_Match_Status $status Pending or Withdrawn.
 	 * @return void
+	 * @throws InvalidArgumentException If the UFID, rank or target status is invalid.
+	 * @throws RuntimeException If the update fails.
 	 */
 	public function save_student_choice( string $student_ufid, int $application_id, ?int $rank, TAAS_Match_Status $status ): void {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
@@ -131,11 +146,11 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	}
 
 	/**
-	 * The applicant list for a course: each non-withdrawn application joined to
-	 * the student's name and current profile, ordered by student name.
+	 * Non-withdrawn applicants with the details submitted for the course's term.
 	 *
-	 * The profile is a LEFT JOIN, so a student without one still appears with
-	 * null major, gpa and enrollment_status.
+	 * Summary major/GPA come from the first (current or most recent) degree.
+	 * Never substitute a current shared profile for a missing term snapshot.
+	 * JSON paths below follow TAAS_Student_Submission's submitted_details contract.
 	 *
 	 * @param string $course_id Course section number.
 	 * @return array<int, array{
@@ -148,28 +163,40 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *     has_taken_course: bool,
 	 *     has_ta_for_course: bool
 	 * }>
-	 * @throws RuntimeException If the query fails.
+	 * @throws RuntimeException If the query fails or an applicant has no snapshot.
 	 * @throws UnexpectedValueException If a stored enrollment_status is not a known value.
+	 * @see TAAS_Student_Submission::__construct() Source snapshot field schema.
 	 */
 	public function applicants_for_course( string $course_id ): array {
 		global $wpdb;
 
 		$rows = $this->select_rows(
 			$wpdb->prepare(
-				'SELECT a.application_id, a.student_ufid, s.student_name, p.major, p.gpa, p.enrollment_status,'
+				'SELECT a.application_id, a.student_ufid, s.submission_id,'
+				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.student_name')) AS student_name,"
+				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.academic_background[0].major')) AS major,"
+				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.academic_background[0].gpa')), 'null') AS gpa,"
+				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.enrollment_status')) AS enrollment_status,"
 				. ' a.has_taken_course, a.has_ta_for_course'
 				. ' FROM %i a'
-				. ' INNER JOIN %i s ON s.student_ufid = a.student_ufid'
-				. ' LEFT JOIN %i p ON p.student_ufid = a.student_ufid'
+				. ' INNER JOIN %i c ON c.course_id = a.applied_course_id'
+				. ' LEFT JOIN %i s ON s.student_ufid = a.student_ufid'
+				. ' AND s.semester = c.course_semester AND s.year = c.course_year'
 				. ' WHERE a.applied_course_id = %s AND a.match_status <> %d'
-				. ' ORDER BY s.student_name, a.application_id',
+				. ' ORDER BY student_name, a.application_id',
 				$this->table(),
-				TAAS_Schema::table( 'students' ),
-				TAAS_Schema::table( 'student_profiles' ),
+				TAAS_Schema::table( 'courses' ),
+				TAAS_Schema::table( 'student_submissions' ),
 				$course_id,
 				TAAS_Match_Status::Withdrawn->value
 			)
 		);
+
+		foreach ( $rows as $row ) {
+			if ( null === $row['submission_id'] ) {
+				throw new RuntimeException( 'An applicant is missing their term submission snapshot.' );
+			}
+		}
 
 		return array_map(
 			static fn( array $r ) => array(

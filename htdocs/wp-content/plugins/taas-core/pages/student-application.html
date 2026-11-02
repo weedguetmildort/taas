@@ -1,5 +1,6 @@
 <div class="wp-block-group application-shell taas-application-form-root">
   <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+    <noscript><p class="application-notice">JavaScript is required to load and submit this application. Enable JavaScript in your browser, then reload this page.</p></noscript>
     <p class="term-banner" id="application-term" data-application-ui="term" role="status"><strong>Applying for:</strong> <span data-term-value>Loading application information…</span></p>
     <section class="application-notice" id="existing-application-notice" data-application-ui="notice" hidden aria-label="Existing application">
       <p>You have already applied for this term. You can view your course preferences on <a id="existing-application-link" data-application-ui="existingLink">Check Application Status</a>.</p>
@@ -59,13 +60,13 @@
         </div>
         <div class="wp-block-group form-section">
           <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
-            <h2 class="wp-block-heading">Academic Background</h2>
-            <p class="section-help wp-block-paragraph">List at least one degree. For a degree in progress, enter your expected graduation date.</p>
-            <div id="academic-background-entries" data-application-ui="degreeHost" data-entry-label="Degree"></div>
-            <button type="button" id="add-degree" data-application-ui="addDegree">Add another degree</button>
+            <h2 class="wp-block-heading" id="academic-background-heading">Academic Background</h2>
+            <p class="section-help wp-block-paragraph" id="academic-background-instructions">Enter your current or most recent degree first, followed by previous degrees. For a degree in progress, enter your expected graduation date.</p>
+            <div id="academic-background-entries" data-application-ui="degreeHost" role="group" aria-labelledby="academic-background-heading" aria-describedby="academic-background-instructions" data-current-entry-label="Current Degree / Most Recent Degree" data-previous-entry-label="Previous Degree"></div>
+            <button type="button" id="add-degree" data-application-ui="addDegree">Add a previous degree</button>
             <template id="degree-entry-template" data-application-ui="degreeTemplate">
               <fieldset class="degree-entry">
-                <legend>Degree</legend>
+                <legend>Current Degree / Most Recent Degree</legend>
                 <div class="form-grid">
                   <label>University <input data-field="university" maxlength="255" required></label>
                   <label>Major <input data-field="major" maxlength="255" required></label>
@@ -190,7 +191,7 @@
         <div class="wp-block-group form-section course-section">
           <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
             <h2 class="wp-block-heading">Course Preferences</h2>
-            <p class="section-help wp-block-paragraph">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
+            <p class="section-help wp-block-paragraph">Select between one and five courses from the current course list. Rank all selected courses consecutively starting at 1 (highest preference), with no ties or skipped numbers. For example, three selected courses must have ranks 1, 2, and 3. Confirm you have completed each selected course. Completion is self-reported and will be verified by HR.</p>
             <div class="course-selection-layout">
               <div class="course-chooser">
                 <h3>Available courses</h3>

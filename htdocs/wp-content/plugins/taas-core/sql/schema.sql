@@ -60,6 +60,10 @@ CREATE TABLE {prefix}academic_background (
 -- Preserve one submitted-details snapshot per student and academic term.
 -- submitted_details holds profile/identity fields and academic-background entries;
 -- course choices remain in applications. Same-term edits replace this snapshot.
+-- JSON keys: student_name, student_email, profile, academic_background (ordered degrees).
+-- Owner and term remain separate columns. This column has no nested-field SQL validation.
+-- Full field schema: TAAS_Student_Submission constructor PHPDoc and
+-- docs/student-application-api.md (Submitted-details snapshot contract).
 CREATE TABLE {prefix}student_submissions (
 	submission_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 	student_ufid varchar(8) NOT NULL,

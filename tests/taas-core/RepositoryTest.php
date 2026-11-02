@@ -232,7 +232,7 @@ class RepositoryTest extends TestCase {
 	}
 
 	/**
-	 * The applicant list joins students and profiles, skips withdrawn and sorts by name
+	 * The applicant list reads the course-term snapshot, skips withdrawn and sorts by name.
 	 */
 	public function test_applicants_for_course_builds_join(): void {
 		( new TAAS_Application_Repository() )->applicants_for_course( 'COP4930-12345' );
@@ -240,19 +240,22 @@ class RepositoryTest extends TestCase {
 		$sql = $this->db->sql;
 
 		$this->assertStringContainsString( 'FROM `wp_taas_core_applications` a', $sql );
-		$this->assertStringContainsString( 'INNER JOIN `wp_taas_core_students` s ON s.student_ufid = a.student_ufid', $sql );
-		$this->assertStringContainsString( 'LEFT JOIN `wp_taas_core_student_profiles` p ON p.student_ufid = a.student_ufid', $sql );
+		$this->assertStringContainsString( 'INNER JOIN `wp_taas_core_courses` c ON c.course_id = a.applied_course_id', $sql );
+		$this->assertStringContainsString( 'LEFT JOIN `wp_taas_core_student_submissions` s ON s.student_ufid = a.student_ufid AND s.semester = c.course_semester AND s.year = c.course_year', $sql );
+		$this->assertStringContainsString( '$.academic_background[0].gpa', $sql );
+		$this->assertStringNotContainsString( 'student_profiles', $sql );
 		$this->assertStringContainsString( "WHERE a.applied_course_id = 'COP4930-12345' AND a.match_status <> 4", $sql );
-		$this->assertStringEndsWith( 'ORDER BY s.student_name, a.application_id', $sql );
+		$this->assertStringEndsWith( 'ORDER BY student_name, a.application_id', $sql );
 	}
 
 	/**
-	 * Joined rows come back with native types, and a missing profile reads as nulls
+	 * Snapshot summary values come back with native types, preserving nullable GPA.
 	 */
 	public function test_applicants_for_course_casts_values(): void {
 		$this->db->rows = array(
 			array(
 				'application_id'    => '7',
+				'submission_id'     => '20',
 				'student_ufid'      => '20000002',
 				'student_name'      => 'Priya Raman',
 				'major'             => 'Computer Science',
@@ -263,6 +266,7 @@ class RepositoryTest extends TestCase {
 			),
 			array(
 				'application_id'    => '8',
+				'submission_id'     => '21',
 				'student_ufid'      => '20000009',
 				'student_name'      => 'No Profile',
 				'major'             => null,

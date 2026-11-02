@@ -33,7 +33,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     const page = await context.newPage();
     const savedPayloads = [];
     let simulateConflict = false;
-    await page.route(url => (url.searchParams.get('rest_route') || url.pathname).includes('/taas/v1/student/applications'), route => {
+    await page.route(url => (url.searchParams.get('rest_route') || url.pathname).includes('/taas/v1/student/application/'), route => {
       const url = new URL(route.request().url());
       const path = url.searchParams.get('rest_route') || url.pathname;
       if (path.endsWith('/1/2155') && route.request().method() === 'POST') {
