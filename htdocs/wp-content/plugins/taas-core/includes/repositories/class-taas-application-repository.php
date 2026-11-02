@@ -63,6 +63,23 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	}
 
 	/**
+	 * Whether a course has any application, including withdrawn ones.
+	 *
+	 * @param int $course_id Course ID.
+	 * @return bool
+	 * @throws RuntimeException If the query fails.
+	 */
+	public function course_has_applications( int $course_id ): bool {
+		global $wpdb;
+
+		return ! empty(
+			$this->select_rows(
+				$wpdb->prepare( 'SELECT 1 FROM %i WHERE applied_course_id = %d LIMIT 1', $this->table(), $course_id )
+			)
+		);
+	}
+
+	/**
 	 * Every application for a course that has not been withdrawn.
 	 *
 	 * These are the applications a professor sees and may rank.

@@ -177,6 +177,16 @@ class TAAS_Fake_Wpdb {
 	}
 
 	/**
+	 * Escape LIKE wildcards the way $wpdb->esc_like() does
+	 *
+	 * @param string $text Text to escape.
+	 * @return string
+	 */
+	public function esc_like( $text ) {
+		return addcslashes( $text, '_%\\' );
+	}
+
+	/**
 	 * Record the update
 	 *
 	 * @param string $table Table name.
