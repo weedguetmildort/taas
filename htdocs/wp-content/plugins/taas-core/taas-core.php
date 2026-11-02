@@ -77,6 +77,11 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-control
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-page-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
 
+/*
+ * Staffing formula for courses. This file also holds the matching algorithm, which nothing here runs.
+ */
+require_once TAAS_CORE_PATH . 'includes/func-matching.php';
+
 TAAS_REST::init();
 
 /**
