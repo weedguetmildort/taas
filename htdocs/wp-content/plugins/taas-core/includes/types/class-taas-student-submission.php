@@ -16,7 +16,7 @@ final class TAAS_Student_Submission {
 	/**
 	 * Create a submission snapshot. Course preferences live in applications.
 	 *
-	 * submitted_details is the normalized request's details object, not the full
+	 * The submitted_details value is the normalized request's details object, not the full
 	 * request. Term and owner are separate columns; course choices are separate rows.
 	 * The first degree is current/most recent; subsequent degrees are previous ones.
 	 * Optional request fields are present after normalization: absent resume/test
@@ -30,7 +30,8 @@ final class TAAS_Student_Submission {
 	 * @param string        $student_ufid     Verified owner identifier.
 	 * @param TAAS_Semester $semester         Application semester.
 	 * @param int           $year             Application year.
-	 * @param array{
+	 * @param array         $submitted_details Normalized application details; see the detailed shape below.
+	 * @phpstan-param array{
 	 *   student_name: string,
 	 *   student_email: string,
 	 *   profile: array{
@@ -38,7 +39,7 @@ final class TAAS_Student_Submission {
 	 *     available_hours: int, enrollment_status: int,
 	 *     eap5836_status: int, eap5837_status: int,
 	 *     resume_url: string|null, additional_info: string,
-	 *     english_test: array{type: string, score: int}|null
+	 *     english_test: array{type: string, score: int|float}|null
 	 *   },
 	 *   academic_background: list<array{
 	 *     university: string, degree_type: int, major: string, minor: string,
@@ -47,6 +48,7 @@ final class TAAS_Student_Submission {
 	 * } $submitted_details Normalized application details; at least one degree.
 	 * @see TAAS_Student_Application_Input::parse() Field validation and normalization.
 	 * @see docs/student-application-api.md Submitted-details snapshot contract.
+	 * @throws InvalidArgumentException If the owner, year or top-level detail keys are invalid.
 	 */
 	public function __construct(
 		public readonly ?int $submission_id,
@@ -79,6 +81,7 @@ final class TAAS_Student_Submission {
 		try {
 			$details = json_decode( (string) $r['submitted_details'], false, 512, JSON_THROW_ON_ERROR );
 		} catch ( JsonException $e ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The third argument is the original exception cause, not rendered output.
 			throw new UnexpectedValueException( 'Invalid submission JSON.', 0, $e );
 		}
 		if ( ! $details instanceof stdClass ) {
@@ -101,7 +104,7 @@ final class TAAS_Student_Submission {
 	/**
 	 * Serialize validated details, preserving nulls and nested degree entries.
 	 *
-	 * submitted_details becomes a JSON object string; it contains only the details
+	 * The submitted_details value becomes a JSON object string; it contains only the details
 	 * documented on the constructor. JSON_PRESERVE_ZERO_FRACTION preserves float GPAs.
 	 *
 	 * @return array{
@@ -115,6 +118,7 @@ final class TAAS_Student_Submission {
 			'student_ufid'      => $this->student_ufid,
 			'semester'          => $this->semester->value,
 			'year'              => $this->year,
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Throw on invalid data and preserve float types rather than silently repairing input.
 			'submitted_details' => json_encode( (object) $this->submitted_details, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION ),
 		);
 		if ( null !== $this->submission_id ) {

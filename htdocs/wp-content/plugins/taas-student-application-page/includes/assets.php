@@ -1,5 +1,10 @@
 <?php
-/** Shared student form styles, scripts, and browser configuration. */
+/**
+ * Shared student form styles, scripts, and browser configuration.
+ *
+ * @package TAAS_Student_Pages
+ */
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -10,13 +15,14 @@ defined( 'ABSPATH' ) || exit;
  * Edit mode needs only the nonce here; the status controller supplies each term's
  * endpoint when opening a saved application. Omitting mode selects create mode.
  *
- * @param array{
+ * @phpstan-param array{
  *     nonce: string,
  *     mode?: 'create'|'edit',
  *     endpoint?: string,
  *     statusUrl?: string,
  *     homeUrl?: string
  * } $config Authenticated configuration supplied by the page's asset hook.
+ * @param array $config Frontend configuration.
  */
 function taas_student_enqueue_assets( array $config ): void {
 	$css = 'assets/student-application.css';
@@ -25,11 +31,11 @@ function taas_student_enqueue_assets( array $config ): void {
 	$coordinator = $is_edit ? 'taas-student-application-edit' : 'taas-student-application';
 	wp_enqueue_style( 'taas-student-application', TAAS_STUDENT_PAGES_URL . $css, array(), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $css ) );
 	$components = array(
-		'taas-application-api' => array( 'application-api-client.js', array() ),
+		'taas-application-api'     => array( 'application-api-client.js', array() ),
 		'taas-academic-background' => array( 'academic-background.js', array() ),
-		'taas-course-preferences' => array( 'course-preferences.js', array() ),
-		'taas-application-fields' => array( 'application-fields.js', array() ),
-		'taas-application-form' => array( 'application-form.js', array( 'taas-application-fields', 'taas-academic-background', 'taas-course-preferences' ) ),
+		'taas-course-preferences'  => array( 'course-preferences.js', array() ),
+		'taas-application-fields'  => array( 'application-fields.js', array() ),
+		'taas-application-form'    => array( 'application-form.js', array( 'taas-application-fields', 'taas-academic-background', 'taas-course-preferences' ) ),
 	);
 	foreach ( $components as $handle => [ $filename, $dependencies ] ) {
 		$file = 'assets/' . $filename;

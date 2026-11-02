@@ -28,9 +28,11 @@ CREATE TABLE {prefix}student_profiles (
 	available_hours int DEFAULT NULL,                   -- NULL = not yet provided, distinct from 0
 	major varchar(255) DEFAULT NULL,                    -- most recent/applicable major; string for multiple majors
 	gpa decimal(3,2) DEFAULT NULL,                      -- most current GPA
-	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = AA, 2 = BS, 3 = MS, 4 = PhD (bind to PHP enum)
+	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = Undergraduate, 2 = Masters, 3 = PhD (bind to PHP enum)
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
-	toefl_ibt_score int DEFAULT NULL,                   -- international students only
+	speak_score int DEFAULT NULL,                       -- international students only
+	speak_date date DEFAULT NULL,
+	toefl_ibt_score decimal(4,1) DEFAULT NULL,          -- international students only
 	toefl_ibt_date date DEFAULT NULL,
 	has_ta_experience tinyint(1) NOT NULL DEFAULT 0,
 	eap5836_status tinyint unsigned DEFAULT NULL,       -- (PhD) 1 = taken at uf, 2 = taken not at uf, 3 = taking, 4 = not taken
@@ -76,7 +78,7 @@ CREATE TABLE {prefix}student_submissions (
 
 -- Courses: identification, owned by a professor
 CREATE TABLE {prefix}courses (
-	course_id varchar(20) NOT NULL,                     -- course section number
+	course_id bigint(20) unsigned NOT NULL AUTO_INCREMENT, -- one offering of a course in one term
 	course_code varchar(20) NOT NULL,
 	course_name varchar(255) NOT NULL,
 	course_semester tinyint unsigned NOT NULL,          -- 1 = Fall, 2 = Spring, 3 = SummerA, 4 = SummerB, 5 = SummerC
@@ -84,13 +86,13 @@ CREATE TABLE {prefix}courses (
 	is_online tinyint(1) NOT NULL DEFAULT 0,
 	course_description varchar(1000) DEFAULT NULL,
 	course_notes varchar(1000) DEFAULT NULL,            -- professor's notes/requests regarding matching
-	sections int DEFAULT NULL,
 	weekly_hours int DEFAULT NULL,                      -- total TA hours required, calculated by formula
 	lab_hours int NOT NULL DEFAULT 0,
 	enrollment int NOT NULL DEFAULT 0,
 	max_enrollment int NOT NULL DEFAULT 0,
 	professor_ufid varchar(8) NOT NULL,
 	PRIMARY KEY  (course_id),
+	UNIQUE KEY course_offering (course_semester,course_year,course_code,course_name), -- code alone is not unique, e.g. CIS4930 covers every special topic
 	KEY course_code (course_code),
 	KEY professor_ufid (professor_ufid)
 );
@@ -101,13 +103,14 @@ CREATE TABLE {prefix}courses (
 CREATE TABLE {prefix}applications (
 	application_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 	student_ufid varchar(8) NOT NULL,
-	applied_course_id varchar(20) NOT NULL,             -- links applicant to course
+	applied_course_id bigint(20) unsigned NOT NULL,     -- links applicant to course
 	has_taken_course tinyint(1) NOT NULL DEFAULT 0,
 	has_ta_for_course tinyint(1) NOT NULL DEFAULT 0,    -- student has previously TA'd this course (vs. has_ta_experience: any course)
 	student_statement varchar(500) DEFAULT NULL,
 	student_preference_rank int DEFAULT NULL,           -- how the student ranks this course among their applications
 	professor_preference_rank int DEFAULT NULL,         -- how the professor ranks this applicant among theirs
 	match_status tinyint unsigned NOT NULL DEFAULT 1,   -- 1 = pending, 2 = matched, 3 = rejected, 4 = withdrawn (bind to PHP enum)
+	assigned_hours int NOT NULL DEFAULT 0,              -- TA hours assigned once match_status is matched
 	PRIMARY KEY  (application_id),
 	UNIQUE KEY student_course (student_ufid,applied_course_id),
 	KEY applied_course_id (applied_course_id),

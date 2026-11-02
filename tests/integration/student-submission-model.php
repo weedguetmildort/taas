@@ -1,14 +1,28 @@
 <?php
-/** Snapshot hydration/serialization checks; no database records are written. */
+/**
+ * Snapshot hydration/serialization checks; no database records are written.
+ *
+ * @package TAAS_Tests
+ */
+
+// phpcs:disable Squiz.Commenting.FunctionComment, Squiz.Commenting.FunctionCommentThrowTag, WordPress.Security.EscapeOutput, WordPress.DB.DirectDatabaseQuery, WordPress.WP.GlobalVariablesOverride, WordPress.PHP.YodaConditions, Universal.Operators.StrictComparisons
+// CLI checks intentionally use direct SQL, console diagnostics and JSON-semantic comparisons.
+
 declare(strict_types=1);
-if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
+if ( 'cli' !== PHP_SAPI ) {
+	exit( 1 ); }
 require '/var/www/html/wp-load.php';
 
 function taas_snapshot_check( bool $condition, string $message ): void {
-	if ( ! $condition ) { throw new RuntimeException( $message ); }
+	if ( ! $condition ) {
+		throw new RuntimeException( $message ); }
 }
 
-/** Invalid stored data must use the exception handled by the REST layer. */
+/**
+ * Invalid stored data must use the exception handled by the REST layer.
+ *
+ * @param array|object $row Stored snapshot row.
+ */
 function taas_snapshot_rejects( array|object $row ): UnexpectedValueException {
 	try {
 		TAAS_Student_Submission::from_row( $row );
@@ -19,8 +33,11 @@ function taas_snapshot_rejects( array|object $row ): UnexpectedValueException {
 }
 
 $row = array(
-	'submission_id' => '12', 'student_ufid' => '12345678',
-	'semester' => '1', 'year' => '2026', 'submitted_details' => '{}',
+	'submission_id'     => '12',
+	'student_ufid'      => '12345678',
+	'semester'          => '1',
+	'year'              => '2026',
+	'submitted_details' => '{}',
 );
 foreach ( array( '{', '', '{"name":}', "{\"name\":\"\xFF\"}" ) as $json ) {
 	$error = taas_snapshot_rejects( array_replace( $row, array( 'submitted_details' => $json ) ) );
@@ -47,19 +64,31 @@ foreach ( TAAS_Semester::cases() as $semester ) {
 	$valid = array_replace( $row, array( 'semester' => (string) $semester->value ) );
 	foreach ( array( $valid, (object) $valid ) as $input ) {
 		$snapshot = TAAS_Student_Submission::from_row( $input );
-		taas_snapshot_check( $semester === $snapshot->semester && 12 === $snapshot->submission_id
+		taas_snapshot_check(
+			$semester === $snapshot->semester && 12 === $snapshot->submission_id
 			&& '12345678' === $snapshot->student_ufid && 2026 === $snapshot->year
-			&& array() === $snapshot->submitted_details, 'Valid stored values must retain their normalized types.' );
+			&& array() === $snapshot->submitted_details,
+			'Valid stored values must retain their normalized types.'
+		);
 	}
 }
 echo "PASS: All valid semesters hydrate from array and object rows\n";
 
 $details = array(
-	'student_name' => "Alex O'Brien — Université",
-	'profile' => array( 'resume_url' => null, 'available_hours' => 10 ),
+	'student_name'        => "Alex O'Brien — Université",
+	'profile'             => array(
+		'resume_url'      => null,
+		'available_hours' => 10,
+	),
 	'academic_background' => array(
-		array( 'major' => 'Computer Science', 'gpa' => 3.0 ),
-		array( 'major' => 'Mathematics', 'gpa' => null ),
+		array(
+			'major' => 'Computer Science',
+			'gpa'   => 3.0,
+		),
+		array(
+			'major' => 'Mathematics',
+			'gpa'   => null,
+		),
 	),
 );
 $snapshot = new TAAS_Student_Submission( null, '12345678', TAAS_Semester::Fall, 2026, $details );

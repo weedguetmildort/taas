@@ -1,11 +1,22 @@
 <?php
-/** Non-browser checks for plain HTML and WordPress-owned student pages. */
-if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
+/**
+ * Non-browser checks for plain HTML and WordPress-owned student pages.
+ *
+ * @package TAAS_Tests
+ */
+
+// phpcs:disable Squiz.Commenting.FunctionComment, Squiz.Commenting.FunctionCommentThrowTag, WordPress.Security.EscapeOutput, WordPress.DB.DirectDatabaseQuery, WordPress.WP.GlobalVariablesOverride, WordPress.PHP.YodaConditions, Universal.Operators.StrictComparisons
+// CLI checks intentionally use direct SQL, console diagnostics and JSON-semantic comparisons.
+
+if ( 'cli' !== PHP_SAPI ) {
+	exit( 1 ); }
 require '/var/www/html/wp-load.php';
-if ( ! TAAS_Auth::is_local_dev() ) { throw new RuntimeException( 'Local development required.' ); }
+if ( ! TAAS_Auth::is_local_dev() ) {
+	throw new RuntimeException( 'Local development required.' ); }
 
 function taas_editor_check( bool $condition, string $message ): void {
-	if ( ! $condition ) { throw new RuntimeException( $message ); }
+	if ( ! $condition ) {
+		throw new RuntimeException( $message ); }
 	echo 'PASS: ' . $message . PHP_EOL;
 }
 
@@ -21,6 +32,7 @@ foreach ( array( 'student-application', 'check-application-status' ) as $slug ) 
 	$html = $source;
 	taas_editor_check( 1 === substr_count( $html, 'id="student-application-form"' ) && ! str_contains( $html, '{{' ), $slug . ' renders one complete form' );
 	$dom = new DOMDocument();
+	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- DOMDocument uses an HTML4 parser; HTML5 template elements produce expected parser warnings.
 	@$dom->loadHTML( $html );
 	$xpath = new DOMXPath( $dom );
 	foreach ( array( 'ufid', 'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone', 'eap5836Status', 'eap5837Status', 'taHours', 'englishScore', 'additionalInfo', 'resumeUrl' ) as $name ) {
@@ -53,5 +65,6 @@ try {
 	taas_editor_check( str_contains( get_post_field( 'post_content', $ids[1] ), 'Editor preservation fixture' ) && str_contains( get_post_field( 'post_content', $ids[2] ), 'Editor preservation fixture' ), 'Explicit import leaves other WordPress pages untouched' );
 } finally {
 	$wpdb->query( 'ROLLBACK' );
-	foreach ( $ids as $id ) { clean_post_cache( $id ); }
+	foreach ( $ids as $id ) {
+		clean_post_cache( $id ); }
 }

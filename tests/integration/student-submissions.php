@@ -2,11 +2,14 @@
 /**
  * Local WordPress/MySQL integration checks for term submission storage.
  *
- * Run: docker compose exec -T wordpress php /var/www/taas/tests/integration/student-submissions.php
+ * Run: docker compose exec -T WordPress php /var/www/taas/tests/integration/student-submissions.php
  * All fixtures are rolled back; requires the schema to be installed already.
  *
  * @package TAAS_Core
  */
+
+// phpcs:disable Squiz.Commenting.FunctionComment, Squiz.Commenting.FunctionCommentThrowTag, WordPress.Security.EscapeOutput, WordPress.DB.DirectDatabaseQuery, WordPress.WP.GlobalVariablesOverride, WordPress.PHP.YodaConditions, Universal.Operators.StrictComparisons
+// CLI checks intentionally use direct SQL, console diagnostics and JSON-semantic comparisons.
 
 declare(strict_types=1);
 
@@ -39,7 +42,10 @@ $repo          = new TAAS_Student_Submission_Repository();
 $students      = new TAAS_Student_Repository();
 $before        = $repo->count();
 $test_students = array();
-for ( $candidate = 99999999; $candidate >= 99999000 && count( $test_students ) < 2; --$candidate ) {
+for ( $candidate = 99999999; $candidate >= 99999000; --$candidate ) {
+	if ( 2 === count( $test_students ) ) {
+		break;
+	}
 	if ( null === $students->find( (string) $candidate ) ) {
 		$test_students[] = (string) $candidate;
 	}
@@ -57,10 +63,19 @@ try {
 	$details = array(
 		'name'                => "Alex O'Brien",
 		'email'               => 'alex@example.invalid',
-		'profile'             => array( 'available_hours' => 10, 'resume_url' => null ),
+		'profile'             => array(
+			'available_hours' => 10,
+			'resume_url'      => null,
+		),
 		'academic_background' => array(
-			array( 'university' => 'Université Example', 'gpa' => 3.5 ),
-			array( 'university' => 'Second university', 'gpa' => null ),
+			array(
+				'university' => 'Université Example',
+				'gpa'        => 3.5,
+			),
+			array(
+				'university' => 'Second university',
+				'gpa'        => null,
+			),
 		),
 	);
 	taas_submission_check( null === $repo->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2026 ), 'Missing submission returns null' );

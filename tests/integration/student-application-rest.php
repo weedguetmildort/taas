@@ -2,11 +2,14 @@
 /**
  * Local WordPress REST/MySQL checks for initial student applications.
  *
- * Run: docker compose exec -T wordpress php /var/www/taas/tests/integration/student-application-rest.php
+ * Run: docker compose exec -T WordPress php /var/www/taas/tests/integration/student-application-rest.php
  * Fixtures and changes to existing shared data are rolled back.
  *
  * @package TAAS_Core
  */
+
+// phpcs:disable Squiz.Commenting.FunctionComment, Squiz.Commenting.FunctionCommentThrowTag, WordPress.Security.EscapeOutput, WordPress.DB.DirectDatabaseQuery, WordPress.WP.GlobalVariablesOverride, WordPress.PHP.YodaConditions, Universal.Operators.StrictComparisons
+// CLI checks intentionally use direct SQL, console diagnostics and JSON-semantic comparisons.
 
 declare(strict_types=1);
 if ( 'cli' !== PHP_SAPI ) {
@@ -17,7 +20,12 @@ if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development mode is required.' );
 }
 
-/** Check a guarantee. */
+/**
+ * Check a guarantee.
+ *
+ * @param bool $condition Expected test condition.
+ * @param string $message Failure description.
+ */
 function taas_application_check( bool $condition, string $message ): void {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
@@ -25,7 +33,13 @@ function taas_application_check( bool $condition, string $message ): void {
 	echo 'PASS: ' . $message . PHP_EOL;
 }
 
-/** Dispatch a real registered REST route, including its permission callback. */
+/**
+ * Dispatch a real registered REST route, including its permission callback.
+ *
+ * @param string $method Request method.
+ * @param string $route REST route to dispatch.
+ * @param array|string|null $body Decoded request body.
+ */
 function taas_application_request( string $method, string $route, array|string|null $body = null ): WP_REST_Response {
 	$request = new WP_REST_Request( $method, '/taas/v1' . $route );
 	if ( null !== $body ) {
@@ -37,19 +51,26 @@ function taas_application_request( string $method, string $route, array|string|n
 
 global $wpdb;
 $original_get   = $_GET;
-$period        = array( 'semester' => 5, 'year' => 2154, 'is_open' => true, 'closes_at' => time() + 3600 );
-$period_filter = static function () use ( &$period ) { return $period; };
+$period        = array(
+	'semester'  => 5,
+	'year'      => 2154,
+	'is_open'   => true,
+	'closes_at' => time() + 3600,
+);
+$period_filter = static function () use ( &$period ) {
+	return $period;
+};
 add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $period_filter );
 $_GET['taas_role'] = 'student';
 $owner = (string) TAAS_Auth::current_user()['university_id'];
 $repos = array(
-	'students'    => new TAAS_Student_Repository(),
-	'profiles'    => new TAAS_Student_Profile_Repository(),
-	'backgrounds' => new TAAS_Academic_Background_Repository(),
-	'courses'     => new TAAS_Course_Repository(),
-	'professors'  => new TAAS_Professor_Repository(),
+	'students'     => new TAAS_Student_Repository(),
+	'profiles'     => new TAAS_Student_Profile_Repository(),
+	'backgrounds'  => new TAAS_Academic_Background_Repository(),
+	'courses'      => new TAAS_Course_Repository(),
+	'professors'   => new TAAS_Professor_Repository(),
 	'applications' => new TAAS_Application_Repository(),
-	'submissions' => new TAAS_Student_Submission_Repository(),
+	'submissions'  => new TAAS_Student_Submission_Repository(),
 );
 $before = array_map( static fn( TAAS_Repository $repo ) => $repo->count(), $repos );
 $original_student = $repos['students']->find( $owner )?->to_row();
@@ -72,27 +93,56 @@ try {
 			}
 			$fixture_professor = new TAAS_Professor( $professor, 'API Test Professor', 'api-professor@example.invalid' );
 			$repos['professors']->insert( $fixture_professor );
-			$id = 'test-' . bin2hex( random_bytes( 5 ) );
-			$fixture_courses[] = new TAAS_Course( $id, 'TEST1000', 'Application API verification', $professor, TAAS_Semester::Summer_C, $period['year'] );
-			$repos['courses']->insert( $fixture_courses[0] );
-			$other_id = 'test-' . bin2hex( random_bytes( 5 ) );
-			$repos['courses']->insert( new TAAS_Course( $other_id, 'TEST2000', 'Other term', $professor, TAAS_Semester::Fall, $period['year'] ) );
+			$id = (string) $repos['courses']->insert( new TAAS_Course( null, 'TEST1000', 'Application API verification', $professor, TAAS_Semester::Summer_C, $period['year'] ) );
+			$fixture_courses[] = $repos['courses']->find( $id );
+			$other_id = (string) $repos['courses']->insert( new TAAS_Course( null, 'TEST2000', 'Other term', $professor, TAAS_Semester::Fall, $period['year'] ) );
 			$body = array(
-				'term'    => array( 'semester' => $period['semester'], 'year' => $period['year'] ),
-				'details' => array(
-					'student_name'  => "API O'Brien",
-					'student_email' => 'api.student@ufl.edu',
-					'profile' => array(
-						'phone' => '3525550100', 'country_code' => 'US', 'admitted_semester' => 'Fall 2025',
-						'available_hours' => 10, 'enrollment_status' => 3, 'eap5836_status' => 1, 'eap5837_status' => 4,
-						'resume_url' => null, 'english_test' => array( 'type' => 'TOEFL', 'score' => 5.5 ), 'additional_info' => '001',
+				'term'               => array(
+					'semester' => $period['semester'],
+					'year'     => $period['year'],
+				),
+				'details'            => array(
+					'student_name'        => "API O'Brien",
+					'student_email'       => 'api.student@ufl.edu',
+					'profile'             => array(
+						'phone'             => '3525550100',
+						'country_code'      => 'US',
+						'admitted_semester' => 'Fall 2025',
+						'available_hours'   => 10,
+						'enrollment_status' => 2,
+						'eap5836_status'    => 1,
+						'eap5837_status'    => 4,
+						'resume_url'        => null,
+						'english_test'      => array(
+							'type'  => 'TOEFL',
+							'score' => 5.5,
+						),
+						'additional_info'   => '001',
 					),
 					'academic_background' => array(
-						array( 'university' => 'Example University', 'degree_type' => 2, 'major' => 'CS', 'grad_date' => '2025-05-01', 'gpa' => 3.0 ),
-						array( 'university' => 'University of Florida', 'degree_type' => 3, 'major' => 'CS', 'grad_date' => '2028-05-01', 'gpa' => null ),
+						array(
+							'university'  => 'Example University',
+							'degree_type' => 2,
+							'major'       => 'CS',
+							'grad_date'   => '2025-05-01',
+							'gpa'         => 3.0,
+						),
+						array(
+							'university'  => 'University of Florida',
+							'degree_type' => 3,
+							'major'       => 'CS',
+							'grad_date'   => '2028-05-01',
+							'gpa'         => null,
+						),
 					),
 				),
-				'course_preferences' => array( array( 'course_id' => $id, 'rank' => 1, 'has_completed_course' => true ) ),
+				'course_preferences' => array(
+					array(
+						'course_id'            => $id,
+						'rank'                 => 1,
+						'has_completed_course' => true,
+					),
+				),
 			);
 			$test_input = TAAS_Student_Application_Input::parse( $body );
 			$_GET['taas_role'] = 'instructor';
@@ -114,7 +164,8 @@ try {
 			}
 			foreach ( array( null, '', 'bad-revision', 123 ) as $revision ) {
 				$invalid_revision = $body;
-				if ( null !== $revision ) { $invalid_revision['revision'] = $revision; }
+				if ( null !== $revision ) {
+					$invalid_revision['revision'] = $revision; }
 				$error = taas_application_request( 'POST', '/student/application/5/' . $period['year'], $invalid_revision );
 				taas_application_check( 400 === $error->get_status() && 'taas_invalid_revision' === $error->get_data()['code'], 'Missing or invalid revision returns the expected 400 error' );
 			}
@@ -161,7 +212,7 @@ try {
 			$invalid['course_preferences'][0]['has_completed_course'] = false;
 			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Incomplete course is rejected' );
 			$invalid = $body;
-			$invalid['details']['profile']['enrollment_status'] = 2;
+			$invalid['details']['profile']['enrollment_status'] = 1;
 			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Unresolved program mapping is rejected' );
 			$invalid = $body;
 			$invalid['course_preferences'][] = $invalid['course_preferences'][0];
@@ -174,9 +225,15 @@ try {
 			$period['closes_at'] = time() + 3600;
 			$created = taas_application_request( 'POST', '/student/application', $body );
 			taas_application_check( 201 === $created->get_status(), 'Valid application is saved' );
-			taas_application_check( 6 === $repos['profiles']->find( $owner )->toefl_ibt_score, 'Fractional English score is rounded for storage' );
+			taas_application_check( 5.5 === $repos['profiles']->find( $owner )->toefl_ibt_score, 'Fractional TOEFL score is preserved in decimal storage' );
 			$prefilled = taas_application_request( 'GET', '/student/application' )->get_data();
-			taas_application_check( $prefilled['english_test'] === array( 'type' => 'TOEFL', 'score' => 6 ), 'Prefill preserves English test type from the latest snapshot' );
+			taas_application_check(
+				$prefilled['english_test'] === array(
+					'type'  => 'TOEFL',
+					'score' => 5.5,
+				),
+				'Prefill preserves English test type from the latest snapshot'
+			);
 			$read = taas_application_request( 'GET', '/student/application/5/' . $period['year'] );
 			taas_application_check( 200 === $read->get_status() && 2 === count( $read->get_data()['details']['academic_background'] ), 'Snapshot read preserves both degrees' );
 			taas_application_check( 1 === $read->get_data()['course_preferences'][0]['match_status'], 'New course application is pending' );
@@ -184,7 +241,13 @@ try {
 			taas_application_check( 200 === $retry->get_status() && $retry->get_data()['submission_id'] === $created->get_data()['submission_id'], 'Identical retry returns the original saved application' );
 
 			$terms_response = taas_application_request( 'GET', '/student/application/terms' );
-			foreach ( array( 'form' => $form, 'created' => $created, 'retry' => $retry, 'saved read' => $read, 'terms' => $terms_response ) as $name => $response ) {
+			foreach ( array(
+				'form'       => $form,
+				'created'    => $created,
+				'retry'      => $retry,
+				'saved read' => $read,
+				'terms'      => $terms_response,
+			) as $name => $response ) {
 				$headers = array_change_key_case( $response->get_headers(), CASE_LOWER );
 				taas_application_check( 'no-store' === ( $headers['cache-control'] ?? null ), 'Personal response prevents caching: ' . $name );
 			}
@@ -225,7 +288,10 @@ taas_application_check( $original_degrees === array_map( static fn( TAAS_Academi
 
 // Force a failure at the final snapshot write to verify the complete submission
 // transaction rolls back identity, profile, degrees and course choices together.
-$period = $test_input['term'] + array( 'is_open' => true, 'closes_at' => time() + 3600 );
+$period = $test_input['term'] + array(
+	'is_open'   => true,
+	'closes_at' => time() + 3600,
+);
 add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $period_filter );
 $fail_snapshot = static function ( string $query ) use ( $repos ): string {
 	if ( str_contains( $query, $repos['submissions']->table() ) && preg_match( '/^\s*INSERT INTO/i', $query ) ) {

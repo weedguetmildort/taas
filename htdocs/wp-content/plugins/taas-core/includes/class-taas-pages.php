@@ -94,7 +94,8 @@ class TAAS_Pages {
 
 		$contents = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local plugin file, not remote.
 
-		if ( false === $contents ) { return ''; }
+		if ( false === $contents ) {
+			return ''; }
 		// Raw student HTML imports use WordPress's standard Custom HTML block.
 		if ( in_array( $slug, array( 'front-page', 'student-application', 'check-application-status' ), true ) && ! has_blocks( $contents ) ) {
 			return "<!-- wp:html -->\n" . $contents . "\n<!-- /wp:html -->";

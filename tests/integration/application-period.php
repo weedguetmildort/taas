@@ -1,11 +1,21 @@
 <?php
-/** Application-period checks using option filters; no configuration is saved. */
+/**
+ * Application-period checks using option filters; no configuration is saved.
+ *
+ * @package TAAS_Tests
+ */
+
+// phpcs:disable Squiz.Commenting.FunctionComment, Squiz.Commenting.FunctionCommentThrowTag, WordPress.Security.EscapeOutput, WordPress.DB.DirectDatabaseQuery, WordPress.WP.GlobalVariablesOverride, WordPress.PHP.YodaConditions, Universal.Operators.StrictComparisons
+// CLI checks intentionally use direct SQL, console diagnostics and JSON-semantic comparisons.
+
 declare(strict_types=1);
-if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
+if ( 'cli' !== PHP_SAPI ) {
+	exit( 1 ); }
 require '/var/www/html/wp-load.php';
 
 function taas_period_check( bool $condition, string $message ): void {
-	if ( ! $condition ) { throw new RuntimeException( $message ); }
+	if ( ! $condition ) {
+		throw new RuntimeException( $message ); }
 }
 
 function taas_period_invalid(): void {
@@ -15,9 +25,16 @@ function taas_period_invalid(): void {
 	taas_period_check( array( 'status' => 503 ) === $result->get_error_data(), 'Invalid configuration must return status 503.' );
 }
 
-$valid = array( 'semester' => 1, 'year' => 2026, 'is_open' => true, 'closes_at' => null );
+$valid = array(
+	'semester'  => 1,
+	'year'      => 2026,
+	'is_open'   => true,
+	'closes_at' => null,
+);
 $configuration = $valid;
-$filter = static function () use ( &$configuration ) { return $configuration; };
+$filter = static function () use ( &$configuration ) {
+	return $configuration;
+};
 add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 
 try {
@@ -32,9 +49,9 @@ try {
 	echo "PASS: Missing and malformed configuration returns a 503 error\n";
 
 	$invalid_fields = array(
-		'semester' => array( 0, 6, '1', 1.0, true, null, array() ),
-		'year' => array( 1900, 2156, '2026', 2026.0, true, null, array() ),
-		'is_open' => array( 0, 1, 'true', 'false', null, array() ),
+		'semester'  => array( 0, 6, '1', 1.0, true, null, array() ),
+		'year'      => array( 1900, 2156, '2026', 2026.0, true, null, array() ),
+		'is_open'   => array( 0, 1, 'true', 'false', null, array() ),
 		'closes_at' => array( 0, -1, '1234567890', 1234567890.0, true, false, array() ),
 	);
 	foreach ( $invalid_fields as $field => $values ) {
@@ -46,14 +63,32 @@ try {
 	}
 	echo "PASS: Strict field types and supported ranges\n";
 
-	$labels = array( 1 => 'Fall', 2 => 'Spring', 3 => 'Summer A', 4 => 'Summer B', 5 => 'Summer C' );
+	$labels = array(
+		1 => 'Fall',
+		2 => 'Spring',
+		3 => 'Summer A',
+		4 => 'Summer B',
+		5 => 'Summer C',
+	);
 	foreach ( $labels as $semester => $label ) {
 		foreach ( array( 1901, 2155 ) as $year ) {
-			$configuration = array_replace( $valid, array( 'semester' => $semester, 'year' => $year ) );
-			taas_period_check( array(
-				'semester' => $semester, 'year' => $year, 'label' => $label . ' ' . $year,
-				'is_open' => true, 'closes_at' => null,
-			) === TAAS_Application_Period::current(), 'The normalized period or label is incorrect.' );
+			$configuration = array_replace(
+				$valid,
+				array(
+					'semester' => $semester,
+					'year'     => $year,
+				)
+			);
+			taas_period_check(
+				array(
+					'semester'  => $semester,
+					'year'      => $year,
+					'label'     => $label . ' ' . $year,
+					'is_open'   => true,
+					'closes_at' => null,
+				) === TAAS_Application_Period::current(),
+				'The normalized period or label is incorrect.'
+			);
 		}
 	}
 	echo "PASS: All semester labels and year boundaries\n";
@@ -67,12 +102,22 @@ try {
 	echo "PASS: Omitted and null deadlines\n";
 
 	foreach ( array( null, time() + 3600 ) as $deadline ) {
-		$configuration = array_replace( $valid, array( 'is_open' => false, 'closes_at' => $deadline ) );
+		$configuration = array_replace(
+			$valid,
+			array(
+				'is_open'   => false,
+				'closes_at' => $deadline,
+			)
+		);
 		taas_period_check( false === TAAS_Application_Period::current()['is_open'], 'Manual closure must override an absent or future deadline.' );
 	}
 	echo "PASS: Manual closure overrides the deadline\n";
 
-	foreach ( array( time() - 3600 => false, time() => false, time() + 3600 => true ) as $deadline => $expected_open ) {
+	foreach ( array(
+		time() - 3600 => false,
+		time()        => false,
+		time() + 3600 => true,
+	) as $deadline => $expected_open ) {
 		$configuration = array_replace( $valid, array( 'closes_at' => $deadline ) );
 		$result = TAAS_Application_Period::current();
 		taas_period_check( $expected_open === $result['is_open'], 'A past, reached or future deadline produced the wrong open state.' );

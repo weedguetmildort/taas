@@ -8,7 +8,7 @@
 use PHPUnit\Framework\TestCase;
 
 // Plain functions are not covered by the Composer classmap
-require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-csv-ingest.php';
+require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-xlsx-ingest.php';
 
 /**
  * Check that rows round-trip through the new columns and invalid values are refused
@@ -24,8 +24,10 @@ class TypesTest extends TestCase {
 				'student_ufid'      => '12345678',
 				'major'             => 'Computer Science, Business',
 				'gpa'               => '3.50',
-				'enrollment_status' => '4',
-				'toefl_ibt_score'   => '108',
+				'enrollment_status' => '3',
+				'speak_score'       => '55',
+				'speak_date'        => '2025-03-01',
+				'toefl_ibt_score'   => '5.5',
 				'toefl_ibt_date'    => '2025-09-13',
 				'has_ta_experience' => '0',
 			)
@@ -34,8 +36,30 @@ class TypesTest extends TestCase {
 		$this->assertSame( 'Computer Science, Business', $profile->major );
 		$this->assertSame( 3.5, $profile->gpa );
 		$this->assertSame( TAAS_Enrollment_Status::Phd, $profile->enrollment_status );
-		$this->assertSame( 108, $profile->toefl_ibt_score );
+		$this->assertSame( 55, $profile->speak_score );
+		$this->assertSame( '2025-03-01', $profile->speak_date->format( 'Y-m-d' ) );
+		$this->assertSame( 5.5, $profile->toefl_ibt_score );
 		$this->assertSame( '2025-09-13', $profile->toefl_ibt_date->format( 'Y-m-d' ) );
+	}
+
+	/**
+	 * Both English tests are optional and independent of each other
+	 */
+	public function test_english_tests_are_nullable_and_independent(): void {
+		$speak_only = TAAS_Student_Profile::from_row(
+			array(
+				'student_ufid' => '12345678',
+				'speak_score'  => '55',
+			)
+		);
+		$no_test    = TAAS_Student_Profile::from_row( array( 'student_ufid' => '12345678' ) );
+
+		$this->assertSame( 55, $speak_only->to_row()['speak_score'] );
+		$this->assertNull( $speak_only->toefl_ibt_score );
+		$this->assertNull( $no_test->speak_score );
+		$this->assertNull( $no_test->speak_date );
+		$this->assertNull( $no_test->toefl_ibt_score );
+		$this->assertNull( $no_test->toefl_ibt_date );
 	}
 
 	/**
@@ -75,6 +99,8 @@ class TypesTest extends TestCase {
 				'gpa',
 				'enrollment_status',
 				'resume_url',
+				'speak_score',
+				'speak_date',
 				'toefl_ibt_score',
 				'toefl_ibt_date',
 				'has_ta_experience',
@@ -113,7 +139,7 @@ class TypesTest extends TestCase {
 	 * The course's to_row() writes exactly the courses columns, with no removed ones left over
 	 */
 	public function test_course_to_row_matches_schema_columns(): void {
-		$row = ( new TAAS_Course( '12345', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Summer_C, 2027, true ) )->to_row();
+		$row = ( new TAAS_Course( 12345, 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Summer_C, 2027, true ) )->to_row();
 
 		$this->assertSame(
 			array(
@@ -125,7 +151,6 @@ class TypesTest extends TestCase {
 				'is_online',
 				'course_description',
 				'course_notes',
-				'sections',
 				'weekly_hours',
 				'lab_hours',
 				'enrollment',
@@ -140,10 +165,62 @@ class TypesTest extends TestCase {
 	}
 
 	/**
+	 * A new course has no id yet, so to_row() leaves it for the database to assign
+	 */
+	public function test_course_to_row_omits_null_id(): void {
+		$row = ( new TAAS_Course( null, 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 ) )->to_row();
+
+		$this->assertArrayNotHasKey( 'course_id', $row );
+	}
+
+	/**
+	 * Course ids from the database hydrate as ints, on both tables
+	 */
+	public function test_course_ids_hydrate_as_int(): void {
+		$course = TAAS_Course::from_row(
+			array(
+				'course_id'       => '12345',
+				'course_code'     => 'COP3502',
+				'course_name'     => 'Programming 1',
+				'course_semester' => '1',
+				'course_year'     => '2026',
+				'professor_ufid'  => '87654321',
+			)
+		);
+
+		$application = TAAS_Application::from_row(
+			array(
+				'student_ufid'      => '12345678',
+				'applied_course_id' => '12345',
+				'match_status'      => '1',
+			)
+		);
+
+		$this->assertSame( 12345, $course->course_id );
+		$this->assertSame( 12345, $application->applied_course_id );
+	}
+
+	/**
+	 * Auto-increment ids start at 1
+	 */
+	public function test_course_rejects_id_below_one(): void {
+		$this->expectException( InvalidArgumentException::class );
+		new TAAS_Course( 0, 'COP4930', 'Programming 1', '87654321', TAAS_Semester::Fall, 2026 );
+	}
+
+	/**
+	 * Applications must point at a real course id
+	 */
+	public function test_application_rejects_course_id_below_one(): void {
+		$this->expectException( InvalidArgumentException::class );
+		new TAAS_Application( null, '12345678', 0 );
+	}
+
+	/**
 	 * The application's to_row() writes exactly the applications columns, in schema order
 	 */
 	public function test_application_to_row_matches_schema_columns(): void {
-		$row = ( new TAAS_Application( 7, '12345678', 'COP3502-1234', has_ta_for_course: true ) )->to_row();
+		$row = ( new TAAS_Application( 7, '12345678', 1234, has_ta_for_course: true ) )->to_row();
 
 		$this->assertSame(
 			array(
@@ -156,11 +233,31 @@ class TypesTest extends TestCase {
 				'student_preference_rank',
 				'professor_preference_rank',
 				'match_status',
+				'assigned_hours',
 			),
 			array_keys( $row )
 		);
 		$this->assertSame( 0, $row['has_taken_course'] );
 		$this->assertSame( 1, $row['has_ta_for_course'] );
+		$this->assertSame( 0, $row['assigned_hours'] );
+	}
+
+	/**
+	 * The assigned_hours field hydrates as an int, and defaults to 0 when absent
+	 */
+	public function test_application_hydrates_assigned_hours(): void {
+		$base = array(
+			'student_ufid'      => '12345678',
+			'applied_course_id' => '1234',
+			'match_status'      => '2',
+		);
+
+		$assigned = TAAS_Application::from_row( $base + array( 'assigned_hours' => '10' ) );
+		$legacy   = TAAS_Application::from_row( $base );
+
+		$this->assertSame( 10, $assigned->assigned_hours );
+		$this->assertSame( 10, $assigned->to_row()['assigned_hours'] );
+		$this->assertSame( 0, $legacy->assigned_hours );
 	}
 
 	/**
@@ -169,7 +266,7 @@ class TypesTest extends TestCase {
 	public function test_application_hydrates_has_ta_for_course(): void {
 		$base = array(
 			'student_ufid'      => '12345678',
-			'applied_course_id' => 'COP3502-1234',
+			'applied_course_id' => '1234',
 			'match_status'      => '1',
 		);
 
@@ -208,7 +305,7 @@ class TypesTest extends TestCase {
 	 */
 	public function test_course_rejects_year_outside_mysql_range(): void {
 		$this->expectException( InvalidArgumentException::class );
-		new TAAS_Course( '12345', 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 26 );
+		new TAAS_Course( 12345, 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Fall, 26 );
 	}
 
 	/**
@@ -221,25 +318,5 @@ class TypesTest extends TestCase {
 		$this->assertSame( TAAS_Semester::Summer_C, TAAS_Semester::try_from_label( 'SUMMER_C' ) );
 		$this->assertNull( TAAS_Semester::try_from_label( 'Winter' ) );
 		$this->assertNull( TAAS_Semester::try_from_label( 'Summer' ) );
-	}
-
-	/**
-	 * The spreadsheet's UFO column becomes is_online
-	 */
-	public function test_parse_online_flag(): void {
-		$this->assertTrue( taas_parse_online_flag( 'Y' ) );
-		$this->assertTrue( taas_parse_online_flag( 'yes' ) );
-		$this->assertTrue( taas_parse_online_flag( 'UFO' ) );
-		$this->assertFalse( taas_parse_online_flag( '' ) );
-		$this->assertFalse( taas_parse_online_flag( 'n' ) );
-		$this->assertFalse( taas_parse_online_flag( '0' ) );
-	}
-
-	/**
-	 * An unrecognised UFO value stops the import rather than guessing
-	 */
-	public function test_parse_online_flag_rejects_unknown_value(): void {
-		$this->expectException( RuntimeException::class );
-		taas_parse_online_flag( 'maybe' );
 	}
 }

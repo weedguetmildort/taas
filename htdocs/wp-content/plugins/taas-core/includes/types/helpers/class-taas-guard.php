@@ -27,6 +27,19 @@ final class TAAS_Guard {
 	}
 
 	/**
+	 * Check that a course id is 1 or greater, or null on a new, unsaved course.
+	 *
+	 * @param string   $field Column name, used in the error message.
+	 * @param int|null $value Course id, or null.
+	 * @throws InvalidArgumentException If the id is below 1.
+	 */
+	public static function course_id( string $field, ?int $value ): void {
+		if ( null !== $value && $value < 1 ) {
+			throw new InvalidArgumentException( sprintf( '%s must be 1 or greater.', esc_html( $field ) ) );
+		}
+	}
+
+	/**
 	 * Check that a country code is two letters, or null.
 	 *
 	 * @param string|null $value ISO 3166-1 alpha-2 code, or null.

@@ -33,5 +33,4 @@ function taas_student_application_assets(): void {
 			'homeUrl'   => TAAS_Pages::url( 'front-page' ),
 		)
 	);
-
 }

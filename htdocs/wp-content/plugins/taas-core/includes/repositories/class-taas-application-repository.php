@@ -8,6 +8,8 @@
 declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- Public contracts document exceptions propagated by guards and persistence helpers too.
+
 /**
  * Data access for applications, keyed by application_id.
  */
@@ -28,10 +30,10 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *   application_id: string, student_ufid: string, applied_course_id: string,
 	 *   has_taken_course: string, has_ta_for_course: string,
 	 *   student_statement: string|null, student_preference_rank: string|null,
-	 *   professor_preference_rank: string|null, match_status: string
+	 *   professor_preference_rank: string|null, match_status: string, assigned_hours: string
 	 * }> Raw database values, ordered by student preference and application ID.
-	 * @throws InvalidArgumentException If the UFID or year is invalid.
-	 * @throws RuntimeException If the query fails.
+	 * @throws InvalidArgumentException If validation fails.
+	 * @throws RuntimeException If a database operation fails.
 	 */
 	public function find_by_student_and_term( string $student_ufid, TAAS_Semester $semester, int $year, bool $for_update = false ): array {
 		global $wpdb;
@@ -41,6 +43,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 			$wpdb->prepare(
 				'SELECT a.* FROM %i a INNER JOIN %i c ON c.course_id = a.applied_course_id'
 				. ' WHERE a.student_ufid = %s AND c.course_semester = %d AND c.course_year = %d'
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Conditional suffix is a fixed SQL literal; all values are bound.
 				. ' ORDER BY a.student_preference_rank, a.application_id' . ( $for_update ? ' FOR UPDATE' : '' ),
 				$this->table(),
 				TAAS_Schema::table( 'courses' ),
@@ -61,8 +64,8 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * @param int|null          $rank Student rank; null retains the previous rank.
 	 * @param TAAS_Match_Status $status Pending or Withdrawn.
 	 * @return void
-	 * @throws InvalidArgumentException If the UFID, rank or target status is invalid.
-	 * @throws RuntimeException If the update fails.
+	 * @throws InvalidArgumentException If validation fails.
+	 * @throws RuntimeException If a database operation fails.
 	 */
 	public function save_student_choice( string $student_ufid, int $application_id, ?int $rank, TAAS_Match_Status $status ): void {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
@@ -75,7 +78,13 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 			$data['student_preference_rank'] = $rank;
 			$data['has_taken_course']        = 1;
 		}
-		$this->update_where( $data, array( 'student_ufid' => $student_ufid, 'application_id' => $application_id ) );
+		$this->update_where(
+			$data,
+			array(
+				'student_ufid'   => $student_ufid,
+				'application_id' => $application_id,
+			)
+		);
 	}
 
 	/**
@@ -119,11 +128,11 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	/**
 	 * Every application submitted for a course.
 	 *
-	 * @param string $course_id Course section number.
+	 * @param int $course_id Course ID.
 	 * @return TAAS_Application[]
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function find_by_course( string $course_id ): array {
+	public function find_by_course( int $course_id ): array {
 		return $this->find_by( 'applied_course_id', $course_id );
 	}
 
@@ -132,11 +141,11 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *
 	 * These are the applications a professor sees and may rank.
 	 *
-	 * @param string $course_id Course section number.
+	 * @param int $course_id Course ID.
 	 * @return TAAS_Application[]
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function find_active_by_course( string $course_id ): array {
+	public function find_active_by_course( int $course_id ): array {
 		return array_values(
 			array_filter(
 				$this->find_by_course( $course_id ),
@@ -152,10 +161,9 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * Never substitute a current shared profile for a missing term snapshot.
 	 * JSON paths below follow TAAS_Student_Submission's submitted_details contract.
 	 *
-	 * @param string $course_id Course section number.
+	 * @param int $course_id Course ID.
 	 * @return array<int, array{
 	 *     application_id: int,
-	 *     student_ufid: string,
 	 *     student_name: string,
 	 *     major: ?string,
 	 *     gpa: ?float,
@@ -164,15 +172,15 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *     has_ta_for_course: bool
 	 * }>
 	 * @throws RuntimeException If the query fails or an applicant has no snapshot.
-	 * @throws UnexpectedValueException If a stored enrollment_status is not a known value.
+	 * @throws UnexpectedValueException If the stored enrollment status is invalid.
 	 * @see TAAS_Student_Submission::__construct() Source snapshot field schema.
 	 */
-	public function applicants_for_course( string $course_id ): array {
+	public function applicants_for_course( int $course_id ): array {
 		global $wpdb;
 
 		$rows = $this->select_rows(
 			$wpdb->prepare(
-				'SELECT a.application_id, a.student_ufid, s.submission_id,'
+				'SELECT a.application_id, s.submission_id,'
 				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.student_name')) AS student_name,"
 				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.academic_background[0].major')) AS major,"
 				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.academic_background[0].gpa')), 'null') AS gpa,"
@@ -182,7 +190,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 				. ' INNER JOIN %i c ON c.course_id = a.applied_course_id'
 				. ' LEFT JOIN %i s ON s.student_ufid = a.student_ufid'
 				. ' AND s.semester = c.course_semester AND s.year = c.course_year'
-				. ' WHERE a.applied_course_id = %s AND a.match_status <> %d'
+				. ' WHERE a.applied_course_id = %d AND a.match_status <> %d'
 				. ' ORDER BY student_name, a.application_id',
 				$this->table(),
 				TAAS_Schema::table( 'courses' ),
@@ -201,7 +209,6 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 		return array_map(
 			static fn( array $r ) => array(
 				'application_id'    => TAAS_Cast::int( $r['application_id'] ),
-				'student_ufid'      => (string) $r['student_ufid'],
 				'student_name'      => (string) $r['student_name'],
 				'major'             => TAAS_Cast::string_or_null( $r['major'] ?? null ),
 				'gpa'               => TAAS_Cast::float_or_null( $r['gpa'] ?? null ),
@@ -217,27 +224,27 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * Replace a professor's whole ranking for one course.
 	 *
 	 * Every application for the course is first reset to unranked (NULL), then
-	 * the student at index i gets rank i + 1. A student left out of the list
-	 * therefore ends up unranked, which the matcher treats as equal last.
+	 * the application at index i gets rank i + 1. An application left out of the
+	 * list therefore ends up unranked, which the matcher treats as equal last.
 	 * Validate the ranking first (TAAS_Ranking::parse()) and call this inside
 	 * TAAS_Transaction::run() so a failure halfway cannot leave a partial ranking.
 	 *
-	 * @param string   $course_id     Course section number.
-	 * @param string[] $ordered_ufids Student UFIDs, best first; empty clears the ranking.
+	 * @param int   $course_id   Course ID.
+	 * @param int[] $ordered_ids Application ids, best first; empty clears the ranking.
 	 * @return void
 	 * @throws RuntimeException If an update fails.
 	 */
-	public function set_professor_ranks( string $course_id, array $ordered_ufids ): void {
+	public function set_professor_ranks( int $course_id, array $ordered_ids ): void {
 		$this->update_where(
 			array( 'professor_preference_rank' => null ),
 			array( 'applied_course_id' => $course_id )
 		);
 
-		foreach ( array_values( $ordered_ufids ) as $index => $student_ufid ) {
+		foreach ( array_values( $ordered_ids ) as $index => $application_id ) {
 			$this->update_where(
 				array( 'professor_preference_rank' => $index + 1 ),
 				array(
-					'student_ufid'      => (string) $student_ufid,
+					'application_id'    => (int) $application_id,
 					'applied_course_id' => $course_id,
 				)
 			);

@@ -22,27 +22,30 @@ final class TAAS_Application {
 	 *
 	 * @param int|null          $application_id            Auto-increment id; null on a new, unsaved record.
 	 * @param string            $student_ufid              Applicant's UFID, 1-8 characters.
-	 * @param string            $applied_course_id         Course section applied for.
+	 * @param int               $applied_course_id         ID of the course applied for.
 	 * @param bool              $has_taken_course          Whether the student has taken the course.
 	 * @param bool              $has_ta_for_course         Whether the student has previously TA'd this course.
 	 * @param string|null       $student_statement         Statement of interest.
 	 * @param int|null          $student_preference_rank   Student's ranking of this course, 1 or greater.
 	 * @param int|null          $professor_preference_rank Professor's ranking of this student, 1 or greater.
 	 * @param TAAS_Match_Status $match_status              Matching outcome.
-	 * @throws InvalidArgumentException If the UFID or a rank is invalid.
+	 * @param int               $assigned_hours            TA hours assigned once matched.
+	 * @throws InvalidArgumentException If the UFID, course id, or a rank is invalid.
 	 */
 	public function __construct(
 		public readonly ?int $application_id,
 		public readonly string $student_ufid,
-		public readonly string $applied_course_id,
+		public readonly int $applied_course_id,
 		public readonly bool $has_taken_course = false,
 		public readonly bool $has_ta_for_course = false,
 		public readonly ?string $student_statement = null,
 		public readonly ?int $student_preference_rank = null,
 		public readonly ?int $professor_preference_rank = null,
 		public readonly TAAS_Match_Status $match_status = TAAS_Match_Status::Pending,
+		public readonly int $assigned_hours = 0,
 	) {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
+		TAAS_Guard::course_id( 'applied_course_id', $applied_course_id );
 		TAAS_Guard::rank( 'student_preference_rank', $student_preference_rank );
 		TAAS_Guard::rank( 'professor_preference_rank', $professor_preference_rank );
 	}
@@ -65,13 +68,14 @@ final class TAAS_Application {
 		return new self(
 			application_id: TAAS_Cast::int_or_null( $r['application_id'] ?? null ),
 			student_ufid: (string) $r['student_ufid'],
-			applied_course_id: (string) $r['applied_course_id'],
+			applied_course_id: TAAS_Cast::int( $r['applied_course_id'] ?? 0 ),
 			has_taken_course: TAAS_Cast::bool( $r['has_taken_course'] ?? 0 ),
 			has_ta_for_course: TAAS_Cast::bool( $r['has_ta_for_course'] ?? 0 ),
 			student_statement: TAAS_Cast::string_or_null( $r['student_statement'] ?? null ),
 			student_preference_rank: TAAS_Cast::int_or_null( $r['student_preference_rank'] ?? null ),
 			professor_preference_rank: TAAS_Cast::int_or_null( $r['professor_preference_rank'] ?? null ),
 			match_status: $status,
+			assigned_hours: TAAS_Cast::int( $r['assigned_hours'] ?? 0 ),
 		);
 	}
 
@@ -90,6 +94,7 @@ final class TAAS_Application {
 			'student_preference_rank'   => $this->student_preference_rank,
 			'professor_preference_rank' => $this->professor_preference_rank,
 			'match_status'              => $this->match_status->value,
+			'assigned_hours'            => $this->assigned_hours,
 		);
 
 		if ( null !== $this->application_id ) {

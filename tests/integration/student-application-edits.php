@@ -2,11 +2,14 @@
 /**
  * Student-owned application editing checks against local WordPress/MySQL.
  *
- * Run: docker compose exec -T wordpress php /var/www/taas/tests/integration/student-application-edits.php
+ * Run: docker compose exec -T WordPress php /var/www/taas/tests/integration/student-application-edits.php
  * All fixtures and changes to existing shared data are rolled back.
  *
  * @package TAAS_Core
  */
+
+// phpcs:disable Squiz.Commenting.FunctionComment, Squiz.Commenting.FunctionCommentThrowTag, WordPress.Security.EscapeOutput, WordPress.DB.DirectDatabaseQuery, WordPress.WP.GlobalVariablesOverride, WordPress.PHP.YodaConditions, Universal.Operators.StrictComparisons
+// CLI checks intentionally use direct SQL, console diagnostics and JSON-semantic comparisons.
 
 declare(strict_types=1);
 if ( 'cli' !== PHP_SAPI ) {
@@ -17,7 +20,12 @@ if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development mode is required.' );
 }
 
-/** Assert a storage or access guarantee. */
+/**
+ * Assert a storage or access guarantee.
+ *
+ * @param bool $condition Expected test condition.
+ * @param string $message Failure description.
+ */
 function taas_edit_check( bool $condition, string $message ): void {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
@@ -25,7 +33,13 @@ function taas_edit_check( bool $condition, string $message ): void {
 	echo 'PASS: ' . $message . PHP_EOL;
 }
 
-/** Dispatch a registered route, including permission checks. */
+/**
+ * Dispatch a registered route, including permission checks.
+ *
+ * @param string $method Request method.
+ * @param string $route REST route to dispatch.
+ * @param ?array $body Decoded request body.
+ */
 function taas_edit_request( string $method, string $route, ?array $body = null ): WP_REST_Response {
 	$request = new WP_REST_Request( $method, '/taas/v1' . $route );
 	if ( null !== $body ) {
@@ -39,14 +53,24 @@ global $wpdb;
 $original_get = $_GET;
 $_GET['taas_role'] = 'student';
 $owner = (string) TAAS_Auth::current_user()['university_id'];
-$period = array( 'semester' => 3, 'year' => 2150, 'is_open' => true, 'closes_at' => time() + 3600 );
-$filter = static function () use ( &$period ) { return $period; };
+$period = array(
+	'semester'  => 3,
+	'year'      => 2150,
+	'is_open'   => true,
+	'closes_at' => time() + 3600,
+);
+$filter = static function () use ( &$period ) {
+	return $period;
+};
 add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 $repos = array(
-	'students' => new TAAS_Student_Repository(), 'profiles' => new TAAS_Student_Profile_Repository(),
-	'backgrounds' => new TAAS_Academic_Background_Repository(), 'applications' => new TAAS_Application_Repository(),
-	'submissions' => new TAAS_Student_Submission_Repository(), 'courses' => new TAAS_Course_Repository(),
-	'professors' => new TAAS_Professor_Repository(),
+	'students'     => new TAAS_Student_Repository(),
+	'profiles'     => new TAAS_Student_Profile_Repository(),
+	'backgrounds'  => new TAAS_Academic_Background_Repository(),
+	'applications' => new TAAS_Application_Repository(),
+	'submissions'  => new TAAS_Student_Submission_Repository(),
+	'courses'      => new TAAS_Course_Repository(),
+	'professors'   => new TAAS_Professor_Repository(),
 );
 $before = array_map( static fn( TAAS_Repository $repo ) => $repo->count(), $repos );
 $old_student = $repos['students']->find( $owner )?->to_row();
@@ -68,53 +92,106 @@ try {
 			$repos['professors']->insert( new TAAS_Professor( $professor, 'Edit verification', 'edit-professor@example.invalid' ) );
 			$ids = array();
 			foreach ( array( 'A', 'B', 'C' ) as $code ) {
-				$id = 'edit-' . bin2hex( random_bytes( 5 ) );
-				$ids[ $code ] = $id;
-				$repos['courses']->insert( new TAAS_Course( $id, 'TEST' . $code, 'Course ' . $code, $professor, TAAS_Semester::Summer_A, $period['year'] ) );
+				$ids[ $code ] = (string) $repos['courses']->insert( new TAAS_Course( null, 'TEST' . $code, 'Course ' . $code, $professor, TAAS_Semester::Summer_A, $period['year'] ) );
 			}
 			$body = array(
-				'term' => array( 'semester' => $period['semester'], 'year' => $period['year'] ),
-				'details' => array(
-					'student_name' => 'Edit verification', 'student_email' => 'edit.student@ufl.edu',
-					'profile' => array( 'phone' => '3525550100', 'country_code' => 'US', 'admitted_semester' => 'Fall 2025', 'available_hours' => 10, 'enrollment_status' => 3, 'eap5836_status' => 1, 'eap5837_status' => 4 ),
-					'academic_background' => array( array( 'university' => 'Example University', 'degree_type' => 2, 'major' => 'CS', 'grad_date' => '2025-05-01', 'gpa' => 3.5 ) ),
+				'term'               => array(
+					'semester' => $period['semester'],
+					'year'     => $period['year'],
+				),
+				'details'            => array(
+					'student_name'        => 'Edit verification',
+					'student_email'       => 'edit.student@ufl.edu',
+					'profile'             => array(
+						'phone'             => '3525550100',
+						'country_code'      => 'US',
+						'admitted_semester' => 'Fall 2025',
+						'available_hours'   => 10,
+						'enrollment_status' => 2,
+						'eap5836_status'    => 1,
+						'eap5837_status'    => 4,
+					),
+					'academic_background' => array(
+						array(
+							'university'  => 'Example University',
+							'degree_type' => 2,
+							'major'       => 'CS',
+							'grad_date'   => '2025-05-01',
+							'gpa'         => 3.5,
+						),
+					),
 				),
 				'course_preferences' => array(
-					array( 'course_id' => $ids['A'], 'rank' => 1, 'has_completed_course' => true ),
-					array( 'course_id' => $ids['B'], 'rank' => 2, 'has_completed_course' => true ),
+					array(
+						'course_id'            => $ids['A'],
+						'rank'                 => 1,
+						'has_completed_course' => true,
+					),
+					array(
+						'course_id'            => $ids['B'],
+						'rank'                 => 2,
+						'has_completed_course' => true,
+					),
 				),
 			);
 			taas_edit_check( 201 === taas_edit_request( 'POST', '/student/application', $body )->get_status(), 'Fixture initial application created' );
-			$old_term = array( 'student_name' => 'Prior term', 'profile' => array( 'available_hours' => 5 ) );
+			$old_term = array(
+				'student_name' => 'Prior term',
+				'profile'      => array( 'available_hours' => 5 ),
+			);
 			$repos['submissions']->save_for_term( $owner, TAAS_Semester::Spring, $period['year'], $old_term );
 			// Professor summaries must use the course's snapshot despite newer shared values.
 			$repos['students']->save_identity( new TAAS_Student( $owner, 'Newer shared name', 'newer@ufl.edu' ) );
-			$wpdb->update( $repos['profiles']->table(), array( 'major' => 'Newer major', 'gpa' => 4, 'enrollment_status' => 4 ), array( 'student_ufid' => $owner ) );
-			$applicants = $repos['applications']->applicants_for_course( $ids['A'] );
-			taas_edit_check( 1 === count( $applicants ) && 'Edit verification' === $applicants[0]['student_name']
+			$wpdb->update(
+				$repos['profiles']->table(),
+				array(
+					'major'             => 'Newer major',
+					'gpa'               => 4,
+					'enrollment_status' => 3,
+				),
+				array( 'student_ufid' => $owner )
+			);
+			$applicants = $repos['applications']->applicants_for_course( (int) $ids['A'] );
+			taas_edit_check(
+				1 === count( $applicants ) && 'Edit verification' === $applicants[0]['student_name']
 				&& 'CS' === $applicants[0]['major'] && 3.5 === $applicants[0]['gpa']
-				&& TAAS_Enrollment_Status::from( 3 ) === $applicants[0]['enrollment_status'],
-				'Professor applicant list uses the course-term snapshot rather than another term or the current profile' );
+				&& TAAS_Enrollment_Status::Masters === $applicants[0]['enrollment_status'],
+				'Professor applicant list uses the course-term snapshot rather than another term or the current profile'
+			);
 			$saved_details = $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] )->submitted_details;
 			$no_gpa = $saved_details;
 			$no_gpa['academic_background'][0]['gpa'] = null;
-			$no_gpa['academic_background'][] = array( 'major' => 'Previous major', 'gpa' => 3.9 );
+			$no_gpa['academic_background'][] = array(
+				'major' => 'Previous major',
+				'gpa'   => 3.9,
+			);
 			$repos['submissions']->save_for_term( $owner, TAAS_Semester::Summer_A, $period['year'], $no_gpa );
-			taas_edit_check( null === $repos['applications']->applicants_for_course( $ids['A'] )[0]['gpa'], 'Professor summary preserves an unavailable first-degree GPA without using a previous degree' );
+			taas_edit_check( null === $repos['applications']->applicants_for_course( (int) $ids['A'] )[0]['gpa'], 'Professor summary preserves an unavailable first-degree GPA without using a previous degree' );
 			$repos['submissions']->save_for_term( $owner, TAAS_Semester::Summer_A, $period['year'], $saved_details );
 			$repos['students']->save_identity( new TAAS_Student( $owner, $body['details']['student_name'], $body['details']['student_email'] ) );
-			$wpdb->update( $repos['profiles']->table(), array( 'major' => 'CS', 'gpa' => 3.5, 'enrollment_status' => 3 ), array( 'student_ufid' => $owner ) );
+			$wpdb->update(
+				$repos['profiles']->table(),
+				array(
+					'major'             => 'CS',
+					'gpa'               => 3.5,
+					'enrollment_status' => 2,
+				),
+				array( 'student_ufid' => $owner )
+			);
 			$empty = taas_edit_request( 'GET', '/student/application/2/' . $period['year'] );
-			taas_edit_check( 200 === $empty->get_status() && array() === $empty->get_data()['course_preferences']
-				&& $old_term == $empty->get_data()['details'], 'Snapshot without course rows remains readable' );
+			taas_edit_check(
+				200 === $empty->get_status() && array() === $empty->get_data()['course_preferences']
+				&& $old_term == $empty->get_data()['details'],
+				'Snapshot without course rows remains readable'
+			);
 			$other = '99996000';
 			while ( $repos['students']->find( $other ) ) {
 				$other = (string) ( (int) $other - 1 );
 			}
 			$repos['students']->insert( new TAAS_Student( $other, 'Another student', 'other@example.invalid' ) );
-			$orphan_id = $repos['applications']->insert( new TAAS_Application( null, $other, $ids['A'] ) );
+			$orphan_id = $repos['applications']->insert( new TAAS_Application( null, $other, (int) $ids['A'] ) );
 			try {
-				$repos['applications']->applicants_for_course( $ids['A'] );
+				$repos['applications']->applicants_for_course( (int) $ids['A'] );
 				throw new LogicException( 'Missing snapshot was silently hidden or replaced with a shared profile.' );
 			} catch ( RuntimeException $error ) {
 				taas_edit_check( 'An applicant is missing their term submission snapshot.' === $error->getMessage(), 'Missing professor snapshot raises an explicit integrity error' );
@@ -130,28 +207,32 @@ try {
 			$interleaved = false;
 			$hook = null;
 			$hook = static function ( $sql ) use ( &$hook, &$interleaved, $repos, $owner, $period, $before_snapshot, $before_choices ) {
-			    if ( ! str_contains( $sql, 'SELECT a.* FROM' ) && ! str_contains( $sql, 'SELECT s.submission_id' ) ) { return $sql; }
-			    remove_filter( 'query', $hook );
-			    $interleaved = true;
-			    $changed = $before_snapshot->submitted_details;
-			    $changed['profile']['available_hours'] = 20;
-			    $repos['submissions']->save_for_term( $owner, TAAS_Semester::Summer_A, $period['year'], $changed );
-			    foreach ( $before_choices as $choice ) {
-			        $repos['applications']->save_student_choice( $owner, (int) $choice['application_id'], 3 - (int) $choice['student_preference_rank'], TAAS_Match_Status::Pending );
-			    }
-			    return $sql;
+				if ( ! str_contains( $sql, 'SELECT a.* FROM' ) && ! str_contains( $sql, 'SELECT s.submission_id' ) ) {
+					return $sql; }
+				remove_filter( 'query', $hook );
+				$interleaved = true;
+				$changed = $before_snapshot->submitted_details;
+				$changed['profile']['available_hours'] = 20;
+				$repos['submissions']->save_for_term( $owner, TAAS_Semester::Summer_A, $period['year'], $changed );
+				foreach ( $before_choices as $choice ) {
+					$repos['applications']->save_student_choice( $owner, (int) $choice['application_id'], 3 - (int) $choice['student_preference_rank'], TAAS_Match_Status::Pending );
+				}
+				return $sql;
 			};
 			add_filter( 'query', $hook );
 			try {
-			    $mixed = taas_edit_request( 'GET', $route )->get_data();
-			} finally { remove_filter( 'query', $hook ); }
+				$mixed = taas_edit_request( 'GET', $route )->get_data();
+			} finally {
+				remove_filter( 'query', $hook ); }
 			$fresh = taas_edit_request( 'GET', $route )->get_data();
-			taas_edit_check( $interleaved && 20 === $mixed['details']['profile']['available_hours'] && 20 === $fresh['details']['profile']['available_hours']
-			    && $mixed['course_preferences'] === $fresh['course_preferences'] && $mixed['revision'] === $fresh['revision'],
-			    'Interleaved save returns consistent details, choices and revision' );
+			taas_edit_check(
+				$interleaved && 20 === $mixed['details']['profile']['available_hours'] && 20 === $fresh['details']['profile']['available_hours']
+				&& $mixed['course_preferences'] === $fresh['course_preferences'] && $mixed['revision'] === $fresh['revision'],
+				'Interleaved save returns consistent details, choices and revision'
+			);
 			$repos['submissions']->save_for_term( $owner, TAAS_Semester::Summer_A, $period['year'], $before_snapshot->submitted_details );
 			foreach ( $before_choices as $choice ) {
-			    $repos['applications']->save_student_choice( $owner, (int) $choice['application_id'], (int) $choice['student_preference_rank'], TAAS_Match_Status::Pending );
+				$repos['applications']->save_student_choice( $owner, (int) $choice['application_id'], (int) $choice['student_preference_rank'], TAAS_Match_Status::Pending );
 			}
 			$initial = taas_edit_request( 'GET', $route )->get_data();
 			taas_edit_check( $initial['can_edit'] && count( $initial['courses'] ) >= 3, 'Open term read provides edit permission and real course choices' );
@@ -163,8 +244,16 @@ try {
 			$edit['revision'] = $read['revision'];
 			$edit['details']['profile']['available_hours'] = 20;
 			$edit['course_preferences'] = array(
-				array( 'course_id' => $ids['B'], 'rank' => 1, 'has_completed_course' => true ),
-				array( 'course_id' => $ids['C'], 'rank' => 2, 'has_completed_course' => true ),
+				array(
+					'course_id'            => $ids['B'],
+					'rank'                 => 1,
+					'has_completed_course' => true,
+				),
+				array(
+					'course_id'            => $ids['C'],
+					'rank'                 => 2,
+					'has_completed_course' => true,
+				),
 			);
 			$invalid_country = $edit;
 			$invalid_country['details']['profile']['country_code'] = 'ZZ';
@@ -192,7 +281,13 @@ try {
 			taas_edit_check( count( $rows ) === 3 && count( array_filter( $rows, static fn( array $row ) => (int) $row['match_status'] === 4 ) ) === 3, 'Withdrawing all keeps all original records' );
 			$reactivate = $edit;
 			$reactivate['revision'] = taas_edit_request( 'GET', $route )->get_data()['revision'];
-			$reactivate['course_preferences'] = array( array( 'course_id' => $ids['A'], 'rank' => 1, 'has_completed_course' => true ) );
+			$reactivate['course_preferences'] = array(
+				array(
+					'course_id'            => $ids['A'],
+					'rank'                 => 1,
+					'has_completed_course' => true,
+				),
+			);
 			taas_edit_check( 200 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Withdrawn course without professor rank can be reactivated' );
 			$rows = $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] );
 			$by_id = array_column( $rows, null, 'applied_course_id' );
@@ -204,7 +299,22 @@ try {
 			$wrong_term = $reactivate;
 			$wrong_term['term']['year']--;
 			taas_edit_check( 400 === taas_edit_request( 'POST', $route, $wrong_term )->get_status(), 'Payload cannot target a different term from the route' );
-			taas_edit_check( 404 === taas_edit_request( 'POST', '/student/application/5/' . $period['year'], array_merge( $reactivate, array( 'term' => array( 'semester' => 5, 'year' => $period['year'] ) ) ) )->get_status(), 'Another student snapshot cannot be edited' );
+			taas_edit_check(
+				404 === taas_edit_request(
+					'POST',
+					'/student/application/5/' . $period['year'],
+					array_merge(
+						$reactivate,
+						array(
+							'term' => array(
+								'semester' => 5,
+								'year'     => $period['year'],
+							),
+						)
+					)
+				)->get_status(),
+				'Another student snapshot cannot be edited'
+			);
 			$period['is_open'] = false;
 			taas_edit_check( 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Administrator closure blocks edits on the server' );
 			$period['is_open'] = true;

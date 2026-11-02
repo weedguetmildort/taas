@@ -23,6 +23,7 @@ class TAAS_Seeds {
 	 * @var array<string, string[]>
 	 */
 	private const NATURAL_KEYS = array(
+		'student_submissions' => array( 'student_ufid', 'semester', 'year' ),
 		'professors'          => array( 'professor_ufid' ),
 		'students'            => array( 'student_ufid' ),
 		'student_profiles'    => array( 'student_ufid' ),

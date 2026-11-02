@@ -19,7 +19,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       identity: { ufid: '12345678' }, can_edit: false, revision: 'a'.repeat(64),
       details: {
         student_name: 'Saved student', student_email: 'saved@ufl.edu',
-        profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 3, eap5836_status: 1, eap5837_status: 4, english_test: null },
+        profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, english_test: null },
         academic_background: [{ university: 'Example University', major: 'CS', degree_type: 2, grad_date: '2025-05-01', gpa: 3.5 }]
       },
       courses: ['A', 'B', 'C', 'D'].map(code => ({ course_id: `fixture-${code}`, course_code: `TEST-${code}`, course_name: `Course ${code}`, instructor_name: 'Example Professor' })),

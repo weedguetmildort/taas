@@ -6,9 +6,11 @@
  * Author: Shashank Gutta
  * Requires at least: 6.5
  * Requires Plugins: taas-core
+ *
+ * @package TAAS_Student_Pages
  */
 
-defined('ABSPATH') || exit;
+defined( 'ABSPATH' ) || exit;
 
 define( 'TAAS_STUDENT_PAGES_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_STUDENT_PAGES_URL', plugin_dir_url( __FILE__ ) );
@@ -26,4 +28,3 @@ function taas_student_pages_init(): void {
 	require_once TAAS_STUDENT_PAGES_PATH . 'pages/check-application-status.php';
 	require_once TAAS_STUDENT_PAGES_PATH . 'pages/front-page.php';
 }
-

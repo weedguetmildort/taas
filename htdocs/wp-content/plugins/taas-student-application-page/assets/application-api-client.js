@@ -35,7 +35,7 @@
     const validProfile = profile == null || (isRecord(profile)
       && ['phone', 'admitted_semester', 'resume_url', 'additional_info'].every(key => optionalText(profile[key]))
       && (profile.country_code == null || (isText(profile.country_code) && /^[a-z]{2}$/i.test(profile.country_code)))
-      && ['available_hours', 'enrollment_status', 'eap5836_status', 'eap5837_status', 'toefl_ibt_score'].every(key => optionalNumber(profile[key]))
+      && ['available_hours', 'enrollment_status', 'eap5836_status', 'eap5837_status', 'toefl_ibt_score', 'speak_score'].every(key => optionalNumber(profile[key]))
       && validEnglishTest(profile.english_test));
     const validCourses = Array.isArray(data.courses) && data.courses.every(course => isRecord(course)
       && isText(course.course_id) && course.course_id.length > 0

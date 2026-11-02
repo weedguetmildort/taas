@@ -2,8 +2,8 @@
 (() => {
   'use strict';
   const student = window.TAASStudent = window.TAASStudent || {};
-  // TODO: Resolve Undergraduate/Graduate mappings with the team; no placeholder values.
-  const PROGRAMS = { masters: 3, phd: 4 };
+  // TODO: Confirm enabling Undergraduate (main value 1); generic Graduate remains unmapped.
+  const PROGRAMS = { masters: 2, phd: 3 };
   const EAP_STATUSES = { uf_taken: 1, other_university: 2, currently_taking: 3, not_taken: 4 };
   const keyForValue = (mapping, value) => Object.keys(mapping).find(key => mapping[key] === value) || '';
 
@@ -126,9 +126,12 @@
       inputs.collegeStatus.value = keyForValue(PROGRAMS, profile.enrollment_status);
       inputs.eap5836Status.value = keyForValue(EAP_STATUSES, profile.eap5836_status);
       inputs.eap5837Status.value = keyForValue(EAP_STATUSES, profile.eap5837_status);
-      const legacyTest = profile.toefl_ibt_score != null ? { type: 'TOEFL', score: profile.toefl_ibt_score } : null;
+      const legacyTest = profile.toefl_ibt_score != null ? { type: 'TOEFL', score: profile.toefl_ibt_score }
+        : profile.speak_score != null ? { type: 'SPEAK', score: profile.speak_score } : null;
       prefillAdmissionSemester(profile.admitted_semester);
-      prefillEnglishTest(data.english_test || profile.english_test || legacyTest);
+      const englishTest = Object.hasOwn(data, 'english_test') ? data.english_test
+        : Object.hasOwn(profile, 'english_test') ? profile.english_test : legacyTest;
+      prefillEnglishTest(englishTest);
     }
 
     function validateIdentity() {

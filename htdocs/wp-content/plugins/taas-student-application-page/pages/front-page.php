@@ -1,5 +1,10 @@
 <?php
-/** Student homepage setup and authenticated, term-specific application state. */
+/**
+ * Student homepage setup and authenticated, term-specific application state.
+ *
+ * @package TAAS_Student_Pages
+ */
+
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'wp_enqueue_scripts', 'taas_student_homepage_assets' );
@@ -13,7 +18,8 @@ function taas_student_homepage_assets(): void {
 	wp_enqueue_style( 'taas-student-homepage', TAAS_STUDENT_PAGES_URL . $file, array(), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $file ) );
 	// TODO: Adapt this check with core's deferred multi-role fix.
 	$user = TAAS_Auth::current_user();
-	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) { return; }
+	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) {
+		return; }
 	$script = 'assets/front-page.js';
 	wp_enqueue_script( 'taas-student-homepage', TAAS_STUDENT_PAGES_URL . $script, array(), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $script ), true );
 	wp_add_inline_script( 'taas-student-homepage', 'window.TAASStudentHome = ' . wp_json_encode( taas_student_homepage_config(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';', 'before' );
@@ -47,7 +53,10 @@ function taas_student_homepage_state() {
 		if ( ! $already_applied ) {
 			$already_applied = ! empty( ( new TAAS_Application_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] ) );
 		}
-		return array( 'period' => $period, 'already_applied' => $already_applied );
+		return array(
+			'period'          => $period,
+			'already_applied' => $already_applied,
+		);
 	} catch ( Throwable $error ) {
 		return new WP_Error( 'taas_homepage_state_unavailable', 'Application information is unavailable. Please try again later.' );
 	}
@@ -57,13 +66,13 @@ function taas_student_homepage_state() {
 function taas_student_homepage_config(): array {
 	$state = taas_student_homepage_state();
 	return array(
-		'urls' => array(
-			'student-application' => TAAS_Pages::url( 'student-application' ),
+		'urls'           => array(
+			'student-application'      => TAAS_Pages::url( 'student-application' ),
 			'check-application-status' => TAAS_Pages::url( 'check-application-status' ),
-			'professor-page' => TAAS_Pages::url( 'professor-page' ),
+			'professor-page'           => TAAS_Pages::url( 'professor-page' ),
 		),
-		'unavailable' => is_wp_error( $state ),
+		'unavailable'    => is_wp_error( $state ),
 		'alreadyApplied' => ! is_wp_error( $state ) && $state['already_applied'],
-		'termLabel' => is_wp_error( $state ) ? '' : $state['period']['label'],
+		'termLabel'      => is_wp_error( $state ) ? '' : $state['period']['label'],
 	);
 }

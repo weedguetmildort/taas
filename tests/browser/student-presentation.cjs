@@ -9,7 +9,7 @@ const partial = fs.readFileSync(path.join(root, 'htdocs/wp-content/plugins/taas-
 const fixture = {
   period: { semester: 1, year: 2026, label: 'Fall 2026', is_open: true },
   identity: { ufid: '12345678', email: 'student@ufl.edu' }, already_applied: false,
-  profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 3, eap5836_status: 1, eap5837_status: 4 },
+  profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4 },
   academic_background: [{ university: 'Example', major: 'CS', minor: 'Math', degree_type: 2, grad_date: '2025-05-01', gpa: null }],
   courses: [{ course_id: 'example', course_code: 'CS101', course_name: 'Example', instructor_name: 'Example' }]
 };
@@ -126,6 +126,14 @@ function html(editing, redesigned) {
     assert.equal(disabledDetails.profile.additional_info, 'Keep this');
     assert.deepEqual(disabledDetails.profile.english_test, { type: 'SPEAK', score: 42 });
     console.log('PASS: Disabled optional controls retain their displayed values in the payload');
+
+    await open(false, false, { ...fixture, english_test: null, profile: { ...fixture.profile, toefl_ibt_score: 5.5, speak_score: 45 } });
+    assert.equal(await page.locator('[name="englishScore"]').inputValue(), '');
+    await open(false, false, { ...fixture, profile: { ...fixture.profile, speak_score: 45 } });
+    assert.equal(await page.locator('[name="englishScore"]').inputValue(), 'SPEAK-45');
+    await open(false, false, { ...fixture, english_test: { type: 'TOEFL', score: 5.5 } });
+    assert.equal(await page.locator('[name="englishScore"]').inputValue(), 'TOEFL-5.5');
+    console.log('PASS: Explicit no-test snapshots override shared scores; SPEAK and fractional TOEFL prefill correctly');
 
     for (const name of ['firstName', 'lastName', 'studentName']) {
       assert(await open(name === 'studentName', true, name === 'studentName' ? saved : fixture));

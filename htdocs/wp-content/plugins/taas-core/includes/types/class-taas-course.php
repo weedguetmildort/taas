@@ -13,13 +13,14 @@ defined( 'ABSPATH' ) || exit;
  *
  * Immutable. from_row() accepts a row from $wpdb (object or ARRAY_A) and
  * to_row() returns column => value, ready for $wpdb->insert() or $wpdb->update().
+ * The auto-increment id is null on new, unsaved records and to_row() omits it then.
  */
 final class TAAS_Course {
 
 	/**
 	 * Create a course row.
 	 *
-	 * @param string        $course_id          Course section number.
+	 * @param int|null      $course_id          Auto-increment id; null on a new, unsaved record.
 	 * @param string        $course_code        Course code, e.g. COP3502.
 	 * @param string        $course_name        Course title.
 	 * @param string        $professor_ufid     Professor's UFID, 1-8 characters.
@@ -28,15 +29,14 @@ final class TAAS_Course {
 	 * @param bool          $is_online          Whether the course is offered online.
 	 * @param string|null   $course_description Catalog description.
 	 * @param string|null   $course_notes       Professor's notes or requests about matching.
-	 * @param int|null      $sections           Number of sections.
 	 * @param int|null      $weekly_hours       Total TA hours required, from the staffing formula.
 	 * @param int           $lab_hours          Lab hours per week.
 	 * @param int           $enrollment         Current enrollment.
 	 * @param int           $max_enrollment     Enrollment cap.
-	 * @throws InvalidArgumentException If the professor UFID or year is invalid.
+	 * @throws InvalidArgumentException If the course id, professor UFID or year is invalid.
 	 */
 	public function __construct(
-		public readonly string $course_id, // Course section number.
+		public readonly ?int $course_id,
 		public readonly string $course_code,
 		public readonly string $course_name,
 		public readonly string $professor_ufid,
@@ -45,12 +45,12 @@ final class TAAS_Course {
 		public readonly bool $is_online = false,
 		public readonly ?string $course_description = null,
 		public readonly ?string $course_notes = null,
-		public readonly ?int $sections = null,
 		public readonly ?int $weekly_hours = null, // Total TA hours required, from the staffing formula.
 		public readonly int $lab_hours = 0,
 		public readonly int $enrollment = 0,
 		public readonly int $max_enrollment = 0,
 	) {
+		TAAS_Guard::course_id( 'course_id', $course_id );
 		TAAS_Guard::ufid( 'professor_ufid', $professor_ufid );
 		TAAS_Guard::year( 'course_year', $course_year );
 	}
@@ -72,7 +72,7 @@ final class TAAS_Course {
 		}
 
 		return new self(
-			course_id: (string) $r['course_id'],
+			course_id: TAAS_Cast::int_or_null( $r['course_id'] ?? null ),
 			course_code: (string) $r['course_code'],
 			course_name: (string) $r['course_name'],
 			professor_ufid: (string) $r['professor_ufid'],
@@ -81,7 +81,6 @@ final class TAAS_Course {
 			is_online: TAAS_Cast::bool( $r['is_online'] ?? 0 ),
 			course_description: TAAS_Cast::string_or_null( $r['course_description'] ?? null ),
 			course_notes: TAAS_Cast::string_or_null( $r['course_notes'] ?? null ),
-			sections: TAAS_Cast::int_or_null( $r['sections'] ?? null ),
 			weekly_hours: TAAS_Cast::int_or_null( $r['weekly_hours'] ?? null ),
 			lab_hours: TAAS_Cast::int( $r['lab_hours'] ?? 0 ),
 			enrollment: TAAS_Cast::int( $r['enrollment'] ?? 0 ),
@@ -102,8 +101,7 @@ final class TAAS_Course {
 	 * @return array<string, mixed>
 	 */
 	public function to_row(): array {
-		return array(
-			'course_id'          => $this->course_id,
+		$row = array(
 			'course_code'        => $this->course_code,
 			'course_name'        => $this->course_name,
 			'course_semester'    => $this->course_semester->value,
@@ -111,12 +109,17 @@ final class TAAS_Course {
 			'is_online'          => $this->is_online ? 1 : 0,
 			'course_description' => $this->course_description,
 			'course_notes'       => $this->course_notes,
-			'sections'           => $this->sections,
 			'weekly_hours'       => $this->weekly_hours,
 			'lab_hours'          => $this->lab_hours,
 			'enrollment'         => $this->enrollment,
 			'max_enrollment'     => $this->max_enrollment,
 			'professor_ufid'     => $this->professor_ufid,
 		);
+
+		if ( null !== $this->course_id ) {
+			$row = array( 'course_id' => $this->course_id ) + $row;
+		}
+
+		return $row;
 	}
 }

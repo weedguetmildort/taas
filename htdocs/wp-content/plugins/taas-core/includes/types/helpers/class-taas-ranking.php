@@ -9,13 +9,13 @@ declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Turn a submitted ranking into an ordered list of student UFIDs, or refuse it.
+ * Turn a submitted ranking into an ordered list of application ids, or refuse it.
  *
- * A ranking arrives as a list of { "rank": int, "student_ufid": string }
+ * A ranking arrives as a list of { "rank": int, "application_id": int }
  * entries. It is accepted only if the ranks are exactly 1..n with no ties or
- * gaps, no student appears twice, and every student has a live application
- * for the course. Applicants left out are unranked (equal last), so an empty
- * list is valid and clears the ranking.
+ * gaps, no application appears twice, and every application is live for the
+ * course. Applications left out are unranked (equal last), so an empty list is
+ * valid and clears the ranking.
  *
  * On failure parse() throws InvalidArgumentException whose message is one of
  * the REASON_* codes, so the REST layer can pass a stable, machine-readable
@@ -29,7 +29,7 @@ final class TAAS_Ranking {
 	public const REASON_NOT_A_LIST = 'not_a_list';
 
 	/**
-	 * An entry is not an object with an integer rank and a string student_ufid.
+	 * An entry is not an object with an integer rank and a positive integer application_id.
 	 */
 	public const REASON_MALFORMED_ENTRY = 'malformed_entry';
 
@@ -44,9 +44,9 @@ final class TAAS_Ranking {
 	public const REASON_DUPLICATE_RANK = 'duplicate_rank';
 
 	/**
-	 * The same student appears more than once.
+	 * The same application appears more than once.
 	 */
-	public const REASON_DUPLICATE_STUDENT = 'duplicate_student';
+	public const REASON_DUPLICATE_APPLICATION = 'duplicate_application';
 
 	/**
 	 * The ranks are not exactly 1..n.
@@ -54,19 +54,19 @@ final class TAAS_Ranking {
 	public const REASON_RANK_GAP = 'rank_gap';
 
 	/**
-	 * A student has no live application for the course.
+	 * An application is not a live application for the course.
 	 */
-	public const REASON_INELIGIBLE_STUDENT = 'ineligible_student';
+	public const REASON_INELIGIBLE_APPLICATION = 'ineligible_application';
 
 	/**
-	 * Validate a ranking and return the students in rank order.
+	 * Validate a ranking and return the applications in rank order.
 	 *
-	 * @param mixed    $ranking        Submitted ranking, normally the decoded JSON list.
-	 * @param string[] $eligible_ufids UFIDs of every non-withdrawn applicant to the course.
-	 * @return string[] Student UFIDs, rank 1 first.
+	 * @param mixed $ranking      Submitted ranking, normally the decoded JSON list.
+	 * @param int[] $eligible_ids Ids of every non-withdrawn application to the course.
+	 * @return int[] Application ids, rank 1 first.
 	 * @throws InvalidArgumentException With a REASON_* code as the message if the ranking is invalid.
 	 */
-	public static function parse( mixed $ranking, array $eligible_ufids ): array {
+	public static function parse( mixed $ranking, array $eligible_ids ): array {
 		if ( ! is_array( $ranking ) || ! array_is_list( $ranking ) ) {
 			throw new InvalidArgumentException( esc_html( self::REASON_NOT_A_LIST ) );
 		}
@@ -75,12 +75,12 @@ final class TAAS_Ranking {
 		$seen    = array();
 
 		foreach ( $ranking as $entry ) {
-			if ( ! is_array( $entry ) || ! is_int( $entry['rank'] ?? null ) || ! is_string( $entry['student_ufid'] ?? null ) || '' === $entry['student_ufid'] ) {
+			if ( ! is_array( $entry ) || ! is_int( $entry['rank'] ?? null ) || ! is_int( $entry['application_id'] ?? null ) || $entry['application_id'] < 1 ) {
 				throw new InvalidArgumentException( esc_html( self::REASON_MALFORMED_ENTRY ) );
 			}
 
 			$rank = $entry['rank'];
-			$ufid = $entry['student_ufid'];
+			$id   = $entry['application_id'];
 
 			if ( $rank < 1 ) {
 				throw new InvalidArgumentException( esc_html( self::REASON_RANK_OUT_OF_RANGE ) );
@@ -90,13 +90,12 @@ final class TAAS_Ranking {
 				throw new InvalidArgumentException( esc_html( self::REASON_DUPLICATE_RANK ) );
 			}
 
-			// Prefixed so a numeric UFID stays a string key.
-			if ( isset( $seen[ 'u' . $ufid ] ) ) {
-				throw new InvalidArgumentException( esc_html( self::REASON_DUPLICATE_STUDENT ) );
+			if ( isset( $seen[ $id ] ) ) {
+				throw new InvalidArgumentException( esc_html( self::REASON_DUPLICATE_APPLICATION ) );
 			}
 
-			$by_rank[ $rank ]    = $ufid;
-			$seen[ 'u' . $ufid ] = true;
+			$by_rank[ $rank ] = $id;
+			$seen[ $id ]      = true;
 		}
 
 		// Ranks are unique and at least 1, so 1..n is present exactly when the largest is n.
@@ -104,11 +103,11 @@ final class TAAS_Ranking {
 			throw new InvalidArgumentException( esc_html( self::REASON_RANK_GAP ) );
 		}
 
-		$eligible = array_map( 'strval', $eligible_ufids );
+		$eligible = array_map( 'intval', $eligible_ids );
 
-		foreach ( $by_rank as $ufid ) {
-			if ( ! in_array( $ufid, $eligible, true ) ) {
-				throw new InvalidArgumentException( esc_html( self::REASON_INELIGIBLE_STUDENT ) );
+		foreach ( $by_rank as $id ) {
+			if ( ! in_array( $id, $eligible, true ) ) {
+				throw new InvalidArgumentException( esc_html( self::REASON_INELIGIBLE_APPLICATION ) );
 			}
 		}
 

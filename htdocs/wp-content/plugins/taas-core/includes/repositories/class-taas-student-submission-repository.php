@@ -8,6 +8,8 @@
 declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable Squiz.Commenting.FunctionCommentThrowTag.WrongNumber -- Public contracts document exceptions propagated by guards and persistence helpers too.
+
 /**
  * Persistence only: callers enforce authentication, ownership and deadlines.
  */
@@ -109,7 +111,7 @@ final class TAAS_Student_Submission_Repository extends TAAS_Repository {
 	 *     application_id: string, student_ufid: string, applied_course_id: string,
 	 *     has_taken_course: string, has_ta_for_course: string,
 	 *     student_statement: string|null, student_preference_rank: string|null,
-	 *     professor_preference_rank: string|null, match_status: string
+	 *     professor_preference_rank: string|null, match_status: string, assigned_hours: string
 	 *   }>
 	 * }|null Null when no snapshot exists; choices contain raw database values.
 	 */
@@ -124,8 +126,12 @@ final class TAAS_Student_Submission_Repository extends TAAS_Repository {
 				. ' ON a.student_ufid = s.student_ufid AND c.course_semester = s.semester AND c.course_year = s.year'
 				. ' WHERE s.student_ufid = %s AND s.semester = %d AND s.year = %d'
 				. ' ORDER BY a.student_preference_rank, a.application_id',
-				$this->table(), TAAS_Schema::table( 'applications' ), TAAS_Schema::table( 'courses' ),
-				$student_ufid, $semester->value, $year
+				$this->table(),
+				TAAS_Schema::table( 'applications' ),
+				TAAS_Schema::table( 'courses' ),
+				$student_ufid,
+				$semester->value,
+				$year
 			)
 		);
 		if ( ! $rows ) {
@@ -172,8 +178,8 @@ final class TAAS_Student_Submission_Repository extends TAAS_Repository {
 	 * @param int           $year         Application year.
 	 * @param array         $details      Validated submitted details.
 	 * @return int Saved submission ID, unchanged on replacement.
-	 * @throws RuntimeException If the database write fails.
-	 * @throws JsonException If submitted details cannot be serialized.
+	 * @throws RuntimeException If database persistence fails.
+	 * @throws JsonException If submitted details cannot be encoded.
 	 * @see TAAS_Student_Submission::__construct() Full submitted_details field schema.
 	 * @see TAAS_Student_Application_Input::parse() Request validation and normalization.
 	 */

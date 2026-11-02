@@ -37,7 +37,9 @@ These values are server-owned; no student endpoint writes configuration.
 | POST/PATCH/PUT | `/student/application/{semester}/{year}` | Explicit updates to an existing term; requires the revision token returned by GET |
 
 Student-specific successful reads are marked no-store. Course response fields:
-course_id, course_code, course_name, instructor_name. Class days/times are not in
+course_id, course_code, course_name, instructor_name. Course IDs are positive numeric
+IDs for a specific offering, represented as strings in the student REST contract;
+the same course code/name may have different IDs in different terms. Class days/times are not in
 the current course schema and are not fabricated.
 
 ## Initial submission body
@@ -53,7 +55,7 @@ the current course schema and are not fabricated.
       "country_code": "US",
       "admitted_semester": "Fall 2025",
       "available_hours": 10,
-      "enrollment_status": 3,
+      "enrollment_status": 2,
       "eap5836_status": 1,
       "eap5837_status": 4,
       "resume_url": null,
@@ -80,16 +82,20 @@ No owner identifier is accepted in the body; it comes from TAAS_Auth. No match
 status or professor rank is accepted. Unknown fields are rejected. Strings are
 bounded to storage limits, not silently truncated. `minor` is optional within a
 degree. GPA must be 0–4 or explicit null for not yet available. Future graduation
-dates are allowed. Current enrollment is temporarily restricted to MS=3/PhD=4.
+dates are allowed. Current enrollment is temporarily restricted to MS=2/PhD=3.
 Course equivalency declarations remain a team dependency; this contract currently
 supports a completion declaration only and does not claim HR verification.
 
-English scores are rounded half up as the temporary whole-number policy. Test
-type stays in the snapshot; only TOEFL goes to the shared toefl_ibt_score column.
-SPEAK is not mislabeled as TOEFL. No test date is collected or fabricated. A
-revised representation remains a high-priority team question.
-An existing TOEFL date is preserved when its stored score is unchanged. Changing
-the score, switching test type, or removing the test clears the old TOEFL date.
+English tests use main's separate shared columns: SPEAK is a whole-number score
+in `speak_score`, while TOEFL uses `toefl_ibt_score` (`decimal(4,1)`). TOEFL
+fractions such as 5.5 are preserved; excess decimal precision is rejected rather
+than rounded. No test date is collected or fabricated. The selected test type and
+score are stored together in the application snapshot.
+
+Saving one test preserves the other shared result and date. An unchanged score
+retains its own date; changing that score clears its date. Selecting Not applicable
+records a null test in this application's snapshot without erasing either shared
+result. That explicit null takes precedence over shared scores during prefilling.
 
 ## Submitted-details snapshot contract
 
@@ -106,12 +112,12 @@ the same structure for IDE navigation.
 | `profile.country_code` | String; supported uppercase two-letter country code |
 | `profile.admitted_semester` | String, such as `Fall 2025` |
 | `profile.available_hours` | Integer; currently 10 or 20 |
-| `profile.enrollment_status` | Integer; currently MS=3 or PhD=4 |
+| `profile.enrollment_status` | Integer; currently MS=2 or PhD=3 |
 | `profile.eap5836_status` | Integer 1–4; taken at UF, taken elsewhere, taking, not taken |
 | `profile.eap5837_status` | Integer 1–4; same mapping as EAP5836 |
 | `profile.resume_url` | HTTP/HTTPS URL string, or null |
 | `profile.additional_info` | String; empty when omitted |
-| `profile.english_test` | Null, or an object with `type` (`TOEFL`/`SPEAK`) and integer `score` (rounded half up) |
+| `profile.english_test` | Null, or an object with `type` (`TOEFL`/`SPEAK`) and numeric `score` (integer SPEAK or decimal TOEFL) |
 | `academic_background` | Ordered array with at least one degree; first is current/most recent, the rest are previous degrees |
 | `academic_background[].university` | String; university name |
 | `academic_background[].degree_type` | Integer; AA=1, BS=2, MS=3, PhD=4 |
@@ -232,8 +238,23 @@ docker compose exec -T wordpress php /var/www/taas/tests/integration/student-pag
 Browser verification has been authorized and performed using intercepted responses
 and blocked writes. The focused `tests/browser/student-application-status.cjs`
 regression verifies finalized read-only preferences and normal pending edits.
-The older full browser suite currently fails its final no-page-errors assertion
-because the UF theme emits invalid navigation JavaScript; that separate issue remains.
+The older full browser suite passes its functional assertions but currently fails
+its final no-page-errors assertion: the UF theme emits invalid navigation
+JavaScript, and local logged-out WordPress requests produce an uncaught rejection.
+Those separate page/environment issues remain outside this student integration.
+
+The merge with main was verified using an isolated database with fresh TAAS tables
+and copied WordPress tables. Existing local development data was not converted.
+Before manual testing against an older development database, apply main's course-ID
+and enrollment-schema changes using the team's agreed upgrade/reset procedure.
+
+The demo seed includes six synthetic term snapshots for the existing demo
+applications. These fixtures use the demo student's current profile/degree data;
+they are explicitly labeled, and missing contact/eligibility values use demo
+placeholders. They are not a historical-data backfill. Reimporting the demo seed
+identifies snapshots by student/semester/year and leaves existing snapshots intact.
+Verify fixture consistency with `tests/integration/student-demo-snapshots.php`;
+its imports and checks run inside a transaction that rolls back.
 
 Remaining UI integration limitation: equivalent-course declarations await the
 team's HR review policy. Selecting that answer currently explains that HR guidance

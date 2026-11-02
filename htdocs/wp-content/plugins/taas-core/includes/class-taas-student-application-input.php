@@ -42,7 +42,7 @@ final class TAAS_Student_Application_Input {
 	 *       available_hours: int, enrollment_status: int,
 	 *       eap5836_status: int, eap5837_status: int,
 	 *       resume_url: string|null, additional_info: string,
-	 *       english_test: array{type: string, score: int}|null
+	 *       english_test: array{type: string, score: int|float}|null
 	 *     },
 	 *     academic_background: list<array{
 	 *       university: string, degree_type: int, major: string, minor: string,
@@ -56,22 +56,31 @@ final class TAAS_Student_Application_Input {
 	public static function parse( array $body, bool $allow_empty_courses = false ): array {
 		self::allow_only_fields( $body, array( 'term', 'details', 'course_preferences' ) );
 		return array(
-			'term' => self::parse_term( self::require_object( $body, 'term' ) ),
-			'details' => self::parse_details( self::require_object( $body, 'details' ) ),
+			'term'               => self::parse_term( self::require_object( $body, 'term' ) ),
+			'details'            => self::parse_details( self::require_object( $body, 'details' ) ),
 			'course_preferences' => self::parse_preferences( $body['course_preferences'] ?? null, $allow_empty_courses ),
 		);
 	}
 
-	/** Validate the configured-term identifiers supplied with the form. */
+	/**
+	 * Validate the configured-term identifiers supplied with the form.
+	 *
+	 * @param array $term Submitted term identifiers.
+	 */
 	private static function parse_term( array $term ): array {
 		self::allow_only_fields( $term, array( 'semester', 'year' ) );
 		return array(
 			'semester' => self::read_integer( $term, 'semester', 1, 5 ),
-			'year' => self::read_integer( $term, 'year', 1901, 2155 ),
+			'year'     => self::read_integer( $term, 'year', 1901, 2155 ),
 		);
 	}
 
-	/** Validate identity/contact details and the nested form sections. */
+	/**
+	 * Validate identity/contact details and the nested form sections.
+	 *
+	 * @param array $details Normalized submitted details.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function parse_details( array $details ): array {
 		self::allow_only_fields( $details, array( 'student_name', 'student_email', 'profile', 'academic_background' ) );
 		$name  = self::read_text( $details, 'student_name', 255 );
@@ -80,19 +89,35 @@ final class TAAS_Student_Application_Input {
 			throw new InvalidArgumentException( 'Enter a valid university email ending in @ufl.edu.' );
 		}
 		return array(
-			'student_name' => $name,
-			'student_email' => $email,
-			'profile' => self::parse_profile( self::require_object( $details, 'profile' ) ),
+			'student_name'        => $name,
+			'student_email'       => $email,
+			'profile'             => self::parse_profile( self::require_object( $details, 'profile' ) ),
 			'academic_background' => self::parse_degrees( $details['academic_background'] ?? null ),
 		);
 	}
 
-	/** Validate profile fields and convert optional values for storage. */
+	/**
+	 * Validate profile fields and convert optional values for storage.
+	 *
+	 * @param array $profile Submitted profile values.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function parse_profile( array $profile ): array {
-		self::allow_only_fields( $profile, array(
-			'phone', 'country_code', 'admitted_semester', 'available_hours', 'enrollment_status',
-			'eap5836_status', 'eap5837_status', 'resume_url', 'english_test', 'additional_info',
-		) );
+		self::allow_only_fields(
+			$profile,
+			array(
+				'phone',
+				'country_code',
+				'admitted_semester',
+				'available_hours',
+				'enrollment_status',
+				'eap5836_status',
+				'eap5837_status',
+				'resume_url',
+				'english_test',
+				'additional_info',
+			)
+		);
 		$country_code = strtoupper( self::read_text( $profile, 'country_code', 2 ) );
 		TAAS_Guard::country_code( $country_code );
 		if ( ! in_array( $country_code, explode( ' ', self::COUNTRY_CODES ), true ) ) {
@@ -106,8 +131,8 @@ final class TAAS_Student_Application_Input {
 		if ( ! in_array( $available_hours, array( 10, 20 ), true ) ) {
 			throw new InvalidArgumentException( 'Planned TA hours must be 10 or 20.' );
 		}
-		// TODO: Resolve Undergraduate and Graduate mappings with the team; no placeholder values.
-		$enrollment_status = self::read_integer( $profile, 'enrollment_status', 3, 4 );
+		// TODO: Confirm enabling Undergraduate (main value 1); generic Graduate remains unmapped.
+		$enrollment_status = self::read_integer( $profile, 'enrollment_status', TAAS_Enrollment_Status::Masters->value, TAAS_Enrollment_Status::Phd->value );
 		$resume_url     = self::read_text( $profile, 'resume_url', 255, false );
 		if ( '' !== $resume_url ) {
 			$scheme = strtolower( (string) wp_parse_url( $resume_url, PHP_URL_SCHEME ) );
@@ -129,7 +154,12 @@ final class TAAS_Student_Application_Input {
 		);
 	}
 
-	/** Preserve test type and apply the approved whole-number rounding. */
+	/**
+	 * Match main's SPEAK integer and TOEFL decimal(4,1) storage without rounding.
+	 *
+	 * @param array $profile Submitted profile values.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function parse_english_test( array $profile ): ?array {
 		if ( null === ( $profile['english_test'] ?? null ) ) {
 			return null;
@@ -141,12 +171,24 @@ final class TAAS_Student_Application_Input {
 		if ( ! in_array( $test_type, array( 'TOEFL', 'SPEAK' ), true ) || ! self::is_number_in_range( $test_score, 0, 2147483647 ) ) {
 			throw new InvalidArgumentException( 'Provide a supported English test and numeric score.' );
 		}
-		// TODO: Finalize English score storage with the team. Rounding is temporarily approved.
-		// Keep test type in the snapshot; SPEAK must never be saved as a TOEFL result.
-		return array( 'type' => $test_type, 'score' => (int) round( $test_score, 0, PHP_ROUND_HALF_UP ) );
+		if ( 'SPEAK' === $test_type && floor( (float) $test_score ) !== (float) $test_score ) {
+			throw new InvalidArgumentException( 'SPEAK scores must be whole numbers.' );
+		}
+		if ( 'TOEFL' === $test_type && ( $test_score > 999.9 || round( (float) $test_score, 1 ) !== (float) $test_score ) ) {
+			throw new InvalidArgumentException( 'TOEFL scores must fit 0–999.9 with at most one decimal place.' );
+		}
+		return array(
+			'type'  => $test_type,
+			'score' => 'TOEFL' === $test_type ? (float) $test_score : (int) $test_score,
+		);
 	}
 
-	/** Validate each degree without dropping or truncating entries. */
+	/**
+	 * Validate each degree without dropping or truncating entries.
+	 *
+	 * @param mixed $backgrounds Submitted degree entries.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function parse_degrees( mixed $backgrounds ): array {
 		if ( ! is_array( $backgrounds ) || ! array_is_list( $backgrounds ) || count( $backgrounds ) < 1 ) {
 			throw new InvalidArgumentException( 'At least one academic-background entry is required.' );
@@ -178,7 +220,13 @@ final class TAAS_Student_Application_Input {
 		return $degrees;
 	}
 
-	/** Validate course uniqueness/completion and normalize rank order. */
+	/**
+	 * Validate course uniqueness/completion and normalize rank order.
+	 *
+	 * @param mixed $course_choices Submitted course preferences.
+	 * @param bool  $allow_empty_courses Whether all preferences may be withdrawn.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function parse_preferences( mixed $course_choices, bool $allow_empty_courses ): array {
 		$minimum_courses = $allow_empty_courses ? 0 : 1;
 		if ( ! is_array( $course_choices ) || ! array_is_list( $course_choices )
@@ -194,6 +242,10 @@ final class TAAS_Student_Application_Input {
 			}
 			self::allow_only_fields( $choice, array( 'course_id', 'rank', 'has_completed_course' ) );
 			$course_id   = self::read_text( $choice, 'course_id', 20 );
+			if ( ! preg_match( '/^[1-9][0-9]*$/', $course_id )
+				|| false === filter_var( $course_id, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) ) {
+				throw new InvalidArgumentException( 'Select a valid numeric course ID.' );
+			}
 			$rank = self::read_integer( $choice, 'rank', 1, count( $course_choices ) );
 			$duplicate = in_array( $course_id, $course_ids, true ) || in_array( $rank, $used_ranks, true );
 			$completed = true === ( $choice['has_completed_course'] ?? null );
@@ -202,47 +254,88 @@ final class TAAS_Student_Application_Input {
 			}
 			$course_ids[]         = $course_id;
 			$used_ranks[]       = $rank;
-			$preferences[] = array( 'course_id' => $course_id, 'rank' => $rank, 'has_completed_course' => true );
+			$preferences[] = array(
+				'course_id'            => $course_id,
+				'rank'                 => $rank,
+				'has_completed_course' => true,
+			);
 		}
 		usort( $preferences, static fn( array $a, array $b ) => $a['rank'] <=> $b['rank'] );
 		return $preferences;
 	}
 
-	/** JSON numbers only; strings, booleans, NaN and infinity are rejected. */
+	/**
+	 * JSON numbers only; strings, booleans, NaN and infinity are rejected.
+	 *
+	 * @param mixed $value Value being checked.
+	 * @param float $min Minimum allowed value.
+	 * @param float $max Maximum allowed value or text length.
+	 */
 	private static function is_number_in_range( mixed $value, float $min, float $max ): bool {
 		return ( is_int( $value ) || is_float( $value ) ) && is_finite( (float) $value ) && $value >= $min && $value <= $max;
 	}
 
-	/** Validate object keys. */
+	/**
+	 * Validate object keys.
+	 *
+	 * @param array $value Value being checked.
+	 * @param array $allowed Allowed field names.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function allow_only_fields( array $value, array $allowed ): void {
 		if ( array_diff( array_keys( $value ), $allowed ) ) {
 			throw new InvalidArgumentException( 'The request contains unsupported fields.' );
 		}
 	}
 
-	/** Require a JSON object. */
+	/**
+	 * Require a JSON object.
+	 *
+	 * @param array  $value Value being checked.
+	 * @param string $key Field name.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function require_object( array $value, string $key ): array {
 		if ( ! isset( $value[ $key ] ) || ! is_array( $value[ $key ] ) || array_is_list( $value[ $key ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Keys are internal allowlisted names; REST serializes messages as JSON.
 			throw new InvalidArgumentException( $key . ' must be an object.' );
 		}
 		return $value[ $key ];
 	}
 
-	/** Validate a bounded string without truncating submitted data. */
+	/**
+	 * Validate a bounded string without truncating submitted data.
+	 *
+	 * @param array  $value Value being checked.
+	 * @param string $key Field name.
+	 * @param int    $max Maximum allowed value or text length.
+	 * @param bool   $required Whether empty text is rejected.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function read_text( array $value, string $key, int $max, bool $required = true ): string {
 		$raw = $value[ $key ] ?? '';
 		$text = is_string( $raw ) ? trim( $raw ) : null;
 		if ( null === $text || mb_strlen( $text ) > $max
 			|| ( $required && '' === $text ) || str_contains( $raw, "\0" ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Keys are internal allowlisted names; REST serializes messages as JSON.
 			throw new InvalidArgumentException( $key . ' is missing or exceeds its allowed length.' );
 		}
 		return $text;
 	}
 
-	/** Require an actual JSON integer rather than a coerced value. */
+	/**
+	 * Require an actual JSON integer rather than a coerced value.
+	 *
+	 * @param array  $value Value being checked.
+	 * @param string $key Field name.
+	 * @param int    $min Minimum allowed value.
+	 * @param int    $max Maximum allowed value or text length.
+	 * @throws InvalidArgumentException If input validation fails.
+	 */
 	private static function read_integer( array $value, string $key, int $min, int $max ): int {
 		$number = $value[ $key ] ?? null;
 		if ( ! is_int( $number ) || $number < $min || $number > $max ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Keys are internal allowlisted names; REST serializes messages as JSON.
 			throw new InvalidArgumentException( $key . ' has an invalid value.' );
 		}
 		return $number;

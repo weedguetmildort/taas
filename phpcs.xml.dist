@@ -47,7 +47,7 @@
         <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-snapshots.php</exclude-pattern>
-        <exclude-pattern>/includes/func-taas-csv-ingest.php</exclude-pattern>
+        <exclude-pattern>/includes/func-taas-xlsx-ingest.php</exclude-pattern>
         <exclude-pattern>/bin/check-version.php</exclude-pattern>
         <exclude-pattern>/bin/export-pages.php</exclude-pattern>
         <exclude-pattern>/bin/import-courses.php</exclude-pattern>
@@ -70,7 +70,7 @@
         <exclude-pattern>/includes/class-taas-seeds.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-schema.php</exclude-pattern>
         <exclude-pattern>/includes/class-taas-snapshots.php</exclude-pattern>
-        <exclude-pattern>/includes/func-taas-csv-ingest.php</exclude-pattern>
+        <exclude-pattern>/includes/func-taas-xlsx-ingest.php</exclude-pattern>
         <!-- Repositories are the one place that queries the database directly -->
         <exclude-pattern>/includes/repositories/*</exclude-pattern>
         <exclude-pattern>/migrations/*</exclude-pattern>

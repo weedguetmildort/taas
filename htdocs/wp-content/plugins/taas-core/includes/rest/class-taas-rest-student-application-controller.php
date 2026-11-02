@@ -18,7 +18,12 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 		parent::__construct( 'student' );
 	}
 
-	/** All application endpoints require the same student permission check. */
+	/**
+	 * All application endpoints require the same student permission check.
+	 *
+	 * @param string $methods Allowed HTTP methods.
+	 * @param string $callback Controller callback name.
+	 */
 	private function student_endpoint( string $methods, string $callback ): array {
 		return array(
 			'methods'             => $methods,
@@ -47,7 +52,11 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 			'/student/application/(?P<semester>[1-5])/(?P<year>[0-9]{4})',
 			array(
 				'args' => array(
-					'year' => array( 'type' => 'integer', 'minimum' => 1901, 'maximum' => 2155 ),
+					'year' => array(
+						'type'    => 'integer',
+						'minimum' => 1901,
+						'maximum' => 2155,
+					),
 				),
 				$this->student_endpoint( WP_REST_Server::READABLE, 'get_application' ),
 				$this->student_endpoint( WP_REST_Server::EDITABLE, 'update_application' ),
@@ -92,18 +101,32 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				$choices    = ( new TAAS_Application_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] );
 				$profile    = ( new TAAS_Student_Profile_Repository() )->find( $ufid );
 				$latest     = ( new TAAS_Student_Submission_Repository() )->latest_for_student( $ufid );
+				$english_test = $latest?->submitted_details['profile']['english_test'] ?? null;
+				if ( null === $latest && null !== $profile ) {
+					$english_test = null !== $profile->toefl_ibt_score ? array(
+						'type'  => 'TOEFL',
+						'score' => $profile->toefl_ibt_score,
+					)
+						: ( null !== $profile->speak_score ? array(
+							'type'  => 'SPEAK',
+							'score' => $profile->speak_score,
+						) : null );
+				}
 				return $this->student_response(
 					array(
-						'period'               => $period,
-						'identity'             => array( 'ufid' => $ufid, 'email' => $user['email'] ),
-						'already_applied'      => null !== $submission || ! empty( $choices ),
-						'profile'              => $profile?->to_row(),
-						'english_test'         => $latest?->submitted_details['profile']['english_test'] ?? null,
-						'academic_background'  => array_map(
+						'period'              => $period,
+						'identity'            => array(
+							'ufid'  => $ufid,
+							'email' => $user['email'],
+						),
+						'already_applied'     => null !== $submission || ! empty( $choices ),
+						'profile'             => $profile?->to_row(),
+						'english_test'        => $english_test,
+						'academic_background' => array_map(
 							static fn( TAAS_Academic_Background $entry ) => $entry->to_row(),
 							( new TAAS_Academic_Background_Repository() )->find_by_student( $ufid )
 						),
-						'courses'              => ( new TAAS_Course_Repository() )->application_choices( $semester, $period['year'] ),
+						'courses'             => ( new TAAS_Course_Repository() )->application_choices( $semester, $period['year'] ),
 					)
 				);
 			}
@@ -141,7 +164,11 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 		);
 	}
 
-	/** List only this student's submitted academic terms. */
+	/**
+	 * List only this student's submitted academic terms.
+	 *
+	 * @param mixed $request Current REST request.
+	 */
 	public function get_terms( $request ): WP_REST_Response|WP_Error {
 		return $this->respond(
 			function () {
@@ -189,21 +216,29 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				$courses = ( new TAAS_Course_Repository() )->application_choices( $semester, $year );
 				return $this->student_response(
 					array(
-						'submission_id'        => $snapshot->submission_id,
-						'term'                 => array( 'semester' => $semester->value, 'year' => $year, 'label' => $semester->label() . ' ' . $year ),
-						'details'              => $snapshot->submitted_details,
-						'identity'             => array( 'ufid' => $ufid ),
-						'can_edit'             => TAAS_Student_Application_Service::can_edit( $semester, $year, $choices ),
-						'revision'             => TAAS_Student_Application_Service::revision( $snapshot, $choices ),
-						'courses'              => $courses,
-						'course_preferences'   => $this->format_preferences( $choices, $courses ),
+						'submission_id'      => $snapshot->submission_id,
+						'term'               => array(
+							'semester' => $semester->value,
+							'year'     => $year,
+							'label'    => $semester->label() . ' ' . $year,
+						),
+						'details'            => $snapshot->submitted_details,
+						'identity'           => array( 'ufid' => $ufid ),
+						'can_edit'           => TAAS_Student_Application_Service::can_edit( $semester, $year, $choices ),
+						'revision'           => TAAS_Student_Application_Service::revision( $snapshot, $choices ),
+						'courses'            => $courses,
+						'course_preferences' => $this->format_preferences( $choices, $courses ),
 					)
 				);
 			}
 		);
 	}
 
-	/** Save explicit edits from the status page; initial creation remains separate. */
+	/**
+	 * Save explicit edits from the status page; initial creation remains separate.
+	 *
+	 * @param mixed $request Current REST request.
+	 */
 	public function update_application( $request ): WP_REST_Response|WP_Error {
 		$parsed = $this->parse_request( $request, true );
 		if ( is_wp_error( $parsed ) ) {
@@ -235,7 +270,12 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 		return (string) ( TAAS_Auth::current_user()['university_id'] ?? '' );
 	}
 
-	/** Personal application responses must not be cached. */
+	/**
+	 * Personal application responses must not be cached.
+	 *
+	 * @param array $data Response payload.
+	 * @param int   $status HTTP response status.
+	 */
 	private function student_response( array $data, int $status = 200 ): WP_REST_Response {
 		$response = new WP_REST_Response( $data, $status );
 		$response->header( 'Cache-Control', 'no-store' );
@@ -244,7 +284,10 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 
 	/**
 	 * Parse create/edit requests while retaining the existing validation errors.
+	 *
 	 * @return array{input: array, revision: ?string}|WP_Error
+	 * @param WP_REST_Request $request Current REST request.
+	 * @param bool            $editing Whether the request edits a saved application.
 	 */
 	private function parse_request( WP_REST_Request $request, bool $editing = false ): array|WP_Error {
 		$body = $request->get_json_params();
@@ -259,13 +302,21 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 			return new WP_Error( 'taas_invalid_application', 'Send an application JSON object.', array( 'status' => 400 ) );
 		}
 		try {
-			return array( 'input' => TAAS_Student_Application_Input::parse( $body, $editing ), 'revision' => $revision );
+			return array(
+				'input'    => TAAS_Student_Application_Input::parse( $body, $editing ),
+				'revision' => $revision,
+			);
 		} catch ( InvalidArgumentException $e ) {
 			return new WP_Error( 'taas_invalid_application', $e->getMessage(), array( 'status' => 400 ) );
 		}
 	}
 
-	/** Format course rows for the browser without exposing other database fields. */
+	/**
+	 * Format course rows for the browser without exposing other database fields.
+	 *
+	 * @param array $choices Saved application rows.
+	 * @param array $courses Available course rows.
+	 */
 	private function format_preferences( array $choices, array $courses ): array {
 		$by_id = array_column( $courses, null, 'course_id' );
 		return array_map(

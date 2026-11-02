@@ -22,14 +22,15 @@ defined( 'ABSPATH' ) || exit;
  * caller: the professor is identified by TAAS_Auth's university_id, never by
  * anything in the request. A course or application that does not exist, does
  * not belong to the caller, or (for an application) was withdrawn all return
- * the same 404, so the API never reveals which ids exist.
+ * the same 404, so the API never reveals which ids exist. No route takes or
+ * returns a UFID: applicants are identified by application_id throughout.
  */
 final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
 	/**
-	 * Route pattern for a course id, matching the resource controllers.
+	 * Route pattern for a course id.
 	 */
-	private const COURSE_ID_PATTERN = '(?P<course_id>[A-Za-z0-9_-]+)';
+	private const COURSE_ID_PATTERN = '(?P<course_id>\d+)';
 
 	/**
 	 * Largest course_notes accepted, matching courses.course_notes varchar(1000).
@@ -114,10 +115,9 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function register_routes() {
 		$course_id_arg = array(
 			'course_id' => array(
-				'description' => __( 'Course section number.', 'taas-core' ),
-				'type'        => 'string',
-				'minLength'   => 1,
-				'maxLength'   => 20,
+				'description' => __( 'Course ID.', 'taas-core' ),
+				'type'        => 'integer',
+				'minimum'     => 1,
 			),
 		);
 
@@ -183,17 +183,16 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 							'items'       => array(
 								'type'                 => 'object',
 								'properties'           => array(
-									'rank'         => array(
+									'rank'           => array(
 										'type'    => 'integer',
 										'minimum' => 1,
 									),
-									'student_ufid' => array(
-										'type'      => 'string',
-										'minLength' => 1,
-										'maxLength' => 8,
+									'application_id' => array(
+										'type'    => 'integer',
+										'minimum' => 1,
 									),
 								),
-								'required'             => array( 'rank', 'student_ufid' ),
+								'required'             => array( 'rank', 'application_id' ),
 								'additionalProperties' => false,
 							),
 						),
@@ -287,7 +286,7 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function get_applicants( $request ) {
 		return $this->respond(
 			function () use ( $request ) {
-				$course = $this->owned_course( $this->path_param( $request, 'course_id' ) );
+				$course = $this->owned_course( (int) $this->path_param( $request, 'course_id' ) );
 
 				if ( null === $course ) {
 					return $this->not_found();
@@ -320,7 +319,7 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function get_ranking( $request ) {
 		return $this->respond(
 			function () use ( $request ) {
-				$course = $this->owned_course( $this->path_param( $request, 'course_id' ) );
+				$course = $this->owned_course( (int) $this->path_param( $request, 'course_id' ) );
 
 				return null === $course ? $this->not_found() : $this->ranking_body( $course );
 			}
@@ -338,19 +337,19 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	public function update_ranking( $request ) {
 		return $this->respond(
 			function () use ( $request ) {
-				$course = $this->owned_course( $this->path_param( $request, 'course_id' ) );
+				$course = $this->owned_course( (int) $this->path_param( $request, 'course_id' ) );
 
 				if ( null === $course ) {
 					return $this->not_found();
 				}
 
 				$eligible = array_map(
-					static fn( TAAS_Application $application ) => $application->student_ufid,
+					static fn( TAAS_Application $application ) => $application->application_id,
 					$this->applications->find_active_by_course( $course->course_id )
 				);
 
 				try {
-					$ordered_ufids = TAAS_Ranking::parse( $request['ranking'], $eligible );
+					$ordered_ids = TAAS_Ranking::parse( $request['ranking'], $eligible );
 				} catch ( InvalidArgumentException $e ) {
 					return new WP_Error(
 						'taas_invalid_ranking',
@@ -366,8 +365,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 				$notes        = $update_notes ? $this->clean_notes( $request['course_notes'] ) : null;
 
 				TAAS_Transaction::run(
-					function () use ( $course, $ordered_ufids, $update_notes, $notes ) {
-						$this->applications->set_professor_ranks( $course->course_id, $ordered_ufids );
+					function () use ( $course, $ordered_ids, $update_notes, $notes ) {
+						$this->applications->set_professor_ranks( $course->course_id, $ordered_ids );
 
 						if ( $update_notes ) {
 							$this->courses->update_notes( $course->course_id, $notes );
@@ -422,7 +421,6 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
 				return array(
 					'application_id'      => $application->application_id,
-					'student_ufid'        => $student->student_ufid,
 					'student_email'       => $student->student_email,
 					'student_name'        => $student->student_name,
 					'major'               => $profile?->major,
@@ -445,6 +443,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 					'eap5836_status'      => $profile?->eap5836_status?->label(),
 					'eap5837_status'      => $profile?->eap5837_status?->label(),
 					'resume_url'          => $profile?->resume_url,
+					'speak_score'         => $profile?->speak_score,
+					'speak_date'          => $profile?->speak_date?->format( 'Y-m-d' ),
 					'student_statement'   => $application->student_statement,
 					'toefl_ibt_score'     => $profile?->toefl_ibt_score,
 					'toefl_ibt_date'      => $profile?->toefl_ibt_date?->format( 'Y-m-d' ),
@@ -479,8 +479,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 			'course_id'    => $course->course_id,
 			'ranking'      => array_map(
 				static fn( TAAS_Application $application ) => array(
-					'rank'         => $application->professor_preference_rank,
-					'student_ufid' => $application->student_ufid,
+					'rank'           => $application->professor_preference_rank,
+					'application_id' => $application->application_id,
 				),
 				$ranked
 			),
@@ -491,11 +491,11 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	/**
 	 * The course with this id, if the caller teaches it.
 	 *
-	 * @param string $course_id Course section number from the request.
+	 * @param int $course_id Course ID from the request.
 	 * @return TAAS_Course|null Null if the course is missing or belongs to someone else.
 	 * @throws RuntimeException If the query fails.
 	 */
-	private function owned_course( string $course_id ): ?TAAS_Course {
+	private function owned_course( int $course_id ): ?TAAS_Course {
 		$ufid = $this->current_ufid();
 
 		if ( '' === $ufid ) {

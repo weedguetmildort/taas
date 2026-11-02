@@ -2,11 +2,14 @@
 /**
  * Local HTTP checks for the student page plugin and published page markup.
  *
- * Run: docker compose exec -T wordpress php /var/www/taas/tests/integration/student-pages.php
+ * Run: docker compose exec -T WordPress php /var/www/taas/tests/integration/student-pages.php
  * No application records or settings are changed.
  *
  * @package TAAS_Student_Pages
  */
+
+// phpcs:disable Squiz.Commenting.FunctionComment, Squiz.Commenting.FunctionCommentThrowTag, WordPress.Security.EscapeOutput, WordPress.DB.DirectDatabaseQuery, WordPress.WP.GlobalVariablesOverride, WordPress.PHP.YodaConditions, Universal.Operators.StrictComparisons
+// CLI checks intentionally use direct SQL, console diagnostics and JSON-semantic comparisons.
 
 if ( 'cli' !== PHP_SAPI ) {
 	exit( 1 );
@@ -16,7 +19,12 @@ if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development mode required.' );
 }
 
-/** Fail a check clearly. */
+/**
+ * Fail a check clearly.
+ *
+ * @param bool $condition Expected test condition.
+ * @param string $message Failure description.
+ */
 function taas_page_check( bool $condition, string $message ): void {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
@@ -24,7 +32,12 @@ function taas_page_check( bool $condition, string $message ): void {
 	echo 'PASS: ' . $message . PHP_EOL;
 }
 
-/** Access the local Apache container with the configured site's Host header. */
+/**
+ * Access the local Apache container with the configured site's Host header.
+ *
+ * @param string $path Submitted path value.
+ * @param array $headers Submitted headers value.
+ */
 function taas_page_get( string $path, array $headers = array() ) {
 	$site = wp_parse_url( home_url() );
 	$host = $site['host'] . ( isset( $site['port'] ) ? ':' . $site['port'] : '' );
@@ -32,7 +45,13 @@ function taas_page_get( string $path, array $headers = array() ) {
 		$url = wp_parse_url( $path );
 		$path = ( $url['path'] ?? '/' ) . ( isset( $url['query'] ) ? '?' . $url['query'] : '' );
 	}
-	$response = wp_remote_get( 'http://127.0.0.1' . $path, array( 'headers' => array( 'Host' => $host ) + $headers, 'redirection' => 0 ) );
+	$response = wp_remote_get(
+		'http://127.0.0.1' . $path,
+		array(
+			'headers'     => array( 'Host' => $host ) + $headers,
+			'redirection' => 0,
+		)
+	);
 	if ( is_wp_error( $response ) ) {
 		throw new RuntimeException( $response->get_error_message() );
 	}

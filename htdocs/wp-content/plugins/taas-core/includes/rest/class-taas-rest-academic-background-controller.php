@@ -31,7 +31,7 @@ final class TAAS_REST_Academic_Background_Controller extends TAAS_REST_Resource_
 	 * @return WP_REST_Response
 	 */
 	public function prepare_item_for_response( $item, $request ) {
-		$data               = $item->to_row();
+		$data               = $this->row_for_caller( $item );
 		$data['grad_label'] = $item->grad_label();
 
 		return new WP_REST_Response( $data );
