@@ -71,6 +71,7 @@ require_once TAAS_CORE_PATH . 'includes/rest/trait-taas-rest-term-params.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-status-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-me-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-cycle-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-matching-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-profile-controller.php';
@@ -86,11 +87,11 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
 require_once TAAS_CORE_PATH . 'includes/func-matching.php';
 
 TAAS_REST::init();
+TAAS_Stage_Gate::init();
 
 /**
  * Apply the database schema and any pending migrations
  *
-TAAS_Stage_Gate::init();
  * @return void
  */
 function taas_core_install(): void {

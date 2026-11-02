@@ -32,6 +32,7 @@ final class TAAS_REST {
 			new TAAS_REST_Status_Controller(),
 			new TAAS_REST_Me_Controller(),
 			new TAAS_REST_Application_Cycle_Controller(),
+			new TAAS_REST_Matching_Controller(),
 			new TAAS_REST_Professor_Controller(),
 			new TAAS_REST_Student_Controller(),
 			new TAAS_REST_Student_Profile_Controller(),
