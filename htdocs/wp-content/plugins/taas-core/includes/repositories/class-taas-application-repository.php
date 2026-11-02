@@ -54,11 +54,11 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	/**
 	 * Every application submitted for a course.
 	 *
-	 * @param string $course_id Course section number.
+	 * @param int $course_id Course ID.
 	 * @return TAAS_Application[]
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function find_by_course( string $course_id ): array {
+	public function find_by_course( int $course_id ): array {
 		return $this->find_by( 'applied_course_id', $course_id );
 	}
 
@@ -67,11 +67,11 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *
 	 * These are the applications a professor sees and may rank.
 	 *
-	 * @param string $course_id Course section number.
+	 * @param int $course_id Course ID.
 	 * @return TAAS_Application[]
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function find_active_by_course( string $course_id ): array {
+	public function find_active_by_course( int $course_id ): array {
 		return array_values(
 			array_filter(
 				$this->find_by_course( $course_id ),
@@ -87,7 +87,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * The profile is a LEFT JOIN, so a student without one still appears with
 	 * null major, gpa and enrollment_status.
 	 *
-	 * @param string $course_id Course section number.
+	 * @param int $course_id Course ID.
 	 * @return array<int, array{
 	 *     application_id: int,
 	 *     student_name: string,
@@ -100,7 +100,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * @throws RuntimeException If the query fails.
 	 * @throws UnexpectedValueException If a stored enrollment_status is not a known value.
 	 */
-	public function applicants_for_course( string $course_id ): array {
+	public function applicants_for_course( int $course_id ): array {
 		global $wpdb;
 
 		$rows = $this->select_rows(
@@ -110,7 +110,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 				. ' FROM %i a'
 				. ' INNER JOIN %i s ON s.student_ufid = a.student_ufid'
 				. ' LEFT JOIN %i p ON p.student_ufid = a.student_ufid'
-				. ' WHERE a.applied_course_id = %s AND a.match_status <> %d'
+				. ' WHERE a.applied_course_id = %d AND a.match_status <> %d'
 				. ' ORDER BY s.student_name, a.application_id',
 				$this->table(),
 				TAAS_Schema::table( 'students' ),
@@ -143,12 +143,12 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * Validate the ranking first (TAAS_Ranking::parse()) and call this inside
 	 * TAAS_Transaction::run() so a failure halfway cannot leave a partial ranking.
 	 *
-	 * @param string $course_id   Course section number.
-	 * @param int[]  $ordered_ids Application ids, best first; empty clears the ranking.
+	 * @param int   $course_id   Course ID.
+	 * @param int[] $ordered_ids Application ids, best first; empty clears the ranking.
 	 * @return void
 	 * @throws RuntimeException If an update fails.
 	 */
-	public function set_professor_ranks( string $course_id, array $ordered_ids ): void {
+	public function set_professor_ranks( int $course_id, array $ordered_ids ): void {
 		$this->update_where(
 			array( 'professor_preference_rank' => null ),
 			array( 'applied_course_id' => $course_id )

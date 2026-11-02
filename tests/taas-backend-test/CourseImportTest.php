@@ -24,7 +24,6 @@ class CourseImportTest extends TestCase {
 	 * Every header the importer knows, in the order the real spreadsheet uses
 	 */
 	private const HEADERS = array(
-		'Section',
 		'Prefix',
 		'Title',
 		'Semester',
@@ -123,7 +122,7 @@ class CourseImportTest extends TestCase {
 	 */
 	private static function course_fields(): array {
 		$fields = array(
-			self::field( 'course_id', 'varchar(20)' ),
+			self::field( 'course_id', 'bigint unsigned' ),
 			self::field( 'course_code', 'varchar(20)' ),
 			self::field( 'course_name', 'varchar(255)' ),
 			self::field( 'course_semester', 'tinyint unsigned' ),
@@ -174,7 +173,6 @@ class CourseImportTest extends TestCase {
 	 */
 	private static function row( array $overrides = array() ): array {
 		$row = array(
-			'Section'            => '12345',
 			'Prefix'             => 'COP3502',
 			'Title'              => 'Programming 1',
 			'Semester'           => 'Fall',
@@ -236,7 +234,7 @@ class CourseImportTest extends TestCase {
 		$this->assertCount( count( self::HEADERS ), $map );
 		$this->assertArrayNotHasKey( 0, $map );
 		$this->assertSame( 'professor_email', $map[1]['schema_field'] );
-		$this->assertSame( 'course_id', $map[13]['schema_field'] );
+		$this->assertSame( 'course_code', $map[12]['schema_field'] );
 	}
 
 	/**
@@ -269,6 +267,13 @@ class CourseImportTest extends TestCase {
 		$this->assertNull( taas_cast_cell( '3.5', $fields['enrollment'] ) );
 		$this->assertNull( taas_cast_cell( '2147483648', $fields['enrollment'] ) );
 
+		$this->assertSame( 2147483648, taas_cast_cell( '2147483648', $fields['course_id'] ) );
+		$this->assertSame( PHP_INT_MAX, taas_cast_cell( '9223372036854775807', $fields['course_id'] ) );
+		$this->assertNull( taas_cast_cell( '9223372036854775808', $fields['course_id'] ) );
+		$this->assertNull( taas_cast_cell( '-1', $fields['course_id'] ) );
+		$this->assertNull( taas_cast_cell( '3.5', $fields['course_id'] ) );
+		$this->assertSame( PHP_INT_MIN, taas_cast_cell( '-9223372036854775808', self::field( 'signed_id', 'bigint(20)' ) ) );
+
 		$this->assertSame( 2026, taas_cast_cell( '2026', $fields['course_year'] ) );
 		$this->assertNull( taas_cast_cell( '1900', $fields['course_year'] ) );
 
@@ -284,7 +289,6 @@ class CourseImportTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'course_id'          => '12345',
 				'course_code'        => 'COP3502',
 				'course_name'        => 'Programming 1',
 				'course_semester'    => 1,
@@ -370,19 +374,9 @@ class CourseImportTest extends TestCase {
 	public function test_import_saves_valid_rows_and_skips_bad_ones(): void {
 		$result = taas_import_courses(
 			$this->write_courses(
-				self::row( array( 'Section' => '1' ) ),
-				self::row(
-					array(
-						'Section' => '2',
-						'Year'    => 'next year',
-					)
-				),
-				self::row(
-					array(
-						'Section' => '3',
-						'GLID'    => 'someone@ufl.edu',
-					)
-				)
+				self::row(),
+				self::row( array( 'Year' => 'next year' ) ),
+				self::row( array( 'GLID' => 'someone@ufl.edu' ) )
 			)
 		);
 
@@ -411,9 +405,33 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * A Section seen again, in the database or later in the file, is replaced by the later row
+	 * A row differing in any one of term, year, code or name is a new course, with the id left to the database
 	 */
-	public function test_import_replaces_duplicate_section(): void {
+	public function test_import_inserts_course_differing_in_any_identifying_field(): void {
+		$result = taas_import_courses(
+			$this->write_courses(
+				self::row(),
+				self::row( array( 'Semester' => 'Spring' ) ),
+				self::row( array( 'Year' => '2027' ) ),
+				self::row( array( 'Prefix' => 'COP3503' ) ),
+				self::row( array( 'Title' => 'Programming 2' ) )
+			)
+		);
+
+		$this->assertSame( 5, $result['courses'] );
+		$this->assertSame( 0, $result['replaced'] );
+		$this->assertCount( 5, $this->db->writes );
+
+		foreach ( $this->db->writes as $write ) {
+			$this->assertArrayNotHasKey( 'where', $write );
+			$this->assertArrayNotHasKey( 'course_id', $write['data'] );
+		}
+	}
+
+	/**
+	 * A row matching an earlier one in the file on term, year, code and name replaces it
+	 */
+	public function test_import_replaces_matching_course_later_in_file(): void {
 		$result = taas_import_courses(
 			$this->write_courses(
 				self::row( array( 'Maximum Enrollment' => '200' ) ),
@@ -423,7 +441,21 @@ class CourseImportTest extends TestCase {
 
 		$this->assertSame( 1, $result['courses'] );
 		$this->assertSame( 1, $result['replaced'] );
-		$this->assertArrayHasKey( 'where', $this->db->writes[1] );
+		$this->assertSame( array( 'course_id' => 1 ), $this->db->writes[1]['where'] );
 		$this->assertSame( 250, $this->db->writes[1]['data']['max_enrollment'] );
+	}
+
+	/**
+	 * A row matching a course already in the database replaces it, keeping its id
+	 */
+	public function test_import_replaces_matching_course_in_database(): void {
+		$this->db->course_ids['1|2026|COP3502|Programming 1'] = '7';
+
+		$result = taas_import_courses( $this->write_courses( self::row() ) );
+
+		$this->assertSame( 0, $result['courses'] );
+		$this->assertSame( 1, $result['replaced'] );
+		$this->assertCount( 1, $this->db->writes );
+		$this->assertSame( array( 'course_id' => 7 ), $this->db->writes[0]['where'] );
 	}
 }

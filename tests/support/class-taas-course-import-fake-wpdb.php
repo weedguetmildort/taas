@@ -25,9 +25,9 @@ class TAAS_Course_Import_Fake_Wpdb extends TAAS_Fake_Wpdb {
 	public $professors = array();
 
 	/**
-	 * Course ids already in the database
+	 * Course ids in the database, keyed by "semester|year|code|name"
 	 *
-	 * @var string[]
+	 * @var array<string, string>
 	 */
 	public $course_ids = array();
 
@@ -67,15 +67,15 @@ class TAAS_Course_Import_Fake_Wpdb extends TAAS_Fake_Wpdb {
 			return null;
 		}
 
-		if ( preg_match( "/course_id = '(.*)'$/", $query, $match ) ) {
-			return in_array( $match[1], $this->course_ids, true ) ? '1' : null;
+		if ( preg_match( "/course_semester = (\d+) AND course_year = (\d+) AND course_code = '(.*)' AND course_name = '(.*)'$/", $query, $match ) ) {
+			return $this->course_ids[ implode( '|', array_slice( $match, 1 ) ) ] ?? null;
 		}
 
 		return null;
 	}
 
 	/**
-	 * Record the insert, and remember the course so a later row with the same Section replaces it
+	 * Record the insert, and remember the course so a later matching row replaces it
 	 *
 	 * @param string $table Table name.
 	 * @param array  $data  Column => value.
@@ -85,7 +85,9 @@ class TAAS_Course_Import_Fake_Wpdb extends TAAS_Fake_Wpdb {
 		$result = parent::insert( $table, $data );
 
 		if ( false !== $result ) {
-			$this->course_ids[] = (string) $data['course_id'];
+			$key = implode( '|', array( $data['course_semester'], $data['course_year'], $data['course_code'], $data['course_name'] ) );
+
+			$this->course_ids[ $key ] = (string) ( count( $this->course_ids ) + 1 );
 		}
 
 		return $result;
