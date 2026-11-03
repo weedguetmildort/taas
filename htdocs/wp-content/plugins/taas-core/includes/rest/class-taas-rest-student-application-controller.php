@@ -101,6 +101,12 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				$choices    = ( new TAAS_Application_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] );
 				$profile    = ( new TAAS_Student_Profile_Repository() )->find( $ufid );
 				$latest     = ( new TAAS_Student_Submission_Repository() )->latest_for_student( $ufid );
+				$exam_source = null !== $latest ? ( $latest->submitted_details['profile'] ?? array() ) : ( $profile?->to_row() ?? array() );
+				$exam_fields = array( 'toefl_ibt_score', 'toefl_ibt_date', 'speak_score', 'speak_date', 'english_test' );
+				$exam_results = array_intersect_key( $exam_source, array_flip( $exam_fields ) );
+				if ( ! $exam_results ) {
+					$exam_results = array_fill_keys( array_slice( $exam_fields, 0, 4 ), null );
+				}
 				$english_test = $latest?->submitted_details['profile']['english_test'] ?? null;
 				if ( null === $latest && null !== $profile ) {
 					$english_test = null !== $profile->toefl_ibt_score ? array(
@@ -122,6 +128,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 						'already_applied'     => null !== $submission || ! empty( $choices ),
 						'profile'             => $profile?->to_row(),
 						'english_test'        => $english_test,
+						'english_tests'       => $exam_results,
 						'academic_background' => array_map(
 							static fn( TAAS_Academic_Background $entry ) => $entry->to_row(),
 							( new TAAS_Academic_Background_Repository() )->find_by_student( $ufid )
@@ -223,7 +230,10 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 							'label'    => $semester->label() . ' ' . $year,
 						),
 						'details'            => $snapshot->submitted_details,
-						'identity'           => array( 'ufid' => $ufid ),
+						'identity'           => array(
+							'ufid'  => $ufid,
+							'email' => TAAS_Auth::current_user()['email'] ?? '',
+						),
 						'can_edit'           => TAAS_Student_Application_Service::can_edit( $semester, $year, $choices ),
 						'revision'           => TAAS_Student_Application_Service::revision( $snapshot, $choices ),
 						'courses'            => $courses,
@@ -302,8 +312,18 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 			return new WP_Error( 'taas_invalid_application', 'Send an application JSON object.', array( 'status' => 400 ) );
 		}
 		try {
+			$input = TAAS_Student_Application_Input::parse( $body, $editing );
+			$email = TAAS_Auth::current_user()['email'] ?? '';
+			if ( ! is_string( $email ) || ! is_email( $email ) || ! preg_match( '/@ufl\.edu$/i', $email ) ) {
+				return new WP_Error( 'taas_student_email_unavailable', 'Your authenticated university email is unavailable. Please contact the administrator.', array( 'status' => 403 ) );
+			}
+			if ( 0 !== strcasecmp( $input['details']['student_email'], $email ) ) {
+				return new WP_Error( 'taas_student_email_mismatch', 'Your email must match your authenticated university account. Reload the page before submitting.', array( 'status' => 400 ) );
+			}
+			// Use the authenticated value for both the shared identity and term snapshot.
+			$input['details']['student_email'] = $email;
 			return array(
-				'input'    => TAAS_Student_Application_Input::parse( $body, $editing ),
+				'input'    => $input,
 				'revision' => $revision,
 			);
 		} catch ( InvalidArgumentException $e ) {
@@ -329,6 +349,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				'match_status'         => (int) $row['match_status'],
 				'status_label'         => TAAS_Match_Status::from( (int) $row['match_status'] )->label(),
 				'has_completed_course' => (bool) $row['has_taken_course'],
+				'has_ta_for_course'    => (bool) $row['has_ta_for_course'],
 			),
 			$choices
 		);

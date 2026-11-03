@@ -16,7 +16,8 @@
     for (const [templateName, controlName, selector] of [
       ['row', 'selectedCourses', 'input[type="checkbox"]'],
       ['ranking', 'courseRank', 'select[required]:not([multiple])'],
-      ['ranking', 'courseHistory', 'select[required]:not([multiple])']
+      ['ranking', 'courseHistory', 'select[required]:not([multiple])'],
+      ['ranking', 'previouslyTA', 'input[type="checkbox"]']
     ]) {
       const root = templates.get(templateName).content.firstElementChild;
       const controls = root.querySelectorAll(`[name="${controlName}"]`);
@@ -66,7 +67,8 @@
       const entries = [...rankings.querySelectorAll('[data-course]')];
       return new Map(entries.map(entry => [entry.dataset.course, {
         rank: entry.querySelector('[name="courseRank"]').value,
-        history: entry.querySelector('[name="courseHistory"]').value
+        history: entry.querySelector('[name="courseHistory"]').value,
+        previouslyTA: entry.querySelector('[name="previouslyTA"]').checked
       }]));
     }
 
@@ -81,6 +83,7 @@
       const rank = entry.querySelector('[name="courseRank"]');
       const history = entry.querySelector('[name="courseHistory"]');
       restoreRankingControls(rank, history, old, selectedCount);
+      entry.querySelector('[name="previouslyTA"]').checked = old.previouslyTA === true;
       return entry;
     }
 
@@ -166,7 +169,8 @@
           if (!coursesById.has(choice.course_id)) missingChoices = true;
           savedChoices.set(choice.course_id, {
             rank: choice.rank === null ? '' : String(choice.rank),
-            history: choice.has_completed_course ? 'yes' : 'no'
+            history: choice.has_completed_course ? 'yes' : 'no',
+            previouslyTA: choice.has_ta_for_course === true
           });
         }
         renderCourses(savedChoices);
@@ -194,7 +198,8 @@
         return [...rankings.querySelectorAll('[data-course]')].map(entry => ({
           course_id: entry.dataset.course,
           rank: Number(entry.querySelector('[name="courseRank"]').value),
-          has_completed_course: true
+          has_completed_course: true,
+          has_ta_for_course: entry.querySelector('[name="previouslyTA"]').checked
         }));
       }
     };

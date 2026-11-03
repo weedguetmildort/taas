@@ -68,14 +68,16 @@ final class TAAS_Student_Application_Service {
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
 	 *             resume_url: ?string, additional_info: string,
-	 *             english_test: array{type: string, score: int|float}|null
+	 *             toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
+	 *             speak_score?: int|null, speak_date?: string|null,
+	 *             english_test?: array{type: string, score: int|float}|null
 	 *         },
 	 *         academic_background: list<array{
 	 *             university: string, major: string, minor: string,
 	 *             degree_type: int, grad_date: string, gpa: float|null
 	 *         }>
 	 *     },
-	 *     course_preferences: list<array{course_id: string, rank: int, has_completed_course: bool}>
+	 *     course_preferences: list<array{course_id: string, rank: int, has_completed_course: bool, has_ta_for_course: bool}>
 	 * } $input Normalized application input.
 	 * @return array{submission_id: int, already_saved: bool}
 	 * @throws DomainException If the term changed, closed, or was already applied for.
@@ -99,14 +101,16 @@ final class TAAS_Student_Application_Service {
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
 	 *             resume_url: ?string, additional_info: string,
-	 *             english_test: array{type: string, score: int|float}|null
+	 *             toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
+	 *             speak_score?: int|null, speak_date?: string|null,
+	 *             english_test?: array{type: string, score: int|float}|null
 	 *         },
 	 *         academic_background: list<array{
 	 *             university: string, major: string, minor: string,
 	 *             degree_type: int, grad_date: string, gpa: float|null
 	 *         }>
 	 *     },
-	 *     course_preferences: list<array{course_id: string, rank: int, has_completed_course: bool}>
+	 *     course_preferences: list<array{course_id: string, rank: int, has_completed_course: bool, has_ta_for_course: bool}>
 	 * } $input Validated application; zero choices withdraws all.
 	 * @return array{submission_id: int, revision: string}
 	 * @throws DomainException If the application changed, closed or is not editable.
@@ -197,7 +201,7 @@ final class TAAS_Student_Application_Service {
 
 				$this->save_details( $ufid, $details );
 				foreach ( $input['course_preferences'] as $preference ) {
-					$this->applications->insert( new TAAS_Application( null, $ufid, (int) $preference['course_id'], has_taken_course: true, student_preference_rank: $preference['rank'] ) );
+					$this->applications->insert( new TAAS_Application( null, $ufid, (int) $preference['course_id'], has_taken_course: true, has_ta_for_course: $preference['has_ta_for_course'], student_preference_rank: $preference['rank'] ) );
 				}
 				$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
 				return array(
@@ -238,7 +242,7 @@ final class TAAS_Student_Application_Service {
 				$previous_choices_by_course = array_column( $existing_choices, null, 'applied_course_id' );
 				$selected_ranks = $this->validate_preferences( $input['course_preferences'], $semester, $year, $previous_choices_by_course );
 
-				$this->save_choices( $ufid, $previous_choices_by_course, $selected_ranks );
+				$this->save_choices( $ufid, $previous_choices_by_course, $selected_ranks, array_column( $input['course_preferences'], 'has_ta_for_course', 'course_id' ) );
 				$this->save_details( $ufid, $details );
 				$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
 
@@ -273,6 +277,7 @@ final class TAAS_Student_Application_Service {
 				'course_id'            => $row['applied_course_id'],
 				'rank'                 => (int) $row['student_preference_rank'],
 				'has_completed_course' => (bool) $row['has_taken_course'],
+				'has_ta_for_course'    => (bool) $row['has_ta_for_course'],
 			),
 			$saved_choices
 		);
@@ -308,10 +313,10 @@ final class TAAS_Student_Application_Service {
 	/**
 	 * Validate course availability/reactivation and return course IDs mapped to ranks.
 	 *
-	 * @param list<array{course_id: string, rank: int, has_completed_course: bool}> $preferences Submitted course selections.
-	 * @param TAAS_Semester                                                         $semester Application semester.
-	 * @param int                                                                   $year Application year.
-	 * @param array<string|int, array<string, mixed>>                               $previous_choices Course ID to database row.
+	 * @param list<array{course_id: string, rank: int, has_completed_course: bool, has_ta_for_course: bool}> $preferences Submitted course selections.
+	 * @param TAAS_Semester                                                                                  $semester Application semester.
+	 * @param int                                                                                            $year Application year.
+	 * @param array<string|int, array<string, mixed>>                                                        $previous_choices Course ID to database row.
 	 * @return array<string|int, int> Course ID to submitted rank.
 	 * @throws DomainException If course availability or reactivation rules fail.
 	 */
@@ -341,18 +346,19 @@ final class TAAS_Student_Application_Service {
 	 * @param string                                  $ufid Verified authenticated owner.
 	 * @param array<string|int, array<string, mixed>> $previous_choices Course ID to database row.
 	 * @param array<string|int, int>                  $selected_ranks Course ID to submitted rank.
+	 * @param array<string|int, bool>                 $ta_experience Course ID to previous TA declaration.
 	 */
-	private function save_choices( string $ufid, array $previous_choices, array $selected_ranks ): void {
+	private function save_choices( string $ufid, array $previous_choices, array $selected_ranks, array $ta_experience ): void {
 		foreach ( $previous_choices as $course_id => $choice ) {
 			if ( array_key_exists( $course_id, $selected_ranks ) ) {
-				$this->applications->save_student_choice( $ufid, (int) $choice['application_id'], $selected_ranks[ $course_id ], TAAS_Match_Status::Pending );
+				$this->applications->save_student_choice( $ufid, (int) $choice['application_id'], $selected_ranks[ $course_id ], TAAS_Match_Status::Pending, $ta_experience[ $course_id ] );
 			} elseif ( TAAS_Match_Status::Pending->value === (int) $choice['match_status'] ) {
 				$this->applications->save_student_choice( $ufid, (int) $choice['application_id'], null, TAAS_Match_Status::Withdrawn );
 			}
 		}
 		foreach ( $selected_ranks as $course_id => $rank ) {
 			if ( ! isset( $previous_choices[ $course_id ] ) ) {
-				$this->applications->insert( new TAAS_Application( null, $ufid, (int) $course_id, has_taken_course: true, student_preference_rank: $rank ) );
+				$this->applications->insert( new TAAS_Application( null, $ufid, (int) $course_id, has_taken_course: true, has_ta_for_course: $ta_experience[ $course_id ], student_preference_rank: $rank ) );
 			}
 		}
 	}
@@ -367,16 +373,20 @@ final class TAAS_Student_Application_Service {
 		$previous_profile = $this->profiles->find( $ufid );
 		$profile_data = $details['profile'];
 		$current_degree = $details['academic_background'][0];
-		$english_test = $profile_data['english_test'];
-		// Selecting one test updates that result without deleting the other test.
-		// Not applicable is captured in the snapshot without erasing shared results.
-		$toefl_score = 'TOEFL' === ( $english_test['type'] ?? null ) ? $english_test['score'] : $previous_profile?->toefl_ibt_score;
-		$speak_score = 'SPEAK' === ( $english_test['type'] ?? null ) ? $english_test['score'] : $previous_profile?->speak_score;
-		// An unrelated form edit must not erase metadata for the same saved test.
-		$toefl_date = null !== $toefl_score && $previous_profile?->toefl_ibt_score === $toefl_score
-			? $previous_profile?->toefl_ibt_date : null;
-		$speak_date = null !== $speak_score && $previous_profile?->speak_score === $speak_score
-			? $previous_profile?->speak_date : null;
+		$exam_fields = $profile_data;
+		// Legacy requests update one test and preserve the other; new forms send both.
+		if ( array_key_exists( 'english_test', $profile_data ) ) {
+			$test = $profile_data['english_test'];
+			$exam_fields = null === $test ? array() : array( 'TOEFL' === $test['type'] ? 'toefl_ibt_score' : 'speak_score' => $test['score'] );
+		}
+		$toefl_score = array_key_exists( 'toefl_ibt_score', $exam_fields ) ? $exam_fields['toefl_ibt_score'] : $previous_profile?->toefl_ibt_score;
+		$speak_score = array_key_exists( 'speak_score', $exam_fields ) ? $exam_fields['speak_score'] : $previous_profile?->speak_score;
+		$toefl_date = array_key_exists( 'toefl_ibt_date', $exam_fields )
+			? TAAS_Cast::date_or_null( $exam_fields['toefl_ibt_date'] )
+			: ( null !== $toefl_score && $previous_profile?->toefl_ibt_score === $toefl_score ? $previous_profile?->toefl_ibt_date : null );
+		$speak_date = array_key_exists( 'speak_date', $exam_fields )
+			? TAAS_Cast::date_or_null( $exam_fields['speak_date'] )
+			: ( null !== $speak_score && $previous_profile?->speak_score === $speak_score ? $previous_profile?->speak_date : null );
 		$profile = new TAAS_Student_Profile(
 			student_ufid: $ufid,
 			phone: $profile_data['phone'],

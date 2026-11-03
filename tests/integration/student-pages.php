@@ -65,6 +65,7 @@ taas_page_check( str_contains( $html, 'TAASStudentApplication' ) && str_contains
 taas_page_check( ! str_contains( $html, 'assets/student-application-edit.js' ), 'Initial application page does not load the edit coordinator' );
 taas_page_check( ! str_contains( $html, 'sample_courses' ) && ! str_contains( $html, '/your-plugin/' ), 'Published page contains no sample courses or placeholder endpoint' );
 taas_page_check( str_contains( $html, 'name="ufid" readonly' ), 'Verified UFID control is read-only' );
+taas_page_check( str_contains( $html, 'name="ufEmail" readonly' ), 'Authenticated email control is read-only' );
 taas_page_check( str_contains( $html, 'name="resumeUrl" type="url"' ) && ! str_contains( $html, 'type="file"' ), 'Resume URL replaces file upload' );
 taas_page_check( str_contains( $html, 'degree-entry-template' ) && str_contains( $html, 'gpa_unavailable' ) && str_contains( $html, '<dialog' ), 'Repeated-degree, optional-GPA and success-dialog markup is published' );
 preg_match( '/window\.TAASStudentApplication = (\{[^\n]+\});/', $html, $match );
@@ -78,11 +79,22 @@ taas_page_check( $expected_status === wp_remote_retrieve_response_code( $api ) &
 $status_page = taas_page_get( add_query_arg( 'taas_role', 'student', TAAS_Pages::url( 'check-application-status' ) ) );
 taas_page_check( 200 === wp_remote_retrieve_response_code( $status_page ), 'Student can load status page over HTTP' );
 $status_html = wp_remote_retrieve_body( $status_page );
+taas_page_check( str_contains( $status_html, 'name="ufEmail" readonly' ), 'Saved application email control is read-only' );
+foreach ( array(
+	'application' => $html,
+	'status'      => $status_html,
+) as $name => $markup ) {
+	foreach ( array( 'toeflScore', 'toeflDate', 'speakScore', 'speakDate' ) as $field ) {
+		preg_match( '/<input\b[^>]*name="' . $field . '"[^>]*>/', $markup, $exam_input );
+		taas_page_check( ! empty( $exam_input ) && ! preg_match( '/\brequired\b/', $exam_input[0] ), $name . ' page includes optional ' . $field );
+	}
+	taas_page_check( ! str_contains( $markup, 'name="englishScore"' ), $name . ' page replaces the single-test dropdown' );
+}
 taas_page_check( str_contains( $status_html, 'assets/student-application-edit.js' ) && ! str_contains( $status_html, 'assets/student-application.js' ), 'Status page loads only the edit coordinator' );
 taas_page_check( strpos( $status_html, 'assets/student-application-edit.js' ) < strpos( $status_html, 'assets/check-application-status.js' ), 'Edit coordinator loads before the status controller' );
 taas_page_check( str_contains( $status_html, 'assets/check-application-status.js' ) && str_contains( $status_html, 'TAASStudentStatus' ), 'Status page loads its own controller and endpoint configuration' );
 taas_page_check( str_contains( $status_html, 'id="status-term"' ) && str_contains( $status_html, 'id="status-course-rows"' ), 'Approved term selector and course-status table are published' );
-taas_page_check( str_contains( $status_html, 'name="studentName"' ) && str_contains( $status_html, 'Submit Changes' ) && ! str_contains( $status_html, '{{' ), 'Saved-details editor uses the shared rendered form without guessing name parts' );
+taas_page_check( str_contains( $status_html, 'name="firstName"' ) && str_contains( $status_html, 'name="lastName"' ) && ! str_contains( $status_html, 'name="studentName"' ) && str_contains( $status_html, 'Submit Changes' ) && ! str_contains( $status_html, '{{' ), 'Saved-details editor uses separate first and last name fields' );
 taas_page_check( substr_count( $status_html, 'id="student-application-form"' ) === 1 && substr_count( $status_html, 'id="application-term"' ) === 1, 'Status page has a single editor with unique form IDs' );
 taas_page_check( ! str_contains( $status_html, '/student-profile/' ) && ! str_contains( $status_html, 'Placeholder Application' ), 'Old fake statuses and edit redirects are removed' );
 preg_match( '/window\.TAASStudentStatus = (\{[^\n]+\});/', $status_html, $status_match );
@@ -126,18 +138,6 @@ if ( ! is_wp_error( $home_state ) && $home_state['already_applied'] ) {
 }
 $home_content = get_post_field( 'post_content', TAAS_Pages::id( 'front-page' ) );
 taas_page_check( str_starts_with( $home_content, '<!-- wp:html -->' ) && ! str_contains( $home_content, '<!-- wp:taas/' ), 'Homepage HTML is editable in the modern editor without custom blocks' );
-
-// Frontend file edits must not silently overwrite saved WordPress content.
-$source_path = TAAS_CORE_PATH . 'pages/student-application.html';
-$original_source = file_get_contents( $source_path );
-$marker = 'taas-source-' . bin2hex( random_bytes( 6 ) );
-try {
-	file_put_contents( $source_path, $original_source . '<span hidden data-source-check="' . $marker . '"></span>' );
-	$fresh = taas_page_get( add_query_arg( 'taas_role', 'student', TAAS_Pages::url( 'student-application' ) ) );
-	taas_page_check( 200 === wp_remote_retrieve_response_code( $fresh ) && ! str_contains( wp_remote_retrieve_body( $fresh ), $marker ), 'HTML file edits require an explicit import; WordPress remains authoritative' );
-} finally {
-	file_put_contents( $source_path, $original_source );
-}
 
 // Shared template edits must change the installer's fingerprint too.
 $temporary = sys_get_temp_dir() . '/taas-shared-form-' . bin2hex( random_bytes( 6 ) );

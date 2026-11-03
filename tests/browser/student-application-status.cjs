@@ -16,7 +16,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     });
     const fixture = {
       submission_id: 123, term: { semester: 1, year: 2155, label: 'Fall 2155' },
-      identity: { ufid: '12345678' }, can_edit: false, revision: 'a'.repeat(64),
+      identity: { ufid: '12345678', email: 'saved@ufl.edu' }, can_edit: false, revision: 'a'.repeat(64),
       details: {
         student_name: 'Saved student', student_email: 'saved@ufl.edu',
         profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, english_test: null },
@@ -78,14 +78,11 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
 
     fixture.details.profile.english_test = { type: 'SPEAK', score: 42 };
     await page.evaluate(data => window.TAASStudentApplicationForm.open(data, '/fixture-only'), fixture);
-    assert.equal(await page.locator('[name="englishScore"]').inputValue(), 'SPEAK-42');
-    assert.equal(await page.locator('[name="englishScore"] [data-saved-score]').count(), 1);
+    assert.equal(await page.locator('[name="speakScore"]').inputValue(), '42');
     fixture.details.profile.english_test = null;
     await page.evaluate(data => window.TAASStudentApplicationForm.open(data, '/fixture-only'), fixture);
-    assert.equal(await page.locator('[name="englishScore"] [data-saved-score]').count(), 0);
-    assert.equal(await page.locator('[name="englishScore"]').inputValue(), '');
-    assert.equal(await page.locator('[name="englishScore"] option[value="SPEAK-45"]').count(), 1);
-    console.log('PASS: Generated historical English-score options are cleared on the next prefill; preset options remain');
+    assert.equal(await page.locator('[name="speakScore"]').inputValue(), '');
+    console.log('PASS: Legacy SPEAK scores prefill into the separate field and clear on the next snapshot');
 
     fixture.can_edit = true;
     fixture.course_preferences = [

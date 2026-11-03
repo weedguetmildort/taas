@@ -99,7 +99,7 @@
     function showSaved(data) {
       prefill({
         ...data, ...data.details,
-        identity: { ufid: data.identity.ufid, email: data.details.student_email }
+        identity: { ufid: data.identity.ufid, email: data.can_edit ? data.identity.email : data.details.student_email }
       });
       setTerm(data.term.label);
       if (courses.hasMissingChoices()) {

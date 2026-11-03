@@ -133,6 +133,37 @@ try {
 				'Not applicable preserves both shared English results and dates'
 			);
 			taas_profile_check( null === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 )->submitted_details['profile']['english_test'], 'Not applicable is stored explicitly as null in the term snapshot' );
+			unset( $body['details']['profile']['english_test'] );
+			$exam_fields = array(
+				'toefl_ibt_score' => 5.5,
+				'toefl_ibt_date'  => '2026-02-10',
+				'speak_score'     => 45,
+				'speak_date'      => '2026-03-11',
+			);
+			$body['details']['profile'] += $exam_fields;
+			$save( $body );
+			$stored = $profiles->find( $owner )->to_row();
+			$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
+			foreach ( $exam_fields as $key => $value ) {
+				taas_profile_check( $value === $stored[ $key ] && $value === $snapshot->submitted_details['profile'][ $key ], 'Both exam results are stored in the shared profile and snapshot: ' . $key );
+			}
+			$other_details = $snapshot->submitted_details;
+			$submissions->save_for_term( $owner, TAAS_Semester::Spring, 2155, $other_details );
+			$body['details']['profile']['toefl_ibt_score'] = 0;
+			$body['details']['profile']['toefl_ibt_date'] = null;
+			$body['details']['profile']['speak_score'] = null;
+			$save( $body );
+			taas_profile_check( 0.0 === $profiles->find( $owner )->toefl_ibt_score && null === $profiles->find( $owner )->toefl_ibt_date && null === $profiles->find( $owner )->speak_score && '2026-03-11' === $profiles->find( $owner )->speak_date?->format( 'Y-m-d' ), 'Score-only and date-only results are supported; zero remains a real score' );
+			foreach ( array_keys( $exam_fields ) as $key ) {
+				$body['details']['profile'][ $key ] = null;
+			}
+			$save( $body );
+			$stored = $profiles->find( $owner )->to_row();
+			$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
+			foreach ( array_keys( $exam_fields ) as $key ) {
+				taas_profile_check( null === $stored[ $key ] && null === $snapshot->submitted_details['profile'][ $key ], 'Clearing removes the current profile and snapshot value: ' . $key );
+			}
+			taas_profile_check( $other_details === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Spring, 2155 )->submitted_details, 'Clearing scores and dates preserves other terms completely' );
 			$body['details']['academic_background'][0]['major'] = 'Computer Engineering';
 			$body['details']['academic_background'][0]['gpa'] = null;
 			$save( $body );

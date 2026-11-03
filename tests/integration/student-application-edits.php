@@ -101,7 +101,7 @@ try {
 				),
 				'details'            => array(
 					'student_name'        => 'Edit verification',
-					'student_email'       => 'edit.student@ufl.edu',
+					'student_email'       => TAAS_Auth::current_user()['email'],
 					'profile'             => array(
 						'phone'             => '3525550100',
 						'country_code'      => 'US',
@@ -110,6 +110,10 @@ try {
 						'enrollment_status' => 2,
 						'eap5836_status'    => 1,
 						'eap5837_status'    => 4,
+						'toefl_ibt_score'   => 5.5,
+						'toefl_ibt_date'    => '2026-02-10',
+						'speak_score'       => 45,
+						'speak_date'        => '2026-03-11',
 					),
 					'academic_background' => array(
 						array(
@@ -126,15 +130,19 @@ try {
 						'course_id'            => $ids['A'],
 						'rank'                 => 1,
 						'has_completed_course' => true,
+						'has_ta_for_course'    => true,
 					),
 					array(
 						'course_id'            => $ids['B'],
 						'rank'                 => 2,
 						'has_completed_course' => true,
+						'has_ta_for_course'    => true,
 					),
 				),
 			);
 			taas_edit_check( 201 === taas_edit_request( 'POST', '/student/application', $body )->get_status(), 'Fixture initial application created' );
+			$exam_prefill = taas_edit_request( 'GET', '/student/application' )->get_data()['english_tests'];
+			taas_edit_check( 5.5 === $exam_prefill['toefl_ibt_score'] && 45 === $exam_prefill['speak_score'] && '2026-02-10' === $exam_prefill['toefl_ibt_date'] && '2026-03-11' === $exam_prefill['speak_date'], 'Initial REST submission preserves both exams and dates for prefilling' );
 			$old_term = array(
 				'student_name' => 'Prior term',
 				'profile'      => array( 'available_hours' => 5 ),
@@ -242,17 +250,30 @@ try {
 			$read = taas_edit_request( 'GET', $route )->get_data();
 			$edit = $body;
 			$edit['revision'] = $read['revision'];
+			$forged_email = $edit;
+			$forged_email['details']['student_email'] = 'professor@ufl.edu';
+			foreach ( array( 'POST', 'PATCH', 'PUT' ) as $method ) {
+				$rejected = taas_edit_request( $method, $route, $forged_email );
+				taas_edit_check( 400 === $rejected->get_status() && 'taas_student_email_mismatch' === $rejected->get_data()['code'], $method . ' edit rejects another university email' );
+			}
+			taas_edit_check( $read['revision'] === taas_edit_request( 'GET', $route )->get_data()['revision'], 'Rejected email edits preserve the saved application' );
 			$edit['details']['profile']['available_hours'] = 20;
+			$edit['details']['profile']['toefl_ibt_date'] = null;
+			$edit['details']['profile']['speak_score'] = null;
+			$edit['details']['profile']['speak_date'] = null;
+			$edit['details']['profile']['enrollment_status'] = 1;
 			$edit['course_preferences'] = array(
 				array(
 					'course_id'            => $ids['B'],
 					'rank'                 => 1,
 					'has_completed_course' => true,
+					'has_ta_for_course'    => false,
 				),
 				array(
 					'course_id'            => $ids['C'],
 					'rank'                 => 2,
 					'has_completed_course' => true,
+					'has_ta_for_course'    => true,
 				),
 			);
 			$invalid_country = $edit;
@@ -270,7 +291,14 @@ try {
 			taas_edit_check( (int) $by_id[ $ids['A'] ]['match_status'] === 4 && $by_id[ $ids['A'] ]['application_id'] === $original_ids[ $ids['A'] ], 'Removed pending course is retained as withdrawn' );
 			taas_edit_check( (int) $by_id[ $ids['B'] ]['student_preference_rank'] === 1 && (int) $by_id[ $ids['B'] ]['professor_preference_rank'] === 2, 'Student ranking update preserves professor ranking' );
 			taas_edit_check( (int) $by_id[ $ids['C'] ]['match_status'] === 1, 'Added course starts pending' );
+			taas_edit_check( (int) $by_id[ $ids['A'] ]['has_ta_for_course'] === 1 && (int) $by_id[ $ids['B'] ]['has_ta_for_course'] === 0 && (int) $by_id[ $ids['C'] ]['has_ta_for_course'] === 1, 'Edits clear or set TA declarations per course and preserve withdrawn declarations' );
+			$returned = array_column( taas_edit_request( 'GET', $route )->get_data()['course_preferences'], 'has_ta_for_course', 'course_id' );
+			taas_edit_check( false === $returned[ $ids['B'] ] && true === $returned[ $ids['C'] ], 'Saved course TA declarations are returned for editing' );
 			taas_edit_check( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] )->submitted_details['profile']['available_hours'] === 20, 'Same-term snapshot is replaced' );
+			taas_edit_check( TAAS_Enrollment_Status::Undergraduate === $repos['profiles']->find( $owner )->enrollment_status && 1 === taas_edit_request( 'GET', $route )->get_data()['details']['profile']['enrollment_status'], 'Undergraduate edits update both the shared profile and term snapshot' );
+			$exam_profile = $repos['profiles']->find( $owner );
+			$exam_snapshot = taas_edit_request( 'GET', $route )->get_data()['details']['profile'];
+			taas_edit_check( null === $exam_profile->toefl_ibt_date && null === $exam_profile->speak_score && null === $exam_profile->speak_date && 5.5 === $exam_profile->toefl_ibt_score && null === $exam_snapshot['speak_score'], 'REST edits clear exam fields from both shared profile and snapshot' );
 			taas_edit_check( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Spring, $period['year'] )->submitted_details == $old_term, 'Other term snapshot is preserved' );
 			taas_edit_check( 409 === taas_edit_request( 'POST', $route, $edit )->get_status(), 'Stale loaded version cannot overwrite newer saved edits' );
 			$withdraw = $edit;
@@ -279,6 +307,7 @@ try {
 			taas_edit_check( 200 === taas_edit_request( 'POST', $route, $withdraw )->get_status(), 'Empty selection withdraws every course' );
 			$rows = $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] );
 			taas_edit_check( count( $rows ) === 3 && count( array_filter( $rows, static fn( array $row ) => (int) $row['match_status'] === 4 ) ) === 3, 'Withdrawing all keeps all original records' );
+			taas_edit_check( 2 === count( array_filter( $rows, static fn( array $row ) => (bool) $row['has_ta_for_course'] ) ), 'Withdrawing all preserves existing per-course TA declarations' );
 			$reactivate = $edit;
 			$reactivate['revision'] = taas_edit_request( 'GET', $route )->get_data()['revision'];
 			$reactivate['course_preferences'] = array(
@@ -292,6 +321,7 @@ try {
 			$rows = $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] );
 			$by_id = array_column( $rows, null, 'applied_course_id' );
 			taas_edit_check( $by_id[ $ids['A'] ]['application_id'] === $original_ids[ $ids['A'] ] && (int) $by_id[ $ids['A'] ]['match_status'] === 1, 'Reactivation reuses the same course application ID' );
+			taas_edit_check( 0 === (int) $by_id[ $ids['A'] ]['has_ta_for_course'], 'Reactivation stores the newly submitted TA declaration' );
 			$reactivate['revision'] = taas_edit_request( 'GET', $route )->get_data()['revision'];
 			$blocked = $reactivate;
 			$blocked['course_preferences'][0]['course_id'] = $ids['B'];

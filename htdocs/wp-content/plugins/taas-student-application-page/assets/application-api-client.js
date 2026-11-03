@@ -22,6 +22,10 @@
   const optionalNumber = value => value == null || (typeof value === 'number' && Number.isFinite(value));
   const validEnglishTest = value => value == null || (isRecord(value) && isText(value.type)
     && typeof value.score === 'number' && Number.isFinite(value.score));
+  const validExamResults = value => value == null || (isRecord(value)
+    && ['toefl_ibt_score', 'speak_score'].every(key => optionalNumber(value[key]))
+    && ['toefl_ibt_date', 'speak_date'].every(key => value[key] == null || (isText(value[key]) && /^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}$/.test(value[key])))
+    && validEnglishTest(value.english_test));
 
   function validInitialResponse(data) {
     if (!isRecord(data) || !isRecord(data.period) || !isRecord(data.identity)) return false;
@@ -36,7 +40,7 @@
       && ['phone', 'admitted_semester', 'resume_url', 'additional_info'].every(key => optionalText(profile[key]))
       && (profile.country_code == null || (isText(profile.country_code) && /^[a-z]{2}$/i.test(profile.country_code)))
       && ['available_hours', 'enrollment_status', 'eap5836_status', 'eap5837_status', 'toefl_ibt_score', 'speak_score'].every(key => optionalNumber(profile[key]))
-      && validEnglishTest(profile.english_test));
+      && validExamResults(profile));
     const validCourses = Array.isArray(data.courses) && data.courses.every(course => isRecord(course)
       && isText(course.course_id) && course.course_id.length > 0
       && isText(course.course_code) && isText(course.course_name) && optionalText(course.instructor_name));
@@ -46,7 +50,7 @@
       && isText(degree.grad_date) && /^[1-9][0-9]{3}-(0[1-9]|1[0-2])-01$/.test(degree.grad_date)
       && optionalNumber(degree.gpa) && (degree.gpa == null || (degree.gpa >= 0 && degree.gpa <= 4)));
     return validPeriod && validIdentity && validProfile && validCourses && validDegrees
-      && typeof data.already_applied === 'boolean' && validEnglishTest(data.english_test);
+      && typeof data.already_applied === 'boolean' && validEnglishTest(data.english_test) && validExamResults(data.english_tests);
   }
 
   student.createApplicationApi = ({ nonce, timeoutMs = 30000, messages = {} } = {}) => {

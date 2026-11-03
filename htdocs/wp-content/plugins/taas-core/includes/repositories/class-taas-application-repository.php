@@ -63,17 +63,21 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 * @param int               $application_id Owned application ID.
 	 * @param int|null          $rank Student rank; null retains the previous rank.
 	 * @param TAAS_Match_Status $status Pending or Withdrawn.
+	 * @param bool|null         $has_ta_for_course Previous TA declaration; null preserves it.
 	 * @return void
 	 * @throws InvalidArgumentException If validation fails.
 	 * @throws RuntimeException If a database operation fails.
 	 */
-	public function save_student_choice( string $student_ufid, int $application_id, ?int $rank, TAAS_Match_Status $status ): void {
+	public function save_student_choice( string $student_ufid, int $application_id, ?int $rank, TAAS_Match_Status $status, ?bool $has_ta_for_course = null ): void {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
 		TAAS_Guard::rank( 'student_preference_rank', $rank );
 		if ( ! in_array( $status, array( TAAS_Match_Status::Pending, TAAS_Match_Status::Withdrawn ), true ) ) {
 			throw new InvalidArgumentException( 'Unsupported student status transition.' );
 		}
 		$data = array( 'match_status' => $status->value );
+		if ( null !== $has_ta_for_course ) {
+			$data['has_ta_for_course'] = $has_ta_for_course ? 1 : 0;
+		}
 		if ( null !== $rank ) {
 			$data['student_preference_rank'] = $rank;
 			$data['has_taken_course']        = 1;

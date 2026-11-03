@@ -2,8 +2,7 @@
 (() => {
   'use strict';
   const student = window.TAASStudent = window.TAASStudent || {};
-  // TODO: Confirm enabling Undergraduate (main value 1); generic Graduate remains unmapped.
-  const PROGRAMS = { masters: 2, phd: 3 };
+  const PROGRAMS = { undergraduate: 1, masters: 2, phd: 3 };
   const EAP_STATUSES = { uf_taken: 1, other_university: 2, currently_taking: 3, not_taken: 4 };
   const keyForValue = (mapping, value) => Object.keys(mapping).find(key => mapping[key] === value) || '';
 
@@ -18,13 +17,12 @@
     'TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW',
   ].join(' ').split(' ');
 
-  function findInputs(form, editing) {
+  function findInputs(form) {
     const required = [
       'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone',
-      'eap5836Status', 'eap5837Status', 'taHours',
-      ...(editing ? ['studentName'] : ['firstName', 'lastName'])
+      'eap5836Status', 'eap5837Status', 'taHours', 'firstName', 'lastName'
     ];
-    const optional = ['ufid', 'englishScore', 'additionalInfo', 'resumeUrl'];
+    const optional = ['ufid', 'toeflScore', 'toeflDate', 'speakScore', 'speakDate', 'additionalInfo', 'resumeUrl'];
     const inputs = {};
     for (const name of [...required, ...optional]) {
       const matches = [...form.elements].filter(input => input.name === name);
@@ -52,8 +50,8 @@
   }
 
   student.createApplicationFields = (form, { editing }) => {
-    const inputs = findInputs(form, editing);
-    const nameInputs = editing ? [inputs.studentName] : [inputs.firstName, inputs.lastName];
+    const inputs = findInputs(form);
+    const nameInputs = [inputs.firstName, inputs.lastName];
     const nameErrorInput = nameInputs[nameInputs.length - 1];
     // Optional controls can be omitted. Preserve their saved values when editing.
     const savedOptional = {};
@@ -81,29 +79,19 @@
       select.value = value || '';
     }
 
-    function prefillEnglishTest(test) {
-      const select = inputs.englishScore;
-      const value = test ? `${test.type}-${test.score}` : '';
-      if (!select) {
-        savedOptional.englishScore = value;
-        return;
-      }
-      if (select.tagName !== 'SELECT') {
-        select.value = value;
-        return;
-      }
-      select.querySelectorAll('[data-saved-score]').forEach(option => option.remove());
-      select.value = '';
-      if (!test) return;
-      const preset = [...select.options].find(option => option.value.startsWith(`${test.type}-`) && Number(option.value.split('-')[1]) === test.score);
-      if (preset) {
-        select.value = preset.value;
-      } else {
-        const saved = new Option(`${value} (saved)`, value);
-        saved.dataset.savedScore = 'true';
-        select.append(saved);
-        select.value = saved.value;
-      }
+    function prefillExamResults(data, profile) {
+      const source = data.english_tests || (Object.hasOwn(data, 'english_test') ? { english_test: data.english_test } : profile);
+      const legacy = source.english_test;
+      const fields = ['toefl_ibt_score', 'toefl_ibt_date', 'speak_score', 'speak_date'];
+      const separate = fields.some(key => Object.hasOwn(source, key));
+      const values = separate ? source : {
+        toefl_ibt_score: legacy?.type === 'TOEFL' ? legacy.score : null,
+        speak_score: legacy?.type === 'SPEAK' ? legacy.score : null
+      };
+      setValue('toeflScore', values.toefl_ibt_score ?? '');
+      setValue('toeflDate', values.toefl_ibt_date ?? '');
+      setValue('speakScore', values.speak_score ?? '');
+      setValue('speakDate', values.speak_date ?? '');
     }
 
     function prefill(data) {
@@ -119,19 +107,20 @@
         resumeUrl: profile.resume_url || '',
         additionalInfo: profile.additional_info || ''
       };
-      if (editing) values.studentName = data.student_name || '';
+      if (editing) {
+        // Only a full name is stored; students can correct this provisional split.
+        const parts = (data.student_name || '').trim().split(/\s+/);
+        values.firstName = parts.shift();
+        values.lastName = parts.join(' ');
+      }
       Object.entries(values).forEach(([name, value]) => setValue(name, value));
 
       inputs.countryOfOrigin.value = profile.country_code && countryNames ? countryNames.of(profile.country_code.toUpperCase()) : profile.country_code || '';
       inputs.collegeStatus.value = keyForValue(PROGRAMS, profile.enrollment_status);
       inputs.eap5836Status.value = keyForValue(EAP_STATUSES, profile.eap5836_status);
       inputs.eap5837Status.value = keyForValue(EAP_STATUSES, profile.eap5837_status);
-      const legacyTest = profile.toefl_ibt_score != null ? { type: 'TOEFL', score: profile.toefl_ibt_score }
-        : profile.speak_score != null ? { type: 'SPEAK', score: profile.speak_score } : null;
       prefillAdmissionSemester(profile.admitted_semester);
-      const englishTest = Object.hasOwn(data, 'english_test') ? data.english_test
-        : Object.hasOwn(profile, 'english_test') ? profile.english_test : legacyTest;
-      prefillEnglishTest(englishTest);
+      prefillExamResults(data, profile);
     }
 
     function validateIdentity() {
@@ -154,7 +143,7 @@
       const values = new FormData(form);
       // FormData omits disabled controls; retain their displayed values too.
       const read = name => String(values.get(name) ?? inputs[name]?.value ?? savedOptional[name] ?? '').trim();
-      const score = read('englishScore').split('-');
+      const score = name => read(name) === '' ? null : Number(read(name));
       return {
         student_name: name,
         student_email: read('ufEmail'),
@@ -167,7 +156,10 @@
           eap5836_status: EAP_STATUSES[read('eap5836Status')],
           eap5837_status: EAP_STATUSES[read('eap5837Status')],
           resume_url: read('resumeUrl') || null,
-          english_test: score[0] ? { type: score[0], score: Number(score[1]) } : null,
+          toefl_ibt_score: score('toeflScore'),
+          toefl_ibt_date: read('toeflDate') || null,
+          speak_score: score('speakScore'),
+          speak_date: read('speakDate') || null,
           additional_info: read('additionalInfo')
         }
       };

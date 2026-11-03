@@ -1,6 +1,6 @@
 <?php
 /**
- * Non-browser checks for plain HTML and WordPress-owned student pages.
+ * Non-browser checks for plain HTML and editable, file-synced student pages.
  *
  * @package TAAS_Tests
  */
@@ -35,7 +35,7 @@ foreach ( array( 'student-application', 'check-application-status' ) as $slug ) 
 	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- DOMDocument uses an HTML4 parser; HTML5 template elements produce expected parser warnings.
 	@$dom->loadHTML( $html );
 	$xpath = new DOMXPath( $dom );
-	foreach ( array( 'ufid', 'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone', 'eap5836Status', 'eap5837Status', 'taHours', 'englishScore', 'additionalInfo', 'resumeUrl' ) as $name ) {
+	foreach ( array( 'ufid', 'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone', 'eap5836Status', 'eap5837Status', 'taHours', 'toeflScore', 'toeflDate', 'speakScore', 'speakDate', 'additionalInfo', 'resumeUrl' ) as $name ) {
 		taas_editor_check( 1 === $xpath->query( '//form//*[@name="' . $name . '"]' )->length, $slug . ' retains ' . $name . ' inside the form' );
 	}
 }
@@ -56,13 +56,13 @@ try {
 		$wpdb->update( $wpdb->posts, array( 'post_content' => '<!-- wp:paragraph --><p>Editor preservation fixture</p><!-- /wp:paragraph -->' ), array( 'ID' => $id ) );
 		clean_post_cache( $id );
 	}
-	TAAS_Pages::sync_content();
-	foreach ( $ids as $id ) {
-		taas_editor_check( str_contains( get_post_field( 'post_content', $id ), 'Editor preservation fixture' ), 'Automatic sync preserves WordPress edits on page ' . $id );
-	}
 	TAAS_Pages::sync_content( true, array( 'student-application' ) );
 	taas_editor_check( trim( do_blocks( get_post_field( 'post_content', $ids[0] ) ) ) === trim( file_get_contents( TAAS_CORE_PATH . 'pages/student-application.html' ) ), 'Explicit import can restore the selected source page' );
 	taas_editor_check( str_contains( get_post_field( 'post_content', $ids[1] ), 'Editor preservation fixture' ) && str_contains( get_post_field( 'post_content', $ids[2] ), 'Editor preservation fixture' ), 'Explicit import leaves other WordPress pages untouched' );
+	TAAS_Pages::sync_content();
+	foreach ( array( 'student-application', 'check-application-status', 'front-page' ) as $slug ) {
+		taas_editor_check( trim( do_blocks( get_post_field( 'post_content', TAAS_Pages::id( $slug ) ) ) ) === trim( file_get_contents( TAAS_CORE_PATH . 'pages/' . $slug . '.html' ) ), 'Automatic sync imports HTML over WordPress edits for ' . $slug );
+	}
 } finally {
 	$wpdb->query( 'ROLLBACK' );
 	foreach ( $ids as $id ) {

@@ -245,12 +245,12 @@ class TAAS_Pages {
 	}
 
 	/**
-	 * Sync repository-owned pages while preserving editable student pages.
+	 * Sync managed pages from their repository HTML files.
 	 *
-	 * Student source files seed new pages. Saved WordPress content is authoritative
-	 * after that; replacing it requires an explicit import.
+	 * Pages remain editable in WordPress, but syncing replaces saved content
+	 * with the corresponding HTML file, including student pages.
 	 *
-	 * @param bool     $force Explicitly import source, including editable student pages.
+	 * @param bool     $force Require administrator access outside local development.
 	 * @param string[] $slugs Optional subset to import.
 	 * @return int Number of pages updated
 	 */
@@ -262,9 +262,6 @@ class TAAS_Pages {
 
 		foreach ( array_keys( self::definitions() ) as $slug ) {
 			if ( $slugs && ! in_array( $slug, $slugs, true ) ) {
-				continue;
-			}
-			if ( ! $force && in_array( $slug, array( 'front-page', 'student-application', 'check-application-status' ), true ) ) {
 				continue;
 			}
 			$existing = get_page_by_path( $slug, OBJECT, 'page' );

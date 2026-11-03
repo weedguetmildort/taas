@@ -144,6 +144,47 @@ foreach ( array(
 }
 echo "PASS: English score types, decimal precision and storage boundaries\n";
 
+$exam_fields = array(
+	'toefl_ibt_score' => 5.5,
+	'toefl_ibt_date'  => '2026-02-10',
+	'speak_score'     => 45,
+	'speak_date'      => '2026-03-11',
+);
+$request = $body;
+unset( $request['details']['profile']['english_test'] );
+$request['details']['profile'] += $exam_fields;
+$parsed_exams = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
+foreach ( $exam_fields as $key => $value ) {
+	taas_input_check( $parsed_exams[ $key ] === $value, 'Both exam scores and dates must survive validation.' );
+}
+foreach ( array( null, '2024-02-29' ) as $date ) {
+	$request['details']['profile']['speak_date'] = $date;
+	$request['details']['profile']['speak_score'] = null;
+	taas_input_check( $date === TAAS_Student_Application_Input::parse( $request )['details']['profile']['speak_date'], 'Exam dates are optional independently of scores.' );
+}
+foreach ( array( '2026-02-30', '2025-02-29', '0000-01-01', '0999-12-31', '2026-1-01', '2026-01-01T00:00:00Z', '', 20260101, true ) as $date ) {
+	$invalid = $request;
+	$invalid['details']['profile']['speak_date'] = $date;
+	taas_input_rejects( $invalid, 'Invalid exam date was accepted.' );
+}
+foreach ( array(
+	'toefl_ibt_score' => array( 6.49, '5.5', true ),
+	'speak_score'     => array( 42.5, '45', true ),
+) as $key => $invalid_scores ) {
+	foreach ( $invalid_scores as $score ) {
+		$invalid = $request;
+		$invalid['details']['profile'][ $key ] = $score;
+		taas_input_rejects( $invalid, 'Separate exam fields bypassed score validation.' );
+	}
+}
+$invalid = $request;
+$invalid['details']['profile']['english_test'] = null;
+taas_input_rejects( $invalid, 'Mixed legacy and separate exam fields were accepted.' );
+$invalid = $request;
+unset( $invalid['details']['profile']['speak_date'] );
+taas_input_rejects( $invalid, 'Incomplete exam field contract was accepted.' );
+echo "PASS: Independent optional TOEFL/SPEAK scores and exam dates\n";
+
 foreach ( array( '2025-02-29', '2024-02-29', '2025-13-01', '2025-00-01', '2025-05-02', '0999-01-01', '2025-5-01', "2025-05-01\0" ) as $date ) {
 	$request = $body;
 	$request['details']['academic_background'][0]['grad_date'] = $date;
@@ -210,6 +251,19 @@ $request['course_preferences'][0]['rank'] = 2;
 $request['course_preferences'][0]['course_id'] = '101';
 taas_input_rejects( $request, 'Duplicate courses were accepted.' );
 echo "PASS: Course completion, uniqueness, ordering and withdrawal\n";
+
+foreach ( array( true, false ) as $experience ) {
+	$request = $body;
+	$request['course_preferences'][0]['has_ta_for_course'] = $experience;
+	taas_input_check( $experience === TAAS_Student_Application_Input::parse( $request )['course_preferences'][0]['has_ta_for_course'], 'TA declaration preserves its boolean value.' );
+}
+taas_input_check( false === TAAS_Student_Application_Input::parse( $body )['course_preferences'][0]['has_ta_for_course'], 'Omitted TA declaration defaults to false.' );
+foreach ( array( 'true', 'false', 1, 0, null, array() ) as $experience ) {
+	$request = $body;
+	$request['course_preferences'][0]['has_ta_for_course'] = $experience;
+	taas_input_rejects( $request, 'TA declaration must be a JSON boolean.' );
+}
+echo "PASS: Previous TA experience accepts only booleans\n";
 
 foreach ( array( 'course-A', '0', '-1', '+1', '01', '1.5', '1e2', '9223372036854775808', 101, true, null ) as $course_id ) {
 	$request = $body;

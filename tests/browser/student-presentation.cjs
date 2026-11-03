@@ -15,7 +15,7 @@ const fixture = {
 };
 const hooks = { 'academic-background-entries': 'degreeHost', 'degree-entry-template': 'degreeTemplate', 'add-degree': 'addDegree', 'available-course-list': 'courseList', 'student-course-preferences': 'rankings' };
 function html(editing, redesigned) {
-  let result = partial.replace('{{name_fields}}', editing ? '<input name="studentName" required>' : '<input name="firstName" required><input name="lastName" required>')
+  let result = partial.replace('{{name_fields}}', '<input name="firstName" required><input name="lastName" required>')
     .replace('{{submit_label}}', 'Submit').replace('{{existing_notice}}', '').replace('{{success_dialog}}', '');
   if (redesigned) {
     for (const [id, hook] of Object.entries(hooks)) result = result.replace(`id="${id}"`, `data-application-ui="${hook}"`);
@@ -25,7 +25,7 @@ function html(editing, redesigned) {
       .replace(/<p[^>]*id="(?:application-term|form-message|course-selection-message)"[^>]*>.*?<\/p>/gs, '')
       .replace(/<button[^>]*id="retry-application-load"[^>]*>.*?<\/button>/gs, '')
       .replace(/<input name="(?:ufid|resumeUrl)"[^>]*>/g, '')
-      .replace(/<select name="englishScore".*?<\/select>/gs, '')
+      .replace(/<input name="(?:toeflScore|toeflDate|speakScore|speakDate)"[^>]*>/g, '')
       .replace(/<textarea name="additionalInfo".*?<\/textarea>/gs, '')
       .replace('Phone number', 'A different label')
       .replace('<footer class="form-actions">', '<footer><h2>New section</h2><input name="unrelated" value="ignore me"><button type="submit">Another submit button</button>');
@@ -110,33 +110,87 @@ function html(editing, redesigned) {
         profile: { ...fixture.profile, resume_url: 'https://example.com/resume', additional_info: 'Keep this', english_test: { type: 'SPEAK', score: 42 } } }
     };
     assert(await open(true, true, saved));
+    assert.equal(await page.locator('[name="firstName"]').inputValue(), 'Alex');
+    assert.equal(await page.locator('[name="lastName"]').inputValue(), 'Student');
     const edited = await page.evaluate(() => window.adapter.collect());
+    assert.equal(edited.details.student_name, saved.details.student_name);
     assert.equal(edited.details.profile.resume_url, saved.details.profile.resume_url);
     assert.equal(edited.details.profile.additional_info, 'Keep this');
-    assert.deepEqual(edited.details.profile.english_test, { type: 'SPEAK', score: 42 });
+    assert.equal(edited.details.profile.speak_score, 42);
+    assert.equal(edited.details.profile.toefl_ibt_score, null);
     console.log('PASS: Omitted optional controls preserve saved values during edits');
+
+    const compound = { ...saved, details: { ...saved.details, student_name: 'Mary Jane van Buren' } };
+    assert(await open(true, true, compound));
+    assert.equal(await page.locator('[name="firstName"]').inputValue(), 'Mary');
+    assert.equal(await page.locator('[name="lastName"]').inputValue(), 'Jane van Buren');
+    assert.equal((await page.evaluate(() => window.adapter.collect())).details.student_name, compound.details.student_name);
+    await page.locator('[name="firstName"]').fill('Mary Jane');
+    await page.locator('[name="lastName"]').fill('van Buren');
+    assert.equal((await page.evaluate(() => window.adapter.collect())).details.student_name, compound.details.student_name);
+    const single = { ...saved, details: { ...saved.details, student_name: 'Alex' } };
+    assert(await open(true, true, single));
+    assert.equal(await page.locator('[name="firstName"]').inputValue(), 'Alex');
+    assert.equal(await page.locator('[name="lastName"]').inputValue(), '');
+    console.log('PASS: Saved names split provisionally, retain all words, and allow corrected boundaries');
+
+    const experienced = { ...saved, course_preferences: [{ course_id: 'example', rank: 1, match_status: 1, has_completed_course: true, has_ta_for_course: true }] };
+    assert(await open(true, false, experienced));
+    assert(await page.locator('[name="previouslyTA"]').isChecked());
+    assert.equal((await page.evaluate(() => window.adapter.collect())).course_preferences[0].has_ta_for_course, true);
+    await page.locator('[name="previouslyTA"]').uncheck();
+    assert.equal((await page.evaluate(() => window.adapter.collect())).course_preferences[0].has_ta_for_course, false);
+    await page.locator('[name="previouslyTA"]').check();
+    await page.locator('[name="selectedCourses"]').dispatchEvent('change');
+    assert(await page.locator('[name="previouslyTA"]').isChecked());
+    console.log('PASS: Course TA declarations prefill, can be cleared, and survive ranking rerenders');
 
     assert(await open(true, false, saved));
     const disabledDetails = await page.evaluate(() => {
       const form = document.querySelector('form');
-      for (const name of ['resumeUrl', 'additionalInfo', 'englishScore']) form.elements[name].disabled = true;
+      for (const name of ['resumeUrl', 'additionalInfo', 'toeflScore', 'toeflDate', 'speakScore', 'speakDate']) form.elements[name].disabled = true;
       return window.adapter.collect().details;
     });
     assert.equal(disabledDetails.profile.resume_url, saved.details.profile.resume_url);
     assert.equal(disabledDetails.profile.additional_info, 'Keep this');
-    assert.deepEqual(disabledDetails.profile.english_test, { type: 'SPEAK', score: 42 });
+    assert.equal(disabledDetails.profile.speak_score, 42);
     console.log('PASS: Disabled optional controls retain their displayed values in the payload');
 
     await open(false, false, { ...fixture, english_test: null, profile: { ...fixture.profile, toefl_ibt_score: 5.5, speak_score: 45 } });
-    assert.equal(await page.locator('[name="englishScore"]').inputValue(), '');
+    assert.equal(await page.locator('[name="toeflScore"]').inputValue(), '');
+    assert.equal(await page.locator('[name="speakScore"]').inputValue(), '');
     await open(false, false, { ...fixture, profile: { ...fixture.profile, speak_score: 45 } });
-    assert.equal(await page.locator('[name="englishScore"]').inputValue(), 'SPEAK-45');
+    assert.equal(await page.locator('[name="speakScore"]').inputValue(), '45');
     await open(false, false, { ...fixture, english_test: { type: 'TOEFL', score: 5.5 } });
-    assert.equal(await page.locator('[name="englishScore"]').inputValue(), 'TOEFL-5.5');
-    console.log('PASS: Explicit no-test snapshots override shared scores; SPEAK and fractional TOEFL prefill correctly');
+    assert.equal(await page.locator('[name="toeflScore"]').inputValue(), '5.5');
+    console.log('PASS: Legacy single-test and explicit no-test snapshots still prefill correctly');
 
-    for (const name of ['firstName', 'lastName', 'studentName']) {
-      assert(await open(name === 'studentName', true, name === 'studentName' ? saved : fixture));
+    const exams = { toefl_ibt_score: 5.5, toefl_ibt_date: '2026-02-10', speak_score: 45, speak_date: '2026-03-11' };
+    const bothTests = { ...saved, details: { ...saved.details, profile: { ...fixture.profile, ...exams } } };
+    for (const redesigned of [false, true]) {
+      assert(await open(true, redesigned, bothTests));
+      const collected = (await page.evaluate(() => window.adapter.collect())).details.profile;
+      for (const [key, value] of Object.entries(exams)) assert.equal(collected[key], value);
+    }
+    assert(await open(true, false, bothTests));
+    for (const name of ['toeflScore', 'toeflDate', 'speakScore', 'speakDate']) await page.locator(`[name="${name}"]`).fill('');
+    let cleared = (await page.evaluate(() => window.adapter.collect())).details.profile;
+    for (const key of Object.keys(exams)) assert.equal(cleared[key], null);
+    await page.locator('[name="toeflScore"]').fill('0');
+    await page.locator('[name="speakDate"]').fill('2026-01-10');
+    cleared = (await page.evaluate(() => window.adapter.collect())).details.profile;
+    assert.equal(cleared.toefl_ibt_score, 0);
+    assert.equal(cleared.toefl_ibt_date, null);
+    assert.equal(cleared.speak_score, null);
+    assert.equal(cleared.speak_date, '2026-01-10');
+    await page.locator('[name="speakScore"]').fill('42.5');
+    assert.equal(await page.evaluate(() => window.adapter.collect()), null);
+    await page.locator('[name="speakScore"]').fill('42');
+    assert(await page.evaluate(() => window.adapter.collect()));
+    console.log('PASS: Both optional exam scores and dates prefill, preserve zero, clear independently, and validate numeric precision');
+
+    for (const [editing, name] of [[false, 'firstName'], [false, 'lastName'], [true, 'firstName'], [true, 'lastName']]) {
+      assert(await open(editing, true, editing ? saved : fixture));
       const result = await page.evaluate(name => {
         const input = document.querySelector('form').elements[name];
         input.value = '   ';
@@ -271,9 +325,9 @@ function html(editing, redesigned) {
     assert(rankIgnoresUnrelatedControl);
     console.log('PASS: Course ranking validation ignores controls outside the rankings container');
 
-    for (const name of ['selectedCourses', 'courseRank', 'courseHistory']) {
+    for (const name of ['selectedCourses', 'courseRank', 'courseHistory', 'previouslyTA']) {
       for (const defect of ['missing', 'duplicate', 'wrong-type', 'not-required']) {
-        if (name === 'selectedCourses' && defect === 'not-required') continue;
+        if (['selectedCourses', 'previouslyTA'].includes(name) && defect === 'not-required') continue;
         await page.setContent(html(false, true));
         const result = await page.evaluate(({ name, defect }) => {
           const templateName = name === 'selectedCourses' ? 'row' : 'ranking';

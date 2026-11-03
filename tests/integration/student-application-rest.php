@@ -103,13 +103,13 @@ try {
 				),
 				'details'            => array(
 					'student_name'        => "API O'Brien",
-					'student_email'       => 'api.student@ufl.edu',
+					'student_email'       => TAAS_Auth::current_user()['email'],
 					'profile'             => array(
 						'phone'             => '3525550100',
 						'country_code'      => 'US',
 						'admitted_semester' => 'Fall 2025',
 						'available_hours'   => 10,
-						'enrollment_status' => 2,
+						'enrollment_status' => 1,
 						'eap5836_status'    => 1,
 						'eap5837_status'    => 4,
 						'resume_url'        => null,
@@ -141,10 +141,15 @@ try {
 						'course_id'            => $id,
 						'rank'                 => 1,
 						'has_completed_course' => true,
+						'has_ta_for_course'    => true,
 					),
 				),
 			);
 			$test_input = TAAS_Student_Application_Input::parse( $body );
+			$forged_email = $body;
+			$forged_email['details']['student_email'] = 'professor@ufl.edu';
+			$rejected = taas_application_request( 'POST', '/student/application', $forged_email );
+			taas_application_check( 400 === $rejected->get_status() && 'taas_student_email_mismatch' === $rejected->get_data()['code'], 'Initial submission rejects another university email' );
 			$_GET['taas_role'] = 'instructor';
 			taas_application_check( 403 === taas_application_request( 'GET', '/student/application' )->get_status(), 'Instructor cannot read student form data' );
 			taas_application_check( 403 === taas_application_request( 'POST', '/student/application', $body )->get_status(), 'Instructor cannot submit as a student' );
@@ -212,8 +217,8 @@ try {
 			$invalid['course_preferences'][0]['has_completed_course'] = false;
 			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Incomplete course is rejected' );
 			$invalid = $body;
-			$invalid['details']['profile']['enrollment_status'] = 1;
-			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Unresolved program mapping is rejected' );
+			$invalid['details']['profile']['enrollment_status'] = 0;
+			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Not-enrolled status is rejected' );
 			$invalid = $body;
 			$invalid['course_preferences'][] = $invalid['course_preferences'][0];
 			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Duplicate course/rank is rejected' );
@@ -225,8 +230,10 @@ try {
 			$period['closes_at'] = time() + 3600;
 			$created = taas_application_request( 'POST', '/student/application', $body );
 			taas_application_check( 201 === $created->get_status(), 'Valid application is saved' );
+			taas_application_check( TAAS_Enrollment_Status::Undergraduate === $repos['profiles']->find( $owner )->enrollment_status, 'Undergraduate application saves the shared enrollment status' );
 			taas_application_check( 5.5 === $repos['profiles']->find( $owner )->toefl_ibt_score, 'Fractional TOEFL score is preserved in decimal storage' );
 			$prefilled = taas_application_request( 'GET', '/student/application' )->get_data();
+			taas_application_check( 1 === $prefilled['profile']['enrollment_status'], 'Undergraduate enrollment is returned for prefilling' );
 			taas_application_check(
 				$prefilled['english_test'] === array(
 					'type'  => 'TOEFL',
@@ -235,8 +242,13 @@ try {
 				'Prefill preserves English test type from the latest snapshot'
 			);
 			$read = taas_application_request( 'GET', '/student/application/5/' . $period['year'] );
+			taas_application_check( 1 === $read->get_data()['details']['profile']['enrollment_status'], 'Undergraduate enrollment is preserved in the term snapshot' );
 			taas_application_check( 200 === $read->get_status() && 2 === count( $read->get_data()['details']['academic_background'] ), 'Snapshot read preserves both degrees' );
 			taas_application_check( 1 === $read->get_data()['course_preferences'][0]['match_status'], 'New course application is pending' );
+			taas_application_check( true === $read->get_data()['course_preferences'][0]['has_ta_for_course'], 'Previous TA declaration is stored and returned for the selected course' );
+			$changed_experience = $body;
+			$changed_experience['course_preferences'][0]['has_ta_for_course'] = false;
+			taas_application_check( 409 === taas_application_request( 'POST', '/student/application', $changed_experience )->get_status(), 'A different TA declaration is not treated as an identical retry' );
 			$retry = taas_application_request( 'POST', '/student/application', $body );
 			taas_application_check( 200 === $retry->get_status() && $retry->get_data()['submission_id'] === $created->get_data()['submission_id'], 'Identical retry returns the original saved application' );
 

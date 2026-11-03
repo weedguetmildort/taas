@@ -71,8 +71,9 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     await page.locator('[name="courseHistory"]').selectOption('yes');
     await page.locator('[name="firstName"]').fill('Alex');
     await page.locator('[name="lastName"]').fill("O'Brien");
-    await page.locator('[name="ufEmail"]').fill('edited@ufl.edu');
-    await page.locator('[name="englishScore"]').selectOption('TOEFL-5.5');
+    assert.equal(await page.locator('[name="ufEmail"]').evaluate(input => input.readOnly), true);
+    const verifiedEmail = await page.locator('[name="ufEmail"]').inputValue();
+    await page.locator('[name="toeflScore"]').fill('5.5');
     await page.locator('[name="additionalInfo"]').fill('Keep my entries after a failure.');
     await page.locator('#student-application-form [type="submit"]').click();
     await page.getByText('Temporary test failure. Please retry.', { exact: true }).waitFor();
@@ -80,7 +81,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert.equal(await page.locator('[name="additionalInfo"]').inputValue(), 'Keep my entries after a failure.');
     assert.equal(bodies.length, 1);
     assert.equal(bodies[0].details.student_name, "Alex O'Brien");
-    assert.equal(bodies[0].details.student_email, 'edited@ufl.edu');
+    assert.equal(bodies[0].details.student_email, verifiedEmail);
     assert.equal(bodies[0].details.profile.country_code, 'US');
     assert.equal(bodies[0].details.profile.enrollment_status, 2);
     assert.equal(bodies[0].details.profile.resume_url, null);

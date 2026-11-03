@@ -59,7 +59,10 @@ the current course schema and are not fabricated.
       "eap5836_status": 1,
       "eap5837_status": 4,
       "resume_url": null,
-      "english_test": { "type": "TOEFL", "score": 5.5 },
+      "toefl_ibt_score": 5.5,
+      "toefl_ibt_date": "2026-02-10",
+      "speak_score": 45,
+      "speak_date": "2026-03-11",
       "additional_info": ""
     },
     "academic_background": [
@@ -73,7 +76,7 @@ the current course schema and are not fabricated.
     ]
   },
   "course_preferences": [
-    { "course_id": "10001", "rank": 1, "has_completed_course": true }
+    { "course_id": "10001", "rank": 1, "has_completed_course": true, "has_ta_for_course": false }
   ]
 }
 ```
@@ -82,20 +85,35 @@ No owner identifier is accepted in the body; it comes from TAAS_Auth. No match
 status or professor rank is accepted. Unknown fields are rejected. Strings are
 bounded to storage limits, not silently truncated. `minor` is optional within a
 degree. GPA must be 0–4 or explicit null for not yet available. Future graduation
-dates are allowed. Current enrollment is temporarily restricted to MS=2/PhD=3.
+dates are allowed. Current enrollment accepts Undergraduate=1, MS=2, or PhD=3.
 Course equivalency declarations remain a team dependency; this contract currently
 supports a completion declaration only and does not claim HR verification.
 
-English tests use main's separate shared columns: SPEAK is a whole-number score
-in `speak_score`, while TOEFL uses `toefl_ibt_score` (`decimal(4,1)`). TOEFL
-fractions such as 5.5 are preserved; excess decimal precision is rejected rather
-than rounded. No test date is collected or fabricated. The selected test type and
-score are stored together in the application snapshot.
+Each course also accepts `has_ta_for_course`, a JSON boolean recording the student's
+self-reported previous TA experience for that course. It defaults to false when
+omitted. The course checkbox submits true when checked and false when unchecked.
+The value is stored in the existing applications row, returned on saved-term reads,
+and used by the existing matching tier for previous course TAs. Edits replace this
+declaration for selected courses; withdrawal preserves it on retained records.
 
-Saving one test preserves the other shared result and date. An unchanged score
-retains its own date; changing that score clears its date. Selecting Not applicable
-records a null test in this application's snapshot without erasing either shared
-result. That explicit null takes precedence over shared scores during prefilling.
+English tests use the existing shared columns: SPEAK is a whole-number score
+in `speak_score`, while TOEFL uses `toefl_ibt_score` (`decimal(4,1)`). TOEFL
+fractions such as 5.5 are preserved; excess decimal precision is rejected.
+Both forms collect separate TOEFL/SPEAK scores and dates. All four values are
+independently optional, so a score without a date or a date without a score is
+allowed. Send all four fields, using null for blanks. Dates must be valid calendar
+dates in `YYYY-MM-DD` format with years 1000–9999.
+
+The four values are stored in the current shared profile and this term's snapshot.
+Clearing a field removes it from both on submit; other terms' snapshots stay unchanged.
+Prefilling uses the latest snapshot's exam values when available, including explicit
+nulls, so cleared scores do not reappear from the shared profile. When no snapshot
+exists, both results and dates can be prefilled from the shared profile.
+
+The legacy `english_test` request format remains accepted for compatibility, but
+cannot be mixed with the four separate exam fields. It retains the earlier behavior
+of updating the selected test and preserving the other shared result. Older snapshots
+with a single test remain readable; missing historical dates are left blank.
 
 ## Submitted-details snapshot contract
 
@@ -107,17 +125,21 @@ the same structure for IDE navigation.
 | Field | Stored type and meaning |
 |---|---|
 | `student_name` | String; submitted full name |
-| `student_email` | String; submitted university email |
+| `student_email` | String; must match the authenticated university email; read-only in the form. The backend stores the authenticated value. |
 | `profile.phone` | String; submitted phone number |
 | `profile.country_code` | String; supported uppercase two-letter country code |
 | `profile.admitted_semester` | String, such as `Fall 2025` |
 | `profile.available_hours` | Integer; currently 10 or 20 |
-| `profile.enrollment_status` | Integer; currently MS=2 or PhD=3 |
+| `profile.enrollment_status` | Integer; Undergraduate=1, MS=2, or PhD=3 |
 | `profile.eap5836_status` | Integer 1–4; taken at UF, taken elsewhere, taking, not taken |
 | `profile.eap5837_status` | Integer 1–4; same mapping as EAP5836 |
 | `profile.resume_url` | HTTP/HTTPS URL string, or null |
 | `profile.additional_info` | String; empty when omitted |
-| `profile.english_test` | Null, or an object with `type` (`TOEFL`/`SPEAK`) and numeric `score` (integer SPEAK or decimal TOEFL) |
+| `profile.toefl_ibt_score` | Number 0–999.9 with at most one decimal place, or null |
+| `profile.toefl_ibt_date` | Valid `YYYY-MM-DD` date, or null |
+| `profile.speak_score` | Whole number 0–2147483647, or null |
+| `profile.speak_date` | Valid `YYYY-MM-DD` date, or null |
+| `profile.english_test` | Legacy snapshots/requests only: null or `{type, score}`; replaces the four separate fields |
 | `academic_background` | Ordered array with at least one degree; first is current/most recent, the rest are previous degrees |
 | `academic_background[].university` | String; university name |
 | `academic_background[].degree_type` | Integer; AA=1, BS=2, MS=3, PhD=4 |
@@ -126,7 +148,8 @@ the same structure for IDE navigation.
 | `academic_background[].grad_date` | String in `YYYY-MM-01` format, including expected graduation dates |
 | `academic_background[].gpa` | Number 0–4 rounded to two decimal places, or null when unavailable |
 
-All fields above are present after normalization. Optional resume/test values
+The four separate exam fields are present in new form submissions; legacy requests
+store `english_test` instead. Other fields above are present after normalization. Optional resume/test values
 become null; optional minor/additional-info text becomes an empty string. Degree
 order is preserved, and duplicate degree types remain separate entries. Database
 degree IDs are not included in the snapshot.
@@ -281,10 +304,11 @@ one standard Custom HTML block; edit its HTML there. `TAAS_Pages` wraps raw HTML
 when loading source files for installation or an explicit import. No custom editor
 activation, content-formatting overrides or global post-save wrapping hooks are needed.
 
-Saved WordPress content is authoritative. Edit it under **Pages**, then save/update
-the page. Repository file edits do not appear automatically. Source files seed new
-installations; normal synchronization preserves existing student-page edits.
-To deliberately replace selected WordPress content from files, use
+Pages can be edited under **Pages**, then saved/updated. Normal synchronization
+imports repository HTML for student pages just as it does for other managed pages,
+replacing WordPress edits. Synchronization runs during activation or an upgrade
+through wp-admin, rather than on every public page request.
+To import selected pages directly, use
 `TAAS_Pages::sync_content(true, array('student-application'))` in local development
 (or an authorized administrative import). Back up page content before importing.
 `TAAS_Pages::export()` exports WordPress content in local dev, removing the single
@@ -295,7 +319,7 @@ surrounding theme. Frontend JavaScript and the REST contract remain independent 
 whether HTML was written in WordPress or imported from a file.
 
 `tests/integration/student-editor.php` checks plain source HTML, modern-editor settings,
-preservation of WordPress edits and explicit source imports.
+automatic source synchronization and imports limited to selected pages.
 `tests/integration/student-pages.php` checks access/API integration and confirms
 source-file changes do not silently override published WordPress content.
 
@@ -394,11 +418,14 @@ headings, labels, wrappers, CSS, field order, extra presentation-only inputs, or
 additional submit buttons.
 
 - Mount the coordinator on `form[data-application-form]`. The old form ID still works.
-- Keep the existing named inputs: `firstName`/`lastName` for creation, `studentName`
-  for edits, and `ufEmail`, `phone`, `countryOfOrigin`, `startSemester`, `collegeStatus`,
+- Keep the existing named inputs: `firstName`/`lastName` for creation and edits,
+  and `ufEmail`, `phone`, `countryOfOrigin`, `startSemester`, `collegeStatus`,
   `taHours`, `eap5836Status`, `eap5837Status`. Labels/classes/IDs are independent.
 - `ufid` is optional display-only; ownership always comes from backend authentication.
-  `resumeUrl`, `englishScore`, `additionalInfo` can be omitted. Missing optional
+  Names are still stored as one `student_name`. The edit form provisionally splits
+  the first word into First name and the remaining words into Last name; students
+  can correct either field before saving.
+  `resumeUrl`, `toeflScore`, `toeflDate`, `speakScore`, `speakDate`, `additionalInfo` can be omitted. Missing optional
   controls preserve loaded values during edits; an existing empty control clears its value.
 - Keep one interactive mount per degree/course component:
   `data-application-ui="degreeHost"`, `degreeTemplate`, `addDegree`, `courseList`,
@@ -458,7 +485,7 @@ normal page requests.
 Course presentation uses five ordinary HTML `<template>` elements inside the
 form: `data-course-template="header"`, `"row"`, `"ranking"`, `"emptyRankings"`, and `"readOnlyEmptyRankings"`. Edit their layout
 in the page's Custom HTML block or the repository HTML before importing it.
-Keep `name="selectedCourses"`, `name="courseRank"`, `name="courseHistory"`, and
+Keep `name="selectedCourses"`, `name="courseRank"`, `name="courseHistory"`, `name="previouslyTA"`, and
 `data-course-text` bindings intact. JavaScript clones these templates and fills
 course text using `textContent`; it does not generate course markup. Labels and empty-state messages are edited directly in these templates;
 there is no separate JSON label configuration. Missing templates disable

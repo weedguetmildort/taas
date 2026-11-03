@@ -42,14 +42,16 @@ final class TAAS_Student_Application_Input {
 	 *       available_hours: int, enrollment_status: int,
 	 *       eap5836_status: int, eap5837_status: int,
 	 *       resume_url: string|null, additional_info: string,
-	 *       english_test: array{type: string, score: int|float}|null
+	 *       toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
+	 *       speak_score?: int|null, speak_date?: string|null,
+	 *       english_test?: array{type: string, score: int|float}|null
 	 *     },
 	 *     academic_background: list<array{
 	 *       university: string, degree_type: int, major: string, minor: string,
 	 *       grad_date: string, gpa: float|null
 	 *     }>
 	 *   },
-	 *   course_preferences: list<array{course_id: string, rank: int, has_completed_course: true}>
+	 *   course_preferences: list<array{course_id: string, rank: int, has_completed_course: true, has_ta_for_course: bool}>
 	 * } Normalized values ready for the application service.
 	 * @throws InvalidArgumentException If any input fails validation.
 	 */
@@ -115,6 +117,10 @@ final class TAAS_Student_Application_Input {
 				'eap5837_status',
 				'resume_url',
 				'english_test',
+				'toefl_ibt_score',
+				'toefl_ibt_date',
+				'speak_score',
+				'speak_date',
 				'additional_info',
 			)
 		);
@@ -131,8 +137,7 @@ final class TAAS_Student_Application_Input {
 		if ( ! in_array( $available_hours, array( 10, 20 ), true ) ) {
 			throw new InvalidArgumentException( 'Planned TA hours must be 10 or 20.' );
 		}
-		// TODO: Confirm enabling Undergraduate (main value 1); generic Graduate remains unmapped.
-		$enrollment_status = self::read_integer( $profile, 'enrollment_status', TAAS_Enrollment_Status::Masters->value, TAAS_Enrollment_Status::Phd->value );
+		$enrollment_status = self::read_integer( $profile, 'enrollment_status', TAAS_Enrollment_Status::Undergraduate->value, TAAS_Enrollment_Status::Phd->value );
 		$resume_url     = self::read_text( $profile, 'resume_url', 255, false );
 		if ( '' !== $resume_url ) {
 			$scheme = strtolower( (string) wp_parse_url( $resume_url, PHP_URL_SCHEME ) );
@@ -149,9 +154,52 @@ final class TAAS_Student_Application_Input {
 			'eap5836_status'    => self::read_integer( $profile, 'eap5836_status', 1, 4 ),
 			'eap5837_status'    => self::read_integer( $profile, 'eap5837_status', 1, 4 ),
 			'resume_url'        => '' === $resume_url ? null : $resume_url,
-			'english_test'      => self::parse_english_test( $profile ),
 			'additional_info'   => self::read_text( $profile, 'additional_info', 1000, false ),
-		);
+		) + self::parse_exam_results( $profile );
+	}
+
+	/**
+	 * Validate independent, optional scores and exam dates; retain the old request format.
+	 *
+	 * @param array $profile Submitted profile values.
+	 * @return array Validated exam fields; explicit null represents an empty field.
+	 * @throws InvalidArgumentException If scores or dates are invalid or formats are mixed.
+	 */
+	private static function parse_exam_results( array $profile ): array {
+		$fields = array_intersect_key( $profile, array_flip( array( 'toefl_ibt_score', 'toefl_ibt_date', 'speak_score', 'speak_date' ) ) );
+		if ( ! $fields ) {
+			return array( 'english_test' => self::parse_english_test( $profile ) );
+		}
+		if ( array_key_exists( 'english_test', $profile ) ) {
+			throw new InvalidArgumentException( 'Send separate exam fields or the legacy English test, not both.' );
+		}
+		if ( 4 !== count( $fields ) ) {
+			throw new InvalidArgumentException( 'Send all four exam fields, using null for empty scores and dates.' );
+		}
+		foreach ( $fields as $key => $value ) {
+			if ( null === $value ) {
+				continue;
+			}
+			if ( str_ends_with( $key, '_score' ) ) {
+				$type = 'speak_score' === $key ? 'SPEAK' : 'TOEFL';
+				$fields[ $key ] = self::parse_english_test(
+					array(
+						'english_test' => array(
+							'type'  => $type,
+							'score' => $value,
+						),
+					)
+				)['score'];
+				continue;
+			}
+			$date = self::read_text( $profile, $key, 10 );
+			$parsed = DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
+			if ( ! $parsed || $parsed->format( 'Y-m-d' ) !== $date || (int) $parsed->format( 'Y' ) < 1000 ) {
+				throw new InvalidArgumentException( 'Exam dates must be valid calendar dates in YYYY-MM-DD format.' );
+			}
+			$fields[ $key ] = $date;
+		}
+		return $fields;
 	}
 
 	/**
@@ -240,7 +288,11 @@ final class TAAS_Student_Application_Input {
 			if ( ! is_array( $choice ) ) {
 				throw new InvalidArgumentException( 'Each course preference must be an object.' );
 			}
-			self::allow_only_fields( $choice, array( 'course_id', 'rank', 'has_completed_course' ) );
+			self::allow_only_fields( $choice, array( 'course_id', 'rank', 'has_completed_course', 'has_ta_for_course' ) );
+			$previously_taught = $choice['has_ta_for_course'] ?? false;
+			if ( array_key_exists( 'has_ta_for_course', $choice ) && ! is_bool( $choice['has_ta_for_course'] ) ) {
+				throw new InvalidArgumentException( 'Previous TA experience must be a boolean.' );
+			}
 			$course_id   = self::read_text( $choice, 'course_id', 20 );
 			if ( ! preg_match( '/^[1-9][0-9]*$/', $course_id )
 				|| false === filter_var( $course_id, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) ) {
@@ -258,6 +310,7 @@ final class TAAS_Student_Application_Input {
 				'course_id'            => $course_id,
 				'rank'                 => $rank,
 				'has_completed_course' => true,
+				'has_ta_for_course'    => $previously_taught,
 			);
 		}
 		usort( $preferences, static fn( array $a, array $b ) => $a['rank'] <=> $b['rank'] );

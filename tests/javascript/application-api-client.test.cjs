@@ -131,7 +131,11 @@ for (const [name, corrupt] of Object.entries({
   'invalid GPA': data => { data.academic_background[0].gpa = '3.5'; },
   'invalid profile': data => { data.profile = []; },
   'invalid country code': data => { data.profile = { country_code: 123 }; },
-  'invalid English test': data => { data.english_test = { type: 'TOEFL', score: '100' }; }
+  'invalid English test': data => { data.english_test = { type: 'TOEFL', score: '100' }; },
+  'invalid exam result object': data => { data.english_tests = []; },
+  'invalid separate TOEFL score': data => { data.english_tests = { toefl_ibt_score: '5.5' }; },
+  'invalid separate exam date': data => { data.english_tests = { speak_date: 20260101 }; },
+  'invalid saved profile date': data => { data.profile = { toefl_ibt_date: {} }; }
 })) {
   test(`initial loading rejects ${name}`, async () => {
     const fixture = initialResponse();

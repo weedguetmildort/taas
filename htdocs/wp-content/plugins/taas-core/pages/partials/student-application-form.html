@@ -36,8 +36,11 @@
       <section class="form-section" aria-labelledby="additional-heading">
         <h2 id="additional-heading">Additional Information</h2>
         <div class="form-grid">
+          <label>TOEFL score (optional) <input name="toeflScore" type="number" min="0" max="999.9" step="0.1"></label>
+          <label>SPEAK score (optional) <input name="speakScore" type="number" min="0" max="2147483647" step="1"></label>
+          <label>TOEFL date taken (optional) <input name="toeflDate" type="date" min="1000-01-01" max="9999-12-31"></label>
+          <label>SPEAK date taken (optional) <input name="speakDate" type="date" min="1000-01-01" max="9999-12-31"></label>
           <label>Planned TA hours per week <select name="taHours" required><option value="">Select hours</option><option value="10">10 hours</option><option value="20">20 hours</option></select></label>
-          <label>English score (if applicable) <select name="englishScore"><option value="">Not applicable</option><optgroup label="SPEAK"><option>SPEAK-20</option><option>SPEAK-25</option><option>SPEAK-30</option><option>SPEAK-35</option><option>SPEAK-40</option><option>SPEAK-45</option><option>SPEAK-50</option><option>SPEAK-55</option><option>SPEAK-60</option></optgroup><optgroup label="TOEFL iBT"><option>TOEFL-6.0</option><option>TOEFL-5.5</option><option>TOEFL-5.0</option><option>TOEFL-4.5</option><option>TOEFL-4.0</option><option>TOEFL-3.5</option><option>TOEFL-3.0</option><option>TOEFL-2.5</option><option>TOEFL-2.0</option><option>TOEFL-1.5</option><option>TOEFL-1.0</option></optgroup></select></label>
           <label class="full-width">Anything else the professor should know, including planned travel <textarea name="additionalInfo" rows="5" maxlength="1000"></textarea></label>
           <label class="full-width">Resume URL (optional) <input name="resumeUrl" type="url" maxlength="255" placeholder="https://…"></label>
         </div>
@@ -90,6 +93,7 @@
       <option value="no">No, I have not completed this course</option>
     </select>
   </label>
+  <label class="check-line"><input name="previouslyTA" type="checkbox"> I have previously worked as a TA for this course.</label>
 </fieldset>
 </template>
 <div id="available-course-list" class="available-course-list" aria-describedby="course-selection-message"></div>
