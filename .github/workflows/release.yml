@@ -37,7 +37,7 @@ jobs:
           body: |
             **Severity:** _set one before publishing_ — `breaking` / `feature` / `fix`
 
-            Because the version scheme has no patch segment, severity is not
+            The last tag segment only counts deploys, so severity is not
             derivable from the version number. State it here.
 
             | | |
