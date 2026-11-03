@@ -1,256 +1,312 @@
-<!-- wp:heading {"level":4,"style":{"typography":{"textAlign":"center"}}} -->
-<h4 class="wp-block-heading has-text-align-center">For questions regarding status/updates, please contact xxxxx@ufl.edu. *NOTE* Only applications pending may be edited, nothing can be changed once approved. </h4>
-<!-- /wp:heading -->
-
-<!-- wp:html -->
-<style data-wp-block-html="css">
-/* MAIN WHITE CARD */
-
-.application-status-container {
-    max-width: 900px;
-    margin: 30px auto;
-    padding: 35px;
-
-    background: #ffffff;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-
-    font-family: Arial, sans-serif;
-    color: #222;
-
-    box-sizing: border-box;
-}
-
-/* HEADER */
-
-.application-status-header {
-    margin-bottom: 25px;
-}
-
-.application-status-header h2 {
-    font-size: 22px;
-    margin: 0 0 12px;
-    color: #222;
-}
-
-.application-status-header p {
-    font-size: 14px;
-    line-height: 1.5;
-    margin: 0;
-}
-
-/* TABLE WRAPPER */
-
-.application-status-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-}
-
-/* TABLE */
-
-.application-status-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-    text-align: left;
-}
-
-.application-status-table th {
-    background: #1733a5;
-    color: white;
-    padding: 14px 15px;
-    text-align: left;
-    font-weight: 600;
-}
-
-.application-status-table td {
-    padding: 16px 15px;
-    border-bottom: 1px solid #ddd;
-    color: #333;
-}
-
-.application-status-table tbody tr:nth-child(odd) {
-    background: #f5f5f5;
-}
-
-.application-status-table tbody tr:nth-child(even) {
-    background: #ffffff;
-}
-
-.application-status-table tbody tr:hover {
-    background: #eaf2fb;
-}
-
-/* STATUS BADGES */
-
-.status-badge {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.status-pending {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.status-approved {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status-rejected {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-/* EDIT APPLICATION BUTTON */
-
-.edit-application-button {
-    display: inline-block;
-    padding: 9px 16px;
-
-    background: #ff7f11;
-    color: white !important;
-
-    text-decoration: none !important;
-    border-radius: 3px;
-
-    font-size: 13px;
-    font-weight: 500;
-
-    transition: background 0.2s ease;
-}
-
-.edit-application-button:hover {
-    background: #e66f08;
-    color: white !important;
-}
-
-.edit-application-button:focus-visible {
-    outline: 3px solid #1733a5;
-    outline-offset: 3px;
-}
-
-/* FOOTER NOTE */
-
-.application-status-note {
-    margin-top: 20px;
-    font-size: 12px;
-    color: #666;
-}
-
-/* MOBILE */
-
-@media (max-width: 600px) {
-    .application-status-container {
-        margin: 20px 10px;
-        padding: 20px;
-    }
-
-    .application-status-table th,
-    .application-status-table td {
-        padding: 12px 8px;
-        font-size: 12px;
-    }
-
-    .edit-application-button {
-        padding: 8px 10px;
-        font-size: 12px;
-    }
-}
-</style>
-
-<div class="application-status-container">
-
-    <div class="application-status-header">
-        <h2>Check Application Status</h2>
-
-        <p>
-            Below is an overview of your submitted TA applications.
-            You can review the current status of each application
-            and make changes if editing is still available.
-        </p>
+<div id="student-status-page" class="wp-block-group application-status-container">
+  <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+    <div class="wp-block-group application-status-header">
+      <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+        <h2 class="wp-block-heading">Check Application Status</h2>
+        <noscript><p class="application-notice">JavaScript is required to load your application status and edit your application. Enable JavaScript in your browser, then reload this page.</p></noscript>
+        <p class="wp-block-paragraph">Select an academic term to review your submitted course preferences. You can edit your application while editing is available.</p>
+      </div>
     </div>
-
-    <div class="application-status-table-wrapper">
-        <table class="application-status-table">
-
-            <thead>
-                <tr>
-                    <th>Date Applied</th>
-                    <th>Current Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                <!-- Placeholder Application 1 -->
-                <tr>
-                    <td>—</td>
-
-                    <td>
-                        <span class="status-badge status-pending">
-                            Pending Review: Successfully Submitted
-                        </span>
-                    </td>
-
-                    <td>
-                        <a href="/student-profile/" class="edit-application-button">
-                            Edit Application
-                        </a>
-                    </td>
-                </tr>
-
-                <!-- Placeholder Application 2 -->
-                <tr>
-                    <td>—</td>
-
-                    <td>
-                        <span class="status-badge status-approved">
-                            Assigned
-                        </span>
-                    </td>
-
-                    <td>
-                        <a href="/student-profile/" class="edit-application-button">
-                            Edit Application
-                        </a>
-                    </td>
-                </tr>
-
-                <!-- Placeholder Application 3 -->
-                <tr>
-                    <td>—</td>
-
-                    <td>
-                        <span class="status-badge status-rejected">
-                            Partial Assingment 
-                        </span>
-                    </td>
-
-                    <td>
-                        <a href="/student-profile/" class="edit-application-button">
-                            Edit Application
-                        </a>
-                    </td>
-                </tr>
-
-            </tbody>
-
+    <div class="wp-block-taas-application-status">
+      <div class="status-controls">
+        <label for="status-term">
+          Academic term
+          <select id="status-term" data-placeholder="Select academic term" disabled>
+            <option value="">Select academic term</option>
+          </select>
+        </label>
+      </div>
+      <p class="status-message" id="status-message" role="status" aria-live="polite">Loading your applications…</p>
+      <button type="button" class="edit-application-button" id="status-retry" hidden>Retry loading</button>
+<template data-status-messages>
+  <p data-status-message="unexpected-response">The server returned an unexpected response. Please retry loading.</p>
+  <p data-status-message="http-error">Could not load application information ({status}).</p>
+  <p data-status-message="timeout">Loading timed out. Please retry.</p>
+  <p data-status-message="invalid-application">The saved application could not be loaded completely. Please retry.</p>
+  <p data-status-message="invalid-terms">The list of applications could not be loaded. Please retry.</p>
+  <p data-status-message="saved">Your application changes were saved.</p>
+  <p data-status-message="showing-editable">Showing your {term} course preferences.</p>
+  <p data-status-message="showing-closed">Showing your {term} application. Editing is unavailable at this time.</p>
+  <p data-status-message="choose-term">Select an academic term to view its application.</p>
+  <p data-status-message="loading-term">Loading your {term} application…</p>
+  <p data-status-message="refresh-failed">Your changes were saved, but the refreshed status could not be loaded. Please retry loading.</p>
+  <p data-status-message="load-failed">Could not load this application. Please retry.</p>
+  <p data-status-message="loading">Loading your applications…</p>
+  <p data-status-message="connection-unavailable">The application connection is unavailable. Please contact the administrator.</p>
+  <p data-status-message="no-applications">You have not submitted any applications yet.</p>
+  <p data-status-message="list-failed">Could not load your applications.</p>
+  <p data-status-message="stale">Your entries have been kept. Use Reload saved application to review the current saved version before editing again.</p>
+</template>
+<template data-status-template="course">
+  <tr>
+    <td><strong data-status-text="code"></strong><br><span data-status-text="name"></span></td>
+    <td data-status-text="rank"></td>
+    <td><span class="status-badge" data-status-text="status"></span></td>
+  </tr>
+</template>
+<template data-status-template="empty">
+  <tr><td colspan="3">No course preferences are saved for this term.</td></tr>
+</template>
+      <div class="application-status-table-wrapper" id="status-table-wrapper" hidden>
+        <table class="application-status-table" aria-label="Course preferences for the selected academic term">
+          <thead>
+            <tr>
+              <th scope="col">Course</th>
+              <th scope="col">Preference rank</th>
+              <th scope="col">Current status</th>
+            </tr>
+          </thead>
+          <tbody id="status-course-rows"></tbody>
         </table>
+      </div>
+      <div class="status-actions" id="status-actions" hidden>
+        <button type="button" class="edit-application-button" id="edit-saved-application" data-edit-label="Edit Application" data-view-label="View Application Details">Edit Application</button>
+        <button type="button" class="edit-application-button" id="reload-saved-application">Reload saved application</button>
+      </div>
     </div>
+    <section id="status-editor" hidden aria-labelledby="status-editor-title">
+      <h3 id="status-editor-title" data-edit-title="Edit Application" data-view-title="Application Details">Edit Application</h3>
+      <div class="wp-block-group application-shell taas-application-form-root">
+        <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+          <p class="term-banner" id="application-term" data-application-ui="term" role="status"><strong>Application for:</strong> <span data-term-value>Loading application information…</span></p>
+          <form id="student-application-form" data-application-form novalidate class="wp-block-taas-application-form">
+            <fieldset class="application-fields" id="application-fields" disabled data-application-loading-lock>
+              <div class="wp-block-group form-section">
+                <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                  <h2 class="wp-block-heading">Student Information</h2>
+                  <div class="wp-block-group form-grid">
+                    <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                      <div class="wp-block-taas-application-field">
+                        <label>First name <input name="firstName" type="text" required maxlength="255" autocomplete="given-name"></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>Last name <input name="lastName" type="text" required maxlength="255" autocomplete="family-name"></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>UFID <input name="ufid" readonly type="text" required maxlength="8" pattern="[0-9]{8}"><small>Your verified UFID is supplied by your account.</small></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>UF email <input name="ufEmail" readonly type="email" required maxlength="255" pattern=".+@[uU][fF][lL][.][eE][dD][uU]"></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>
+                          Country of origin
+                          <input name="countryOfOrigin" type="text" required autocomplete="country-name" list="country-options">
+                          <datalist id="country-options"></datalist>
+                        </label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>
+                          Semester you started at UF
+                          <select name="startSemester" required id="start-semester">
+                            <option value="">Select semester</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>
+                          Current college status
+                          <select name="collegeStatus" required>
+                            <option value="">Select status</option>
+                            <option value="undergraduate">Undergraduate</option>
+                            <option value="masters">Master's</option>
+                            <option value="phd">PhD</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>Phone number <input name="phone" type="tel" required maxlength="15" autocomplete="tel"></label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="wp-block-group form-section">
+                <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                  <h2 class="wp-block-heading" id="academic-background-heading">Academic Background</h2>
+                  <p class="section-help wp-block-paragraph" id="academic-background-instructions">Enter your current or most recent degree first, followed by previous degrees. For a degree in progress, enter your expected graduation date.</p>
+                  <div id="academic-background-entries" data-application-ui="degreeHost" role="group" aria-labelledby="academic-background-heading" aria-describedby="academic-background-instructions" data-current-entry-label="Current Degree / Most Recent Degree" data-previous-entry-label="Previous Degree"></div>
+                  <button type="button" id="add-degree" data-application-ui="addDegree">Add a previous degree</button>
+                  <template id="degree-entry-template" data-application-ui="degreeTemplate">
+                    <fieldset class="degree-entry">
+                      <legend>Current Degree / Most Recent Degree</legend>
+                      <div class="form-grid">
+                        <label>University <input data-field="university" maxlength="255" required></label>
+                        <label>Major <input data-field="major" maxlength="255" required></label>
+                        <label>Degree type <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
+                        <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[1-9][0-9]{3}" maxlength="7" required></label>
+                        <div>
+                          <label>GPA (out of 4.0) <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
+                          <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> GPA not yet available</label>
+                        </div>
+                      </div>
+                      <div class="degree-actions">
+                        <button type="button" data-action="remove-degree">Remove degree</button>
+                      </div>
+                    </fieldset>
+                  </template>
+                  <datalist id="degree-type-options">
+                    <option value="AA"></option>
+                    <option value="BS"></option>
+                    <option value="MS"></option>
+                    <option value="PhD"></option>
+                  </datalist>
+                </div>
+              </div>
+              <div class="wp-block-group form-section">
+                <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                  <h2 class="wp-block-heading">Eligibility Information</h2>
+                  <p class="section-help wp-block-paragraph">Choose the status that applies to each course.</p>
+                  <div class="wp-block-group form-grid">
+                    <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                      <div class="wp-block-taas-application-field">
+                        <label>
+                          EAP5836 status
+                          <select name="eap5836Status" required>
+                            <option value="">Select status</option>
+                            <option value="uf_taken">Taken at UF</option>
+                            <option value="currently_taking">Currently taking</option>
+                            <option value="not_taken">Not taken</option>
+                            <option value="other_university">Taken at another university</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>
+                          EAP5837 status
+                          <select name="eap5837Status" required>
+                            <option value="">Select status</option>
+                            <option value="uf_taken">Taken at UF</option>
+                            <option value="currently_taking">Currently taking</option>
+                            <option value="not_taken">Not taken</option>
+                            <option value="other_university">Taken at another university</option>
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="wp-block-group form-section">
+                <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                  <h2 class="wp-block-heading">Additional Information</h2>
+                  <div class="wp-block-group form-grid">
+                    <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                      <div class="wp-block-taas-application-field">
+                        <label>TOEFL score (optional) <input name="toeflScore" type="number" min="0" max="999.9" step="0.1"></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>SPEAK score (optional) <input name="speakScore" type="number" min="0" max="2147483647" step="1"></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>TOEFL date taken (optional) <input name="toeflDate" type="date" min="1000-01-01" max="9999-12-31"></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>SPEAK date taken (optional) <input name="speakDate" type="date" min="1000-01-01" max="9999-12-31"></label>
+                      </div>
+                      <div class="wp-block-taas-application-field">
+                        <label>
+                          Planned TA hours per week
+                          <select name="taHours" required>
+                            <option value="">Select hours</option>
+                            <option value="10">10 hours</option>
+                            <option value="20">20 hours</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div class="wp-block-group full-width">
+                        <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                          <div class="wp-block-taas-application-field">
+                            <label>
+                              Anything else the professor should know, including planned travel
+                              <textarea rows="5" name="additionalInfo" maxlength="1000"></textarea>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="wp-block-group full-width">
+                        <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                          <div class="wp-block-taas-application-field">
+                            <label>Resume URL (optional) <input name="resumeUrl" type="url" maxlength="255" placeholder="https://…"></label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="wp-block-group form-section course-section">
+                <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
+                  <h2 class="wp-block-heading">Course Preferences</h2>
+                  <p class="section-help wp-block-paragraph">Select up to five courses from the current course list. Rank all selected courses consecutively starting at 1 (highest preference), with no ties or skipped numbers. For example, three selected courses must have ranks 1, 2, and 3. Confirm you have completed each selected course. Completion is self-reported and will be verified by HR. To withdraw all course preferences while editing is available, uncheck every course and click Submit Changes.</p>
+                  <div class="course-selection-layout">
+                    <div class="course-chooser">
+                      <h3>Available courses</h3>
+                      <p class="course-subhelp">Check up to five courses.</p>
 
-    <p class="application-status-note">
-        Application statuses will be updated as your
-        submissions are reviewed.
-    </p>
-
+<!-- Course templates: edit layout here; keep input names and data hooks. -->
+<template data-course-template="emptyRankings">
+  <p class="empty-course-rankings">Select one or more courses to rank them here.</p>
+</template>
+<template data-course-template="readOnlyEmptyRankings">
+  <p class="empty-course-rankings">No active course preferences remain for this term.</p>
+</template>
+<template data-course-template="header">
+<div class="course-table-header"><span></span><span>Course number</span><span>Course name</span><span>Instructor</span><span>Class days</span><span>Class times</span></div>
+</template>
+<template data-course-template="row">
+<label class="available-course-option">
+  <input type="checkbox" name="selectedCourses">
+  <span class="course-detail"><span data-course-text="course_code">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="course_name">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="instructor_name">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="days">Not provided</span></span>
+  <span class="course-detail"><span data-course-text="times">Not provided</span></span>
+</label>
+</template>
+<template data-course-template="ranking">
+<fieldset class="student-app-preference">
+  <legend><span data-course-text="course_code"></span> — <span data-course-text="course_name"></span></legend>
+  <div class="course-information course-ranking-information">
+    <span class="course-detail"><span class="course-detail-label">Instructor</span><span data-course-text="instructor_name">Not provided</span></span>
+    <span class="course-detail"><span class="course-detail-label">Class days</span><span data-course-text="days">Not provided</span></span>
+    <span class="course-detail"><span class="course-detail-label">Class times</span><span data-course-text="times">Not provided</span></span>
+  </div>
+  <label><span>Preference rank</span>
+    <select name="courseRank" required><option value="">Select rank</option></select>
+  </label>
+  <label><span>Have you completed this course?</span>
+    <select name="courseHistory" required>
+      <option value="">Select answer</option>
+      <option value="yes">Yes, I have completed this course</option>
+      <option value="other">I completed an equivalent course at another institution</option>
+      <option value="no">No, I have not completed this course</option>
+    </select>
+  </label>
+  <label class="check-line"><input name="previouslyTA" type="checkbox"> I have previously worked as a TA for this course.</label>
+</fieldset>
+</template>
+<div id="available-course-list" data-application-ui="courseList" class="available-course-list" aria-describedby="course-selection-message"></div>
+                      <p id="course-selection-message" data-application-ui="courseMessage" class="course-selection-message" role="status" aria-live="polite"></p>
+                    </div>
+                    <div class="course-ranking-panel">
+                      <h3>Your course rankings</h3>
+                      <p class="course-subhelp">Set a different rank for each course and answer the course-history question.</p>
+                      <div id="student-course-preferences" data-application-ui="rankings" class="preferences-grid"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+            <footer class="form-actions">
+              <p class="student-app-message" id="form-message" data-application-ui="message" role="status" aria-live="polite">Loading your application…</p>
+              <button type="button" id="retry-application-load" data-application-ui="retry" hidden>Retry loading</button>
+              <button type="submit" data-saved-label="Application submitted" disabled data-application-loading-lock>Submit Changes</button>
+            </footer>
+          </form>
+        </div>
+      </div>
+    </section>
+    <p class="application-status-note wp-block-paragraph">Changes are saved only when you click Submit Changes. Application statuses update as submissions are reviewed.</p>
+  </div>
 </div>
-<!-- /wp:html -->
-
-<!-- wp:paragraph -->
-<p></p>
-<!-- /wp:paragraph -->

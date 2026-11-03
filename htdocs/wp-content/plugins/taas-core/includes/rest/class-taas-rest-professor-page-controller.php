@@ -384,6 +384,10 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	/**
 	 * GET /professor/applications/{application_id}: one applicant in full.
 	 *
+	 * TODO: Read submitted fields from the course-term snapshot, matching the
+	 * applicant list. First agree how to handle TA experience and TOEFL dates,
+	 * which the current snapshot contract does not capture.
+	 *
 	 * @param WP_REST_Request $request Current request.
 	 * @return WP_REST_Response|WP_Error
 	 */

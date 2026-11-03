@@ -37,6 +37,7 @@ final class TAAS_REST {
 			new TAAS_REST_Course_Controller(),
 			new TAAS_REST_Application_Controller(),
 			new TAAS_REST_Professor_Page_Controller(),
+			new TAAS_REST_Student_Application_Controller(),
 		);
 
 		/**

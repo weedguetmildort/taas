@@ -118,6 +118,15 @@ class FingerprintTest extends TestCase {
 		$this->assertNotSame( $before, TAAS_DB::fingerprint( $this->root ) );
 	}
 
+	/** Shared form markup must be included in the installer's input fingerprint. */
+	public function test_changes_when_shared_form_content_changes(): void {
+		mkdir( $this->root . '/pages/partials' );
+		$this->write( 'pages/partials/student-application-form.html', '<form>First version</form>' );
+		$before = TAAS_DB::fingerprint( $this->root );
+		$this->write( 'pages/partials/student-application-form.html', '<form>Updated controls</form>' );
+		$this->assertNotSame( $before, TAAS_DB::fingerprint( $this->root ) );
+	}
+
 	/**
 	 * Migrations run once by filename, so editing one that ran changes nothing
 	 */
