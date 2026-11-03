@@ -153,7 +153,7 @@ abstract class TAAS_Repository {
 		$data = $entity->to_row();
 
 		if ( false === $wpdb->insert( $this->table(), $data ) ) {
-			throw new RuntimeException( 'Insert into ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), self::write_error_code() );
+			throw new RuntimeException( 'Insert into ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), (int) self::write_error_code() );
 		}
 
 		return (int) $wpdb->insert_id > 0 ? (int) $wpdb->insert_id : (string) $data[ $this->primary_key() ];
@@ -285,7 +285,7 @@ abstract class TAAS_Repository {
 		$changed = $wpdb->update( $this->table(), $data, $conditions );
 
 		if ( false === $changed ) {
-			throw new RuntimeException( 'Update of ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), self::write_error_code() );
+			throw new RuntimeException( 'Update of ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), (int) self::write_error_code() );
 		}
 
 		return (int) $changed;
