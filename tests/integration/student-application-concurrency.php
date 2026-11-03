@@ -14,6 +14,7 @@ declare(strict_types=1);
 if ( 'cli' !== PHP_SAPI ) {
 	exit( 1 ); }
 require '/var/www/html/wp-load.php';
+require __DIR__ . '/support/application-cycle.php';
 if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development required.' ); }
 
@@ -26,7 +27,6 @@ function concurrency_check( bool $condition, string $message ): void {
 // Each worker boots WordPress separately and therefore has its own DB connection.
 if ( '--worker' === ( $argv[1] ?? '' ) ) {
 	$job = json_decode( stream_get_contents( STDIN ), true, 512, JSON_THROW_ON_ERROR );
-	add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, static fn() => $job['period'] );
 	file_put_contents( $job['directory'] . '/ready-' . $job['number'], 'ready' );
 	$limit = microtime( true ) + 10;
 	while ( ! file_exists( $job['directory'] . '/go' ) ) {
@@ -76,12 +76,11 @@ if ( '--worker' === ( $argv[1] ?? '' ) ) {
  *
  * @param string $directory Worker synchronization directory.
  * @param string $owner Fixture student identifier.
- * @param array $period Configured fixture term.
  * @param array $bodies Competing request payloads.
  * @param string $operation Save operation to exercise.
  * @param ?string $revision Expected saved revision token.
  */
-function competing_saves( string $directory, string $owner, array $period, array $bodies, string $operation, ?string $revision = null ): array {
+function competing_saves( string $directory, string $owner, array $bodies, string $operation, ?string $revision = null ): array {
 	$workers = array();
 	try {
 		foreach ( $bodies as $number => $body ) {
@@ -105,7 +104,6 @@ function competing_saves( string $directory, string $owner, array $period, array
 					array(
 						'directory' => $directory,
 						'owner'     => $owner,
-						'period'    => $period,
 						'body'      => $body,
 						'operation' => $operation,
 						'revision'  => $revision,
@@ -185,9 +183,11 @@ $period = array(
 	'is_open'   => true,
 	'closes_at' => null,
 );
-$filter = static fn() => $period;
-add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
+// Workers read the cycle from their own connections, so it is committed and restored in finally.
+$cycles = new TAAS_Application_Cycle_Repository();
+$original_cycle = $cycles->current();
 try {
+	taas_test_set_period( $period );
 	do {
 		$candidate = (string) random_int( 90000000, 99999999 );
 	} while ( $students->find( $candidate ) );
@@ -237,7 +237,7 @@ try {
 			),
 		),
 	);
-	$results = competing_saves( $directory, $owner, $period, array( $body, $body ), 'submit' );
+	$results = competing_saves( $directory, $owner, array( $body, $body ), 'submit' );
 	concurrency_check(
 		$results[0]['ok'] && $results[1]['ok']
 		&& $results[0]['result']['submission_id'] === $results[1]['result']['submission_id']
@@ -255,7 +255,7 @@ try {
 	$alternative['details']['student_name'] = 'Alternative initial submission';
 	$alternative['details']['profile']['additional_info'] = 'Different initial payload';
 	$initial_bodies = array( $body, $alternative );
-	$results = competing_saves( $directory, $owner, $period, $initial_bodies, 'submit' );
+	$results = competing_saves( $directory, $owner, $initial_bodies, 'submit' );
 	$winner = $results[0]['ok'] ? 0 : 1;
 	$state = owner_state( $owner );
 	$initial_details = json_decode( $state['student_submissions'][0]['submitted_details'], true, 512, JSON_THROW_ON_ERROR );
@@ -279,7 +279,7 @@ try {
 		$edit['course_preferences'][0]['course_id'] = $course_ids[ $index + 1 ];
 		$edits[] = $edit;
 	}
-	$results = competing_saves( $directory, $owner, $period, $edits, 'update', $revision );
+	$results = competing_saves( $directory, $owner, $edits, 'update', $revision );
 	$winner = $results[0]['ok'] ? 0 : 1;
 	concurrency_check( $results[ $winner ]['ok'] && ! $results[ 1 - $winner ]['ok'] && 409 === $results[ 1 - $winner ]['status'], 'Concurrent edits with one revision allow exactly one winner' );
 	$state = owner_state( $owner );
@@ -314,7 +314,7 @@ try {
 	}
 	concurrency_check( $before === owner_state( $owner ), 'Failed edit rolls back identity, profile, degree IDs, preferences, and snapshot' );
 } finally {
-	remove_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
+	null === $original_cycle ? $cycles->delete( TAAS_Application_Cycle::CURRENT_ID ) : $cycles->save( $original_cycle );
 	// Only delete rows belonging to IDs created successfully by this test.
 	if ( '' !== $owner ) {
 		foreach ( array( 'applications', 'student_submissions', 'academic_background', 'student_profiles', 'students' ) as $table ) {

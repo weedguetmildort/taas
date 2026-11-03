@@ -1,6 +1,6 @@
 <?php
 /**
- * Application-period configuration shared with the administration interface.
+ * The student-facing view of the current application cycle.
  *
  * @package TAAS_Core
  */
@@ -9,18 +9,16 @@ declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
 /**
- * No implicit term or open period: administrators must configure these values.
+ * No implicit term or open period: the administrator sets both through the application cycle.
  */
 final class TAAS_Application_Period {
 
-	public const OPTION = 'taas_application_period';
-
 	/**
-	 * Read the configured semester, year, manual open flag and optional UTC deadline.
+	 * Read the cycle's term and whether its student_application stage is active.
 	 *
-	 * TODO: Confirm this configuration contract and closure precedence with Team 2.
-	 * The admin UI is not implemented here. Both manual closure and a passed
-	 * deadline close the period; no grace behavior is implemented.
+	 * The cycle is the only source of truth. is_open agrees with TAAS_Stage_Gate,
+	 * so the student pages and the API close at the same moment. No grace
+	 * behavior is implemented.
 	 *
 	 * @return array{
 	 *   semester: int,
@@ -28,29 +26,22 @@ final class TAAS_Application_Period {
 	 *   label: string,
 	 *   is_open: bool,
 	 *   closes_at: int|null
-	 * }|WP_Error Validated configuration, or a 503 error when unconfigured.
-	 *            is_open includes both the manual flag and the deadline check.
-	 *            closes_at is a UTC Unix timestamp; null means no deadline.
+	 * }|WP_Error The period, or a 503 error when no cycle has been set.
+	 *            closes_at is student_application's end_at as a UTC Unix timestamp; null means no deadline.
+	 * @throws RuntimeException If the cycle query fails.
 	 */
 	public static function current(): array|WP_Error {
-		$value = get_option( self::OPTION, null );
-		if ( ! is_array( $value )
-			|| ! is_int( $value['semester'] ?? null )
-			|| null === TAAS_Semester::tryFrom( $value['semester'] )
-			|| ! is_int( $value['year'] ?? null )
-			|| $value['year'] < 1901 || $value['year'] > 2155
-			|| ! is_bool( $value['is_open'] ?? null )
-			|| ( isset( $value['closes_at'] ) && ( ! is_int( $value['closes_at'] ) || $value['closes_at'] < 1 ) )
-		) {
+		$cycle = ( new TAAS_Application_Cycle_Repository() )->current();
+		if ( null === $cycle ) {
 			return new WP_Error( 'taas_period_unconfigured', 'The application period has not been configured. Please contact the administrator.', array( 'status' => 503 ) );
 		}
-		$deadline = $value['closes_at'] ?? null;
+		$deadline = $cycle->stage_dates[ TAAS_Cycle_Stage::Student_Application->label() ]['end_at'] ?? null;
 		return array(
-			'semester'  => $value['semester'],
-			'year'      => $value['year'],
-			'label'     => TAAS_Semester::from( $value['semester'] )->label() . ' ' . $value['year'],
-			'is_open'   => $value['is_open'] && ( null === $deadline || time() < $deadline ),
-			'closes_at' => $deadline,
+			'semester'  => $cycle->cycle_semester->value,
+			'year'      => $cycle->cycle_year,
+			'label'     => $cycle->cycle_semester->label() . ' ' . $cycle->cycle_year,
+			'is_open'   => TAAS_Cycle_Stage::Student_Application === $cycle->active_stage(),
+			'closes_at' => $deadline?->getTimestamp(),
 		);
 	}
 }

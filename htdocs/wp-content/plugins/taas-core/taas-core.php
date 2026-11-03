@@ -21,6 +21,7 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-logger.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-version.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-db.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-auth.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-stage-gate.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-pages.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-schema.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-migrations.php';
@@ -30,11 +31,13 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-snapshots.php';
 /*
  * Types: enums and helpers first, then the row classes that depend on them.
  */
+require_once TAAS_CORE_PATH . 'includes/types/enums/trait-taas-label-lookup.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-enrollment-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-degree-type.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-course-taken-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-match-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-semester.php';
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-cycle-stage.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-cast.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-guard.php';
 require_once TAAS_CORE_PATH . 'includes/types/helpers/class-taas-ranking.php';
@@ -45,6 +48,7 @@ require_once TAAS_CORE_PATH . 'includes/types/class-taas-student-submission.php'
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-academic-background.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-course.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-application-cycle.php';
 
 /*
  * Repositories layer for direct DB access.
@@ -58,6 +62,7 @@ require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-submissi
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-academic-background-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-course-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-repository.php';
+require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-cycle-repository.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-application-period.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-student-application-input.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-student-application-service.php';
@@ -67,7 +72,11 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-student-application-service.p
  */
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-resource-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/trait-taas-rest-term-params.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-status-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-me-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-cycle-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-matching-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-profile-controller.php';
@@ -78,7 +87,13 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-page-cont
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-application-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
 
+/*
+ * Staffing formula for courses. This file also holds the matching algorithm, which nothing here runs.
+ */
+require_once TAAS_CORE_PATH . 'includes/func-matching.php';
+
 TAAS_REST::init();
+TAAS_Stage_Gate::init();
 
 /**
  * Apply the database schema and any pending migrations

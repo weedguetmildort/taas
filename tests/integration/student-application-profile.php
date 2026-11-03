@@ -12,6 +12,7 @@ declare(strict_types=1);
 if ( 'cli' !== PHP_SAPI ) {
 	exit( 1 ); }
 require '/var/www/html/wp-load.php';
+require __DIR__ . '/support/application-cycle.php';
 if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development required.' ); }
 
@@ -33,8 +34,6 @@ $period = array(
 	'is_open'   => true,
 	'closes_at' => null,
 );
-$filter = static fn() => $period;
-add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 $body = array(
 	'term'               => array(
 		'semester' => 1,
@@ -71,8 +70,9 @@ $body = array(
 $sentinel = new RuntimeException( 'Roll back profile verification.' );
 try {
 	TAAS_Transaction::run(
-		static function () use ( $students, $profiles, $submissions, $owner, $body, $sentinel ): void {
+		static function () use ( $students, $profiles, $submissions, $owner, $body, $period, $sentinel ): void {
 			global $wpdb;
+			taas_test_set_period( $period );
 			$students->insert( new TAAS_Student( $owner, 'Profile verification', 'profile@ufl.edu' ) );
 			$profiles->insert( new TAAS_Student_Profile( student_ufid: $owner, speak_score: 45, speak_date: new DateTimeImmutable( '2026-01-10' ), toefl_ibt_score: 6, toefl_ibt_date: new DateTimeImmutable( '2026-02-10' ) ) );
 			$submissions->save_for_term( $owner, TAAS_Semester::Fall, 2155, TAAS_Student_Application_Input::parse( $body, true )['details'] );
@@ -200,7 +200,5 @@ try {
 } catch ( Throwable $error ) {
 	if ( $error !== $sentinel ) {
 		throw $error; }
-} finally {
-	remove_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 }
 taas_profile_check( null === $students->find( $owner ) && null === $profiles->find( $owner ) && null === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 ), 'All profile-regression fixtures rolled back' );

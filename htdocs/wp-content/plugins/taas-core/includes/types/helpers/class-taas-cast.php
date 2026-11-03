@@ -86,6 +86,22 @@ final class TAAS_Cast {
 	}
 
 	/**
+	 * Parse a UTC datetime column value, or return null if it is empty.
+	 *
+	 * @param mixed $value Raw column value, formatted Y-m-d H:i:s.
+	 * @return DateTimeImmutable|null
+	 */
+	public static function utc_datetime_or_null( mixed $value ): ?DateTimeImmutable {
+		if ( null === $value || '' === $value ) {
+			return null;
+		}
+
+		$date = DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', (string) $value, new DateTimeZone( 'UTC' ) );
+
+		return false === $date ? null : $date;
+	}
+
+	/**
 	 * Convert a raw integer column into a backed enum case, or null for NULL.
 	 *
 	 * @param string $enum_class Backed enum class name, e.g. TAAS_Match_Status::class.

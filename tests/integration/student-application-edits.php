@@ -16,6 +16,7 @@ if ( 'cli' !== PHP_SAPI ) {
 	exit( 1 );
 }
 require '/var/www/html/wp-load.php';
+require __DIR__ . '/support/application-cycle.php';
 if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development mode is required.' );
 }
@@ -59,10 +60,6 @@ $period = array(
 	'is_open'   => true,
 	'closes_at' => time() + 3600,
 );
-$filter = static function () use ( &$period ) {
-	return $period;
-};
-add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 $repos = array(
 	'students'     => new TAAS_Student_Repository(),
 	'profiles'     => new TAAS_Student_Profile_Repository(),
@@ -85,6 +82,7 @@ try {
 				|| $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_C, $period['year'] ) ) {
 				--$period['year'];
 			}
+			taas_test_set_period( $period );
 			$professor = '99997000';
 			while ( $repos['professors']->find( $professor ) ) {
 				$professor = (string) ( (int) $professor - 1 );
@@ -345,12 +343,14 @@ try {
 				)->get_status(),
 				'Another student snapshot cannot be edited'
 			);
-			$period['is_open'] = false;
+			taas_test_set_period( array( 'is_open' => false ) + $period );
 			taas_edit_check( 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Administrator closure blocks edits on the server' );
-			$period['is_open'] = true;
-			$period['closes_at'] = time() - 1;
+			$closed_read = taas_edit_request( 'GET', $route );
+			taas_edit_check( 200 === $closed_read->get_status() && false === $closed_read->get_data()['can_edit'], 'Saved application stays readable, not editable, after closure' );
+			taas_edit_check( 200 === taas_edit_request( 'GET', '/student/application/terms' )->get_status(), 'Term list stays readable after closure' );
+			taas_test_set_period( array( 'closes_at' => time() - 1 ) + $period );
 			taas_edit_check( 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Passed deadline blocks edits without grace' );
-			$period['closes_at'] = time() + 3600;
+			taas_test_set_period( $period );
 			$wpdb->update( $repos['applications']->table(), array( 'match_status' => 2 ), array( 'application_id' => $original_ids[ $ids['A'] ] ) );
 			taas_edit_check( ! taas_edit_request( 'GET', $route )->get_data()['can_edit'] && 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Deferred matched-application policy is not bypassed' );
 			throw $sentinel;
@@ -362,7 +362,6 @@ try {
 		exit( 1 );
 	}
 } finally {
-	remove_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 	$_GET = $original_get;
 }
 taas_edit_check( $before === array_map( static fn( TAAS_Repository $repo ) => $repo->count(), $repos ), 'All edit-verification records rolled back' );

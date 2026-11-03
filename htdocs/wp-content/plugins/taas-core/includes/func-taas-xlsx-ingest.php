@@ -300,6 +300,8 @@ function taas_import_courses( string $file_path ): array {
 				// Unset these professor_name and professor_email since these aren't fields that a course object has in schema
 				unset( $course['professor_name'], $course['professor_email'] );
 
+				$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
+
 				// If professor_ufid is not found, skip row
 				if ( null === $course['professor_ufid'] ) {
 					$messages[] = array(

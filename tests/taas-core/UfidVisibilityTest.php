@@ -83,6 +83,67 @@ class UfidVisibilityTest extends TestCase {
 	}
 
 	/**
+	 * Enums go out as labels and booleans as true or false, never as stored integers
+	 *
+	 * @dataProvider typed_rows
+	 *
+	 * @param object $row      Row object.
+	 * @param array  $expected Column => value expected in the response.
+	 */
+	public function test_responses_never_carry_raw_enums( object $row, array $expected ): void {
+		$_GET['taas_role'] = 'admin';
+
+		$data = ( new TAAS_REST_Course_Controller() )->prepare_item_for_response( $row, null )->get_data();
+
+		foreach ( $expected as $column => $value ) {
+			$this->assertSame( $value, $data[ $column ], $column );
+		}
+	}
+
+	/**
+	 * One row of every table with an enum or boolean column
+	 *
+	 * @return array<string, array>
+	 */
+	public static function typed_rows(): array {
+		return array(
+			'course'              => array(
+				new TAAS_Course( 1, 'COP3502', 'Programming 1', '87654321', TAAS_Semester::Summer_A, 2027, true ),
+				array(
+					'course_semester' => 'Summer A',
+					'is_online'       => true,
+				),
+			),
+			'application'         => array(
+				new TAAS_Application( 1, '12345678', 1, true, false, null, null, null, TAAS_Match_Status::Matched, 20 ),
+				array(
+					'match_status'      => 'Matched',
+					'has_taken_course'  => true,
+					'has_ta_for_course' => false,
+				),
+			),
+			'student profile'     => array(
+				new TAAS_Student_Profile(
+					'12345678',
+					enrollment_status: TAAS_Enrollment_Status::Phd,
+					has_ta_experience: true,
+					eap5836_status: TAAS_Course_Taken_Status::Taken_At_UF,
+				),
+				array(
+					'enrollment_status' => 'PhD',
+					'has_ta_experience' => true,
+					'eap5836_status'    => 'Taken at UF',
+					'eap5837_status'    => null,
+				),
+			),
+			'academic background' => array(
+				new TAAS_Academic_Background( 1, '12345678', 'UF', TAAS_Degree_Type::MS, new DateTimeImmutable( '2026-05-01' ) ),
+				array( 'degree_type' => 'MS' ),
+			),
+		);
+	}
+
+	/**
 	 * A controller with its own response shape follows the same rule
 	 */
 	public function test_academic_background_override_follows_the_rule(): void {

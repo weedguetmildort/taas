@@ -23,7 +23,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * Only HR and admins may see UFIDs. Every *_ufid column is removed from the
  * response for anyone else (see row_for_caller()), whatever the route's
- * read_permission() allows.
+ * read_permission() allows. Enum and boolean columns are sent as their logical
+ * values, never the integers the database stores.
  *
  * When an endpoint needs more than one table, do not stretch this class. Extend
  * TAAS_REST_Controller instead; its documentation covers composite reads, joins
@@ -64,7 +65,7 @@ abstract class TAAS_REST_Resource_Controller extends TAAS_REST_Controller {
 
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . '/(?P<id>[A-Za-z0-9_-]+)',
+			'/' . $this->rest_base . '/(?P<id>' . $this->id_pattern() . ')',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
@@ -81,6 +82,15 @@ abstract class TAAS_REST_Resource_Controller extends TAAS_REST_Controller {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Route pattern for a primary key.
+	 *
+	 * @return string
+	 */
+	protected function id_pattern(): string {
+		return '[A-Za-z0-9_-]+';
 	}
 
 	/**
@@ -122,11 +132,7 @@ abstract class TAAS_REST_Resource_Controller extends TAAS_REST_Controller {
 					$data[] = $this->prepare_response_for_collection( $this->prepare_item_for_response( $item, $request ) );
 				}
 
-				$response = rest_ensure_response( $data );
-				$response->header( 'X-WP-Total', (string) $total );
-				$response->header( 'X-WP-TotalPages', (string) (int) ceil( $total / $per_page ) );
-
-				return $response;
+				return $this->paged_response( $data, $total, $per_page );
 			}
 		);
 	}
@@ -140,7 +146,7 @@ abstract class TAAS_REST_Resource_Controller extends TAAS_REST_Controller {
 	public function get_item( $request ) {
 		return $this->respond(
 			function () use ( $request ) {
-				$item = $this->repository->find( (string) $request['id'] );
+				$item = $this->repository->find( $this->path_param( $request, 'id' ) );
 
 				return null === $item ? $this->not_found() : $this->prepare_item_for_response( $item, $request );
 			}
@@ -162,43 +168,57 @@ abstract class TAAS_REST_Resource_Controller extends TAAS_REST_Controller {
 	}
 
 	/**
-	 * A row's columns, without any *_ufid column unless the caller is HR or an admin.
+	 * A row's columns as logical values, without any *_ufid column unless the caller is HR or an admin.
 	 *
 	 * @param object $item Row object from the repository.
 	 * @return array<string, mixed>
 	 */
 	protected function row_for_caller( object $item ): array {
-		if ( TAAS_Auth::has_role( TAAS_Auth::ROLE_ADMIN ) || TAAS_Auth::has_role( TAAS_Auth::ROLE_HR ) ) {
-			return $item->to_row();
+		$row = self::logical_row( $item );
+
+		if ( $this->caller_sees_ufids() ) {
+			return $row;
 		}
 
 		return array_filter(
-			$item->to_row(),
+			$row,
 			static fn( string $column ) => ! str_ends_with( $column, '_ufid' ),
 			ARRAY_FILTER_USE_KEY
 		);
 	}
 
 	/**
-	 * Query parameters for the list route.
+	 * Whether the caller may see UFIDs: only HR and admins may.
 	 *
-	 * @return array<string, array>
+	 * @return bool
 	 */
-	public function get_collection_params() {
-		return array(
-			'page'     => array(
-				'description' => __( 'Page of results to return.', 'taas-core' ),
-				'type'        => 'integer',
-				'default'     => 1,
-				'minimum'     => 1,
-			),
-			'per_page' => array(
-				'description' => __( 'Rows per page.', 'taas-core' ),
-				'type'        => 'integer',
-				'default'     => TAAS_Repository::DEFAULT_LIMIT,
-				'minimum'     => 1,
-				'maximum'     => TAAS_Repository::MAX_LIMIT,
-			),
-		);
+	protected function caller_sees_ufids(): bool {
+		return TAAS_Auth::has_role( TAAS_Auth::ROLE_ADMIN ) || TAAS_Auth::has_role( TAAS_Auth::ROLE_HR );
+	}
+
+	/**
+	 * A row's columns, with each enum as its label and each boolean as true or false.
+	 *
+	 * Since to_row() gives the integers the database stores, these are read back from
+	 * the row object's typed properties. A new enum column is covered automatically.
+	 *
+	 * @param object $item Row object from the repository.
+	 * @return array<string, mixed>
+	 */
+	private static function logical_row( object $item ): array {
+		$typed = get_object_vars( $item );
+		$row   = $item->to_row();
+
+		foreach ( array_keys( $row ) as $column ) {
+			$value = $typed[ $column ] ?? null;
+
+			if ( $value instanceof BackedEnum ) {
+				$row[ $column ] = $value->label();
+			} elseif ( is_bool( $value ) ) {
+				$row[ $column ] = $value;
+			}
+		}
+
+		return $row;
 	}
 }

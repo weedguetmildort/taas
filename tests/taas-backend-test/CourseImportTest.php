@@ -14,6 +14,7 @@ require_once dirname( __DIR__ ) . '/support/class-taas-course-import-fake-wpdb.p
 
 // Plain functions are not covered by the Composer classmap
 require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-xlsx-ingest.php';
+require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-matching.php';
 
 /**
  * Check headers are matched, cells are validated against the schema, and rows are saved or skipped

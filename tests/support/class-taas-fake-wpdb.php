@@ -162,7 +162,40 @@ class TAAS_Fake_Wpdb {
 			'data'  => $data,
 		);
 		$this->writes[] = $this->write;
+
+		if ( false === $this->insert_result ) {
+			$this->last_error = $this->insert_error;
+		}
+
 		return $this->insert_result;
+	}
+
+	/**
+	 * Error message a failed insert() leaves on last_error
+	 *
+	 * @var string
+	 */
+	public $insert_error = '';
+
+	/**
+	 * Record the replace
+	 *
+	 * @param string $table Table name.
+	 * @param array  $data Column => value.
+	 * @return int|false
+	 */
+	public function replace( $table, $data ) {
+		return $this->insert( $table, $data );
+	}
+
+	/**
+	 * Escape LIKE wildcards the way $wpdb->esc_like() does
+	 *
+	 * @param string $text Text to escape.
+	 * @return string
+	 */
+	public function esc_like( $text ) {
+		return addcslashes( $text, '_%\\' );
 	}
 
 	/**

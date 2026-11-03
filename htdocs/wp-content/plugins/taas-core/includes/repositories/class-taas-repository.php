@@ -23,10 +23,16 @@ defined( 'ABSPATH' ) || exit;
  * by a controller calling several repositories; writes that span tables are
  * wrapped in TAAS_Transaction::run().
  *
- * Failed queries throw RuntimeException, matching the CSV importer. A missing
- * row is not a failure: find() returns null.
+ * Failed queries throw RuntimeException, matching the CSV importer. A write that
+ * breaks a unique key throws it with code DUPLICATE_KEY. A missing row is not a
+ * failure: find() returns null.
  */
 abstract class TAAS_Repository {
+
+	/**
+	 * RuntimeException code for a write that broke a unique key (MySQL error 1062).
+	 */
+	public const DUPLICATE_KEY = 1062;
 
 	/**
 	 * Default page size for all().
@@ -147,7 +153,7 @@ abstract class TAAS_Repository {
 		$data = $entity->to_row();
 
 		if ( false === $wpdb->insert( $this->table(), $data ) ) {
-			throw new RuntimeException( 'Insert into ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ) );
+			throw new RuntimeException( 'Insert into ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), (int) self::write_error_code() );
 		}
 
 		return (int) $wpdb->insert_id > 0 ? (int) $wpdb->insert_id : (string) $data[ $this->primary_key() ];
@@ -279,7 +285,7 @@ abstract class TAAS_Repository {
 		$changed = $wpdb->update( $this->table(), $data, $conditions );
 
 		if ( false === $changed ) {
-			throw new RuntimeException( 'Update of ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ) );
+			throw new RuntimeException( 'Update of ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), (int) self::write_error_code() );
 		}
 
 		return (int) $changed;
@@ -337,12 +343,24 @@ abstract class TAAS_Repository {
 	}
 
 	/**
+	 * The exception code for the write that just failed: DUPLICATE_KEY if it broke a unique key, otherwise 0.
+	 *
+	 * @return int
+	 */
+	private static function write_error_code(): int {
+		global $wpdb;
+
+		// $wpdb keeps only the message; MySQL starts error 1062's with this.
+		return str_starts_with( $wpdb->last_error, 'Duplicate entry' ) ? self::DUPLICATE_KEY : 0;
+	}
+
+	/**
 	 * Throw if the last query left an error on $wpdb.
 	 *
 	 * @return void
 	 * @throws RuntimeException If $wpdb->last_error is set.
 	 */
-	private function check_error(): void {
+	protected function check_error(): void {
 		global $wpdb;
 
 		if ( '' !== $wpdb->last_error ) {

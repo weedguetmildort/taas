@@ -16,6 +16,7 @@ if ( 'cli' !== PHP_SAPI ) {
 	exit( 1 );
 }
 require '/var/www/html/wp-load.php';
+require __DIR__ . '/support/application-cycle.php';
 if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development mode is required.' );
 }
@@ -57,10 +58,6 @@ $period        = array(
 	'is_open'   => true,
 	'closes_at' => time() + 3600,
 );
-$period_filter = static function () use ( &$period ) {
-	return $period;
-};
-add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $period_filter );
 $_GET['taas_role'] = 'student';
 $owner = (string) TAAS_Auth::current_user()['university_id'];
 $repos = array(
@@ -87,6 +84,7 @@ try {
 				|| $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_C, $period['year'] ) ) {
 				--$period['year'];
 			}
+			taas_test_set_period( $period );
 			$professor = '99999000';
 			while ( null !== $repos['professors']->find( $professor ) ) {
 				$professor = (string) ( (int) $professor - 1 );
@@ -222,12 +220,12 @@ try {
 			$invalid = $body;
 			$invalid['course_preferences'][] = $invalid['course_preferences'][0];
 			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Duplicate course/rank is rejected' );
-			$period['is_open'] = false;
+			taas_test_set_period( array( 'is_open' => false ) + $period );
 			taas_application_check( 403 === taas_application_request( 'POST', '/student/application', $body )->get_status(), 'Manual closure blocks submission' );
-			$period['is_open'] = true;
-			$period['closes_at'] = time() - 1;
+			taas_application_check( false === taas_application_request( 'GET', '/student/application' )->get_data()['period']['is_open'], 'Closed form data still loads and reports the closure' );
+			taas_test_set_period( array( 'closes_at' => time() - 1 ) + $period );
 			taas_application_check( 403 === taas_application_request( 'POST', '/student/application', $body )->get_status(), 'Passed deadline blocks submission without grace' );
-			$period['closes_at'] = time() + 3600;
+			taas_test_set_period( $period );
 			$created = taas_application_request( 'POST', '/student/application', $body );
 			taas_application_check( 201 === $created->get_status(), 'Valid application is saved' );
 			taas_application_check( TAAS_Enrollment_Status::Undergraduate === $repos['profiles']->find( $owner )->enrollment_status, 'Undergraduate application saves the shared enrollment status' );
@@ -279,7 +277,7 @@ try {
 			$changed['details']['profile']['available_hours'] = 20;
 			taas_application_check( 409 === taas_application_request( 'POST', '/student/application', $changed )->get_status(), 'Initial submission cannot overwrite existing preferences' );
 			taas_application_check( 10 === $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_C, $period['year'] )->submitted_details['profile']['available_hours'], 'Conflict preserves the saved term snapshot' );
-			$period = array();
+			taas_test_set_period( array() );
 			taas_application_check( 503 === taas_application_request( 'GET', '/student/application' )->get_status(), 'Missing configuration is explicit, not an invented term' );
 			throw $sentinel;
 		}
@@ -290,7 +288,6 @@ try {
 		exit( 1 );
 	}
 } finally {
-	remove_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $period_filter );
 	$_GET = $original_get;
 }
 taas_application_check( $before === array_map( static fn( TAAS_Repository $repo ) => $repo->count(), $repos ), 'All verification rows rolled back' );
@@ -300,11 +297,6 @@ taas_application_check( $original_degrees === array_map( static fn( TAAS_Academi
 
 // Force a failure at the final snapshot write to verify the complete submission
 // transaction rolls back identity, profile, degrees and course choices together.
-$period = $test_input['term'] + array(
-	'is_open'   => true,
-	'closes_at' => time() + 3600,
-);
-add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $period_filter );
 $fail_snapshot = static function ( string $query ) use ( $repos ): string {
 	if ( str_contains( $query, $repos['submissions']->table() ) && preg_match( '/^\s*INSERT INTO/i', $query ) ) {
 		return 'DELIBERATELY INVALID SQL FOR ROLLBACK VERIFICATION';
@@ -315,6 +307,7 @@ $previous_errors = $wpdb->suppress_errors( true );
 try {
 	TAAS_Transaction::run(
 		static function () use ( $repos, $fixture_professor, $fixture_courses, $owner, $test_input, $fail_snapshot ) {
+			taas_test_set_period( $test_input['term'] + array( 'is_open' => true ) );
 			$repos['professors']->insert( $fixture_professor );
 			foreach ( $fixture_courses as $course ) {
 				$repos['courses']->insert( $course );
@@ -328,7 +321,6 @@ try {
 	taas_application_check( str_contains( $error->getMessage(), 'Saving student submission failed' ), 'Snapshot write failure is surfaced' );
 } finally {
 	remove_filter( 'query', $fail_snapshot );
-	remove_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $period_filter );
 	$wpdb->suppress_errors( $previous_errors );
 }
 taas_application_check( $before === array_map( static fn( TAAS_Repository $repo ) => $repo->count(), $repos ), 'Database failure rolls back all application records' );

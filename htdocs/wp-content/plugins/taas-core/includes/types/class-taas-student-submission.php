@@ -53,7 +53,7 @@ final class TAAS_Student_Submission {
 	 *   }>
 	 * } $submitted_details Normalized application details; at least one degree.
 	 * @see TAAS_Student_Application_Input::parse() Field validation and normalization.
-	 * @see docs/student-application-api.md Submitted-details snapshot contract.
+	 * @see documentation/api/student.md Request rules for these details.
 	 * @throws InvalidArgumentException If the owner, year or top-level detail keys are invalid.
 	 */
 	public function __construct(

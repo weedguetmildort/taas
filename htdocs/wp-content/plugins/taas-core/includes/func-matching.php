@@ -24,35 +24,54 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Return the total weekly TA hours a course needs
+ * Return the total weekly TA hours for an enrollment and lab hours
  *
  * 10 hours of TA support per 35 students with no lab, per 30 with a 1-hour lab,
  * or per 25 with a 2-hour lab, rounded to the nearest multiple of 5.
  *
- * @param TAAS_Course $course Course to staff
- * @return int hours
- * @throws InvalidArgumentException If enrollment is negative or lab_hours is not 0, 1, or 2.
+ * @param int $enrollment Current enrollment
+ * @param int $lab_hours  Lab hours per week
+ * @return int|null Null if enrollment is under 10 or lab_hours is not 0, 1, or 2.
  */
-function taas_calc_course_ta_hours( TAAS_Course $course ): int {
-	// TODO: save the result to course->weekly_hours in the db
-
-	if ( $course->enrollment < 10 ) {
-		throw new InvalidArgumentException( sprintf( 'Course %d has negative enrollment.', (int) $course->course_id ) );
-	}
-
+function taas_calc_weekly_hours( int $enrollment, int $lab_hours ): ?int {
 	// Students covered by each 10 hours of TA support
-	$students_per_10_hours = match ( $course->lab_hours ) {
+	$students_per_10_hours = match ( $lab_hours ) {
 		0       => 35,
 		1       => 30,
 		2       => 25,
-		default => throw new InvalidArgumentException( sprintf( 'Course %d has unsupported lab_hours: %d.', (int) $course->course_id, (int) $course->lab_hours ) ),
+		default => null,
 	};
 
+	if ( $enrollment < 10 || null === $students_per_10_hours ) {
+		return null;
+	}
+
 	// Calculation of TA hours for the course
-	$hours = ( $course->enrollment * 10 ) / $students_per_10_hours;
+	$hours = ( $enrollment * 10 ) / $students_per_10_hours;
 
 	// Round hours to nearest multiple of 5
 	return (int) ( round( $hours / 5 ) * 5 );
+}
+
+/**
+ * Return the total weekly TA hours a course needs
+ *
+ * @param TAAS_Course $course Course to staff
+ * @return int hours
+ * @throws InvalidArgumentException If enrollment is under 10 or lab_hours is not 0, 1, or 2.
+ */
+function taas_calc_course_ta_hours( TAAS_Course $course ): int {
+	if ( $course->enrollment < 10 ) {
+		throw new InvalidArgumentException( sprintf( 'Course %d has enrollment under 10.', (int) $course->course_id ) );
+	}
+
+	$hours = taas_calc_weekly_hours( $course->enrollment, $course->lab_hours );
+
+	if ( null === $hours ) {
+		throw new InvalidArgumentException( sprintf( 'Course %d has unsupported lab_hours: %d.', (int) $course->course_id, (int) $course->lab_hours ) );
+	}
+
+	return $hours;
 }
 
 /**
