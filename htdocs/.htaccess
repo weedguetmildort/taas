@@ -56,6 +56,11 @@ RewriteRule . /index.php [L]
 	Require all denied
 </Files>
 
+# never serve WordPress debug logs (WP_DEBUG_LOG writes wp-content/debug.log)
+<Files "debug.log">
+	Require all denied
+</Files>
+
 <Files "wp-config.php">
 	order allow,deny
 	deny from all
