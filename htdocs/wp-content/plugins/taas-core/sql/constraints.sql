@@ -15,6 +15,17 @@ ALTER TABLE {prefix}academic_background
 	FOREIGN KEY (student_ufid) REFERENCES {prefix}students(student_ufid)
 	ON DELETE CASCADE;
 
+-- Submitted details belong to an existing student, like their shared profile
+ALTER TABLE {prefix}student_submissions
+	ADD CONSTRAINT fk_submissions_student
+	FOREIGN KEY (student_ufid) REFERENCES {prefix}students(student_ufid)
+	ON DELETE CASCADE;
+
+-- Submitted terms use the same five semester values as TAAS_Semester
+ALTER TABLE {prefix}student_submissions
+	ADD CONSTRAINT chk_submissions_semester
+	CHECK (semester IN (1, 2, 3, 4, 5));
+
 -- A course must have a real professor. No cascade: deleting a professor
 -- with live courses should fail loudly rather than delete the courses.
 ALTER TABLE {prefix}courses

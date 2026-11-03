@@ -84,6 +84,7 @@ services:
     volumes:
       - wp_data:/var/www/html
       - ./htdocs/wp-content/plugins/taas-core:/var/www/html/wp-content/plugins/taas-core
+      - ./htdocs/wp-content/plugins/taas-student-application-page:/var/www/html/wp-content/plugins/taas-student-application-page
       # Uncomment each of these once the plugin exists
       # - ./htdocs/wp-content/plugins/taas-onboarding:/var/www/html/wp-content/plugins/taas-onboarding
       # - ./htdocs/wp-content/plugins/taas-matching:/var/www/html/wp-content/plugins/taas-matching

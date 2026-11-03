@@ -67,12 +67,14 @@ if ( 6 !== count( $parts ) ) {
 	}
 }
 
-// Compare against a git tag passed as argv[1]
+// Compare against a git tag passed as argv[1]: v<baseline>.<deploy number>,
+// e.g. v0.7.8.8.2.3. The deploy number gives every deploy its own tag while
+// the baseline stays put; the committed build segment stays 0.
 if ( isset( $argv[1] ) && '' !== $argv[1] ) {
-	$release_tag = ltrim( $argv[1], 'v' );
+	$release_tag = $argv[1];
 
-	if ( $release_tag !== $class_tag ) {
-		$version_errors[] = "Git tag ({$release_tag}) does not match the version baseline ({$class_tag}). Tags carry the 5 baseline segments only; the build is appended by CI.";
+	if ( 1 !== preg_match( '/^v' . preg_quote( $class_tag, '/' ) . '\.([1-9]\d*)$/', $release_tag ) ) {
+		$version_errors[] = "Git tag ({$release_tag}) must be v{$class_tag}.<deploy number>, e.g. v{$class_tag}.1. The baseline comes from TAAS_Version; the deploy number counts up from 1.";
 	}
 }
 
