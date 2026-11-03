@@ -22,8 +22,8 @@ This is not intended to replace project management and tickets, but rather to no
 - **Algorithm:** connect it to `GET /matching/recommendations`, which currently returns `[]`.
   - Decide how recommendations are stored.
   - The algorithm identifies students by UFID, so the route must also look up `application_id` and `student_name`.
-  - Courses with enrollment under 10 currently make `taas_run_matching` throw an error.
-- **Weekly hours formula:** make it customizable by the admin. It stays in `func-matching.php` until then.
+  - Courses with enrollment under 10 get no TA hours (Professor Rani's cutoff, which stays as is), but they currently make taas_run_matching throw an error. They should be skipped instead.
+- **Weekly hours formula:** make it customizable by the admin. It stays in `func-matching.php` until then. If we do not get to this item, ensure the formula location is documented for Dr. Rani for manual editing if ever needed.
 
 ## Students and HR
 
