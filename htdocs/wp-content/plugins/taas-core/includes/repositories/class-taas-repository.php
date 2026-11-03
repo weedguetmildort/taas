@@ -153,7 +153,7 @@ abstract class TAAS_Repository {
 		$data = $entity->to_row();
 
 		if ( false === $wpdb->insert( $this->table(), $data ) ) {
-			throw $this->write_failed( 'Insert into' );
+			throw new RuntimeException( 'Insert into ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), self::write_error_code() );
 		}
 
 		return (int) $wpdb->insert_id > 0 ? (int) $wpdb->insert_id : (string) $data[ $this->primary_key() ];
@@ -285,7 +285,7 @@ abstract class TAAS_Repository {
 		$changed = $wpdb->update( $this->table(), $data, $conditions );
 
 		if ( false === $changed ) {
-			throw $this->write_failed( 'Update of' );
+			throw new RuntimeException( 'Update of ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ), self::write_error_code() );
 		}
 
 		return (int) $changed;
@@ -343,18 +343,15 @@ abstract class TAAS_Repository {
 	}
 
 	/**
-	 * The exception for a failed insert or update, coded DUPLICATE_KEY if it broke a unique key.
+	 * The exception code for the write that just failed: DUPLICATE_KEY if it broke a unique key, otherwise 0.
 	 *
-	 * @param string $action 'Insert into' or 'Update of', for the message.
-	 * @return RuntimeException
+	 * @return int
 	 */
-	private function write_failed( string $action ): RuntimeException {
+	private static function write_error_code(): int {
 		global $wpdb;
 
 		// $wpdb keeps only the message; MySQL starts error 1062's with this.
-		$code = str_starts_with( $wpdb->last_error, 'Duplicate entry' ) ? self::DUPLICATE_KEY : 0;
-
-		return new RuntimeException( esc_html( $action . ' ' . $this->bare_table() . ' failed: ' . $wpdb->last_error ), $code );
+		return str_starts_with( $wpdb->last_error, 'Duplicate entry' ) ? self::DUPLICATE_KEY : 0;
 	}
 
 	/**

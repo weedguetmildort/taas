@@ -424,7 +424,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	/**
 	 * Run a course write, turning a unique-key failure into the course_exists 409.
 	 *
-	 * duplicate_error() catches the usual case first. This covers a request that
+	 * The usual case is caught first by duplicate_error(). This covers a request that
 	 * saved the same offering after that check ran, which the unique key stops.
 	 *
 	 * @param callable $write Callback that does the write.
