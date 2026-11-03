@@ -1,4 +1,118 @@
 <!-- wp:html -->
+<main class="ta-apps" id="ta-apps">
+
+<header>
+    <p class="ta-apps-eyebrow">
+        TA Applications
+        <span id="ta-apps-progress"></span>
+    </p>
+
+    <h1 id="ta-course-title">Loading course…</h1>
+
+    <p class="ta-apps-intro">
+        Review the applicants for each course, rank your preferred choices,
+        add any special requests, and submit your preferences to the administrator.
+    </p>
+</header>
+
+<section class="ta-apps-card" aria-label="Course selection">
+    <div class="ta-apps-course-picker">
+        <label for="ta-course-select">
+            Select Course
+
+            <select id="ta-course-select">
+                <option value="">Loading courses...</option>
+            </select>
+        </label>
+    </div>
+</section>
+
+<section class="ta-apps-card" aria-label="Search and filters">
+    <div class="ta-apps-search">
+
+        <label for="ta-search-name">
+            Search Applicants
+
+            <input id="ta-search-name" type="search" placeholder="John Doe..." autocomplete="off">
+        </label>
+
+        <div class="ta-filter-group">
+            <span class="ta-filter-title">Add Filters</span>
+
+            <label class="ta-filter-option">
+                <input type="checkbox" id="filter-taken">
+                Taken class before
+            </label>
+
+            <label class="ta-filter-option">
+                <input type="checkbox" id="filter-ta">
+                TA'd this course before
+            </label>
+
+            <label class="ta-filter-option">
+                <input type="checkbox" id="filter-gpa">
+                GPA 3.5 or higher
+            </label>
+
+            <button type="button" id="clear-filters" class="ta-clear-filters">
+                Clear Filters
+            </button>
+        </div>
+
+    </div>
+</section>
+
+<section class="ta-apps-card" aria-labelledby="ta-all-heading">
+    <h2 id="ta-all-heading">All Applicants</h2>
+
+    <p class="ta-apps-help">
+        Click <strong>Add to ranking</strong> to add someone to your preferences,
+        or click a row to read their full application.
+    </p>
+
+    <div id="ta-all" class="ta-apps-table-host">
+        Loading applicants…
+    </div>
+</section>
+
+<section class="ta-apps-card" aria-labelledby="ta-rank-heading">
+    <div class="ta-apps-heading-row">
+        <h2 id="ta-rank-heading">Your Ranking</h2>
+        <p class="ta-apps-counter" id="ta-rank-counter" aria-live="polite"></p>
+    </div>
+
+    <p class="ta-apps-help">
+        Your #1 choice goes at the top.
+        Use the arrows to reorder or the × to remove someone.
+        Applicants you don't rank count as tied for last.
+    </p>
+
+    <ol class="ta-apps-ranking" id="ta-ranking"></ol>
+</section>
+
+<section class="ta-apps-card" aria-labelledby="ta-requests-heading">
+    <h2 id="ta-requests-heading">Special Requests</h2>
+
+    <p class="ta-apps-help">
+        Optional. Tell the administrator anything else you would like considered,
+        such as a specific student, scheduling needs, or other notes.
+    </p>
+
+    <label class="ta-apps-sr" for="ta-requests">Special requests</label>
+
+    <textarea id="ta-requests" rows="6" maxlength="1000" placeholder="Type your special requests here..."></textarea>
+
+    <p class="ta-apps-count" id="ta-requests-count">0 / 1000</p>
+</section>
+
+<div class="ta-apps-submit">
+    <p class="ta-apps-message" id="ta-apps-message" role="status" aria-live="polite"></p>
+
+    <button type="button" id="ta-apps-submit">Submit to Administrator</button>
+</div>
+
+</main>
+
 <style data-wp-block-html="css">
 .ta-apps{
     --navy:#0d1b8c;
@@ -532,1354 +646,567 @@
 </style>
 
 <script data-wp-block-html="js">
-console.log("PROFESSOR PAGE JS LOADED");
-
 (() => {
   'use strict';
 
-  const SUBMIT_ENDPOINT =
-    '/wp-json/your-plugin/v1/ta-professor-ranking';
-
-  const DETAIL_PAGE_URL =
-    '/applicant-details/';
-
-
   /*
-   * DUMMY DATA
+   * CONFIG
+   * The nonce is fetched from WordPress automatically if the page
+   * wasn't given one, so no PHP changes are needed.
    */
+  const API_BASE =
+    (window.taasConfig && window.taasConfig.restBase) || '/wp-json/taas/v1';
 
-  const person = (
-    id,
-    name,
-    major,
-    gpa,
-    takenBefore,
-    taBefore,
-    preferredProfessor
-  ) => ({
-    id,
-    name,
-    major,
-    gpa,
-    takenBefore,
-    taBefore,
-    preferredProfessor
-  });
+  let nonce =
+    (window.taasConfig && window.taasConfig.nonce) ||
+    (window.wpApiSettings && window.wpApiSettings.nonce) || '';
 
+  const DETAIL_PAGE_URL = '/applicant-details/';
+  const NOTES_MAX = 1000;
 
-  const COURSES = [
-    {
-      course: 'COP3502C',
-      courseName: 'Programming Fundamentals 1',
+  // Used when /application-cycle isn't deployed (404) and the page URL has
+  // no ?term=...&year=... Set these to the term and year of your courses.
+  // term must be Fall, Spring, SummerA, SummerB or SummerC.
+  const FALLBACK = { term: 'Fall', year: 2026 };
 
-      all: [
-        person(
-          1,
-          'John Smith',
-          'Computer Science',
-          3.8,
-          true,
-          false,
-          true
-        ),
+  // The professor API returns 403 taas_stage_closed outside the
+  // professor_ranking stage, and this page shows that as a "not open"
+  // message either way. Set to true to also check GET /application-cycle
+  // up front. Leave false while the demo cycle's stage may not be set.
+  const ENFORCE_STAGE = false;
 
-        person(
-          2,
-          'Emily Johnson',
-          'Computer Science',
-          3.9,
-          true,
-          true,
-          true
-        ),
-
-        person(
-          3,
-          'Aaron Lee',
-          'Computer Science',
-          3.6,
-          false,
-          true,
-          false
-        ),
-
-        person(
-          4,
-          'Maria Garcia',
-          'Computer Engineering',
-          3.4,
-          false,
-          false,
-          false
-        ),
-
-        person(
-          5,
-          'Sophia Martinez',
-          'Computer Science',
-          3.7,
-          true,
-          true,
-          false
-        )
-      ]
-    },
-
-    {
-      course: 'COP3530',
-      courseName: 'Data Structures and Algorithms',
-
-      all: [
-        person(
-          6,
-          'Lucas Brown',
-          'Computer Science',
-          3.7,
-          true,
-          true,
-          true
-        ),
-
-        person(
-          7,
-          'Wei Chen',
-          'Data Science',
-          3.5,
-          true,
-          false,
-          false
-        ),
-
-        person(
-          8,
-          'Priya Patel',
-          'Computer Science',
-          3.9,
-          true,
-          true,
-          true
-        ),
-
-        person(
-          9,
-          'Daniel Kim',
-          'Computer Engineering',
-          3.6,
-          false,
-          true,
-          false
-        ),
-
-        person(
-          10,
-          'Olivia Wilson',
-          'Computer Science',
-          3.2,
-          false,
-          false,
-          true
-        )
-      ]
-    }
-  ];
-
+  const RANKING_REASONS = {
+    duplicate_rank: 'Two applicants share the same rank.',
+    duplicate_application: 'An applicant appears twice in your ranking.',
+    rank_gap: 'Ranks must be 1, 2, 3… with no gaps.',
+    ineligible_application:
+      'One of the ranked applicants is no longer available (they may have withdrawn). Reload the page and try again.'
+  };
 
   /*
    * HELPERS
    */
 
   const esc = (v) =>
-    String(v ?? '').replace(
-      /[\u0026<>"']/g,
-      (c) => ({
-        '\u0026': '\u0026amp;',
-        '<': '\u0026lt;',
-        '>': '\u0026gt;',
-        '"': '\u0026quot;',
-        "'": '\u0026#39;'
-      }[c])
-    );
+    String(v ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c]));
 
+  const yn = (v) => (v === true ? 'Yes' : 'No');
 
-  const yn = (v) =>
-    (v === true || v === 'yes' || v === 'Yes')
-      ? 'Yes'
-      : 'No';
+  const fmtGpa = (g) =>
+    g === null || g === undefined ? '—' : Number(g).toFixed(2);
 
+  // Ask WordPress for a REST nonce when the page wasn't given one.
+  async function ensureNonce() {
+    if (nonce) return;
+    try {
+      const res = await fetch('/wp-admin/admin-ajax.php?action=rest-nonce', {
+        credentials: 'same-origin'
+      });
+      const text = (await res.text()).trim();
+      if (res.ok && /^[a-z0-9]{6,20}$/i.test(text)) nonce = text;
+    } catch (e) {
+      /* fall through: the request goes without a nonce */
+    }
+  }
 
-  const keyOf = (r) =>
-    String(r.id);
+  async function api(path, options = {}) {
+    await ensureNonce();
 
+    const headers = { 'Content-Type': 'application/json' };
+    if (nonce) headers['X-WP-Nonce'] = nonce; // never send an empty nonce
 
-  let course = '';
+    const res = await fetch(API_BASE + path, {
+      credentials: 'same-origin',
+      ...options,
+      headers: { ...headers, ...(options.headers || {}) }
+    });
 
-  let applicants = [];
+    const data = await res.json().catch(() => ({}));
 
-  let ranking = [];
+    if (!res.ok) {
+      const err = new Error(errorText(data, res.status));
+      err.status = res.status;
+      err.code = data.code;
+      throw err;
+    }
+    return data;
+  }
 
-  const byKey =
-    new Map();
-
-  let el = {};
-
+  function errorText(data, status) {
+    switch (data.code) {
+      case 'taas_stage_closed':
+        return 'Professor ranking is not open right now. Check back when the ranking stage begins.';
+      case 'taas_not_found':
+        return 'That course or applicant could not be found.';
+      case 'taas_no_current_cycle':
+        return 'No application cycle has been set up yet.';
+      case 'taas_invalid_ranking':
+        return (
+          RANKING_REASONS[data.data && data.data.reason] ||
+          'Your ranking is not valid.'
+        );
+      case 'rest_invalid_param': {
+        const details = data.data && data.data.params
+          ? Object.values(data.data.params).join(' ')
+          : '';
+        return 'Something in your submission was invalid. ' +
+          (details || 'Special requests can be at most ' + NOTES_MAX + ' characters.');
+      }
+      case 'rest_missing_callback_param':
+        return 'Your submission was missing required data.';
+      case 'rest_cookie_invalid_nonce':
+        return 'Your session expired. Please refresh the page.';
+      case 'taas_unauthorized':
+        return 'You are not signed in. Please sign in and refresh.';
+      case 'taas_forbidden':
+        return 'Your account does not have the professor role for this page.';
+    }
+    if (status === 401 || status === 403) {
+      return 'You do not have access to this page. Please sign in as a professor.';
+    }
+    return data.message || `Request failed (${status}).`;
+  }
 
   /*
-   * SAVE EACH COURSE'S WORK
+   * STATE
+   * One entry per course_id so unsaved edits survive switching courses.
    */
 
-  const rankingsByCourse =
-    new Map();
-
-  const requestsByCourse =
-    new Map();
-
+  const courseState = new Map();
+  let courses = [];
+  let courseId = null;
+  let current = null;
+  let cycleLabel = '';
+  let el = {};
 
   const say = (text, state = '') => {
     el.msg.textContent = text;
     el.msg.dataset.state = state;
   };
 
-
-  const detailUrl = (r) => {
-
-    const separator =
-      DETAIL_PAGE_URL.includes('?')
-        ? '\u0026'
-        : '?';
-
-    return `${DETAIL_PAGE_URL}${separator}id=${encodeURIComponent(r.id)}\u0026course=${encodeURIComponent(course)}`;
+  const detailUrl = (applicationId) => {
+    const sep = DETAIL_PAGE_URL.includes('?') ? '&' : '?';
+    return `${DETAIL_PAGE_URL}${sep}id=${encodeURIComponent(applicationId)}&course=${encodeURIComponent(courseId)}`;
   };
 
-
   /*
-   * FILTERING
-   *
-   * All selected filters must match.
+   * FILTERING (all selected filters must match)
    */
 
-  function passesFilters(r) {
+  function passesFilters(a) {
+    const name = el.name.value.trim().toLowerCase();
 
-    const name =
-      el.name.value
-        .trim()
-        .toLowerCase();
-
-
-    if (name) {
-
-      if (
-        !String(r.name)
-          .toLowerCase()
-          .includes(name)
-      ) {
-        return false;
-      }
-    }
-
-
-    if (el.filterTaken.checked) {
-
-      if (!r.takenBefore) {
-        return false;
-      }
-    }
-
-
-    if (el.filterTa.checked) {
-
-      if (!r.taBefore) {
-        return false;
-      }
-    }
-
-
-    if (el.filterPreferred.checked) {
-
-      if (!r.preferredProfessor) {
-        return false;
-      }
-    }
-
-
-    if (el.filterGpa.checked) {
-
-      if (Number(r.gpa) < 3.5) {
-        return false;
-      }
-    }
-
+    if (name && !String(a.student_name).toLowerCase().includes(name)) return false;
+    if (el.filterTaken.checked && !a.has_taken_course) return false;
+    if (el.filterTa.checked && !a.has_ta_for_course) return false;
+    if (el.filterGpa.checked && !(Number(a.gpa) >= 3.5)) return false;
 
     return true;
   }
 
-
   /*
-   * APPLICANT TABLE
+   * RENDERING
    */
 
   function renderPool() {
+    if (!current) return;
 
-    const rows =
-      applicants.filter(passesFilters);
-
-
-    if (!rows.length) {
-
-      el.all.innerHTML =
-        '<p>No applicants match the selected filters.</p>';
-
+    if (!current.applicants.length) {
+      el.all.innerHTML = '<p>No applicants for this course yet.</p>';
       return;
     }
 
+    const rows = current.applicants.filter(passesFilters);
+
+    if (!rows.length) {
+      el.all.innerHTML = '<p>No applicants match the selected filters.</p>';
+      return;
+    }
 
     el.all.innerHTML = `
       <table class="ta-apps-table">
-
         <thead>
-
           <tr>
-
-            <th>
-              <span class="ta-apps-sr">
-                Ranking
-              </span>
-            </th>
-
+            <th><span class="ta-apps-sr">Ranking</span></th>
             <th>Name</th>
-
             <th>Major</th>
-
             <th>GPA</th>
-
-            <th>
-              Taken Class Before
-            </th>
-
-            <th>
-              TA'd Before
-            </th>
-
-            <th>
-              Preferred Professor?
-            </th>
-
+            <th>Program</th>
+            <th>Taken Class Before</th>
+            <th>TA'd This Course Before</th>
           </tr>
-
         </thead>
-
-
         <tbody>
-
-          ${rows.map((r) => {
-
-            const key =
-              keyOf(r);
-
-            const pos =
-              ranking.indexOf(key);
-
-
-            const action =
-              pos >= 0
-
-                ? `
-                  <span class="ta-apps-ranked">
-                    Ranked #${pos + 1}
-                  </span>
-                `
-
-                : `
-                  <button
-                    type="button"
-                    class="ta-apps-add"
-                    data-add="${esc(key)}">
-                    Add to ranking
-                  </button>
-                `;
-
+          ${rows.map((a) => {
+            const pos = current.ranking.indexOf(a.application_id);
+            const action = pos >= 0
+              ? `<span class="ta-apps-ranked">Ranked #${pos + 1}</span>`
+              : `<button type="button" class="ta-apps-add" data-add="${a.application_id}">Add to ranking</button>`;
+            const href = esc(detailUrl(a.application_id));
 
             return `
-              <tr
-                class="ta-apps-row"
-                data-href="${esc(detailUrl(r))}">
-
-                <td>
-                  ${action}
-                </td>
-
-                <td class="name">
-
-                  <a
-                    class="ta-apps-link"
-                    href="${esc(detailUrl(r))}">
-
-                    ${esc(r.name)}
-
-                  </a>
-
-                </td>
-
-                <td>
-                  ${esc(r.major)}
-                </td>
-
-                <td>
-                  ${Number(r.gpa).toFixed(1)}
-                </td>
-
-                <td>
-                  ${yn(r.takenBefore)}
-                </td>
-
-                <td>
-                  ${yn(r.taBefore)}
-                </td>
-
-                <td>
-                  ${yn(r.preferredProfessor)}
-                </td>
-
-              </tr>
-            `;
-
+              <tr class="ta-apps-row" data-href="${href}">
+                <td>${action}</td>
+                <td class="name"><a class="ta-apps-link" href="${href}">${esc(a.student_name)}</a></td>
+                <td>${esc(a.major ?? '—')}</td>
+                <td>${fmtGpa(a.gpa)}</td>
+                <td>${esc(a.enrollment_status ?? '—')}</td>
+                <td>${yn(a.has_taken_course)}</td>
+                <td>${yn(a.has_ta_for_course)}</td>
+              </tr>`;
           }).join('')}
-
         </tbody>
-
-      </table>
-    `;
+      </table>`;
   }
-
-
-  /*
-   * PROFESSOR RANKING
-   */
 
   function renderRanking() {
+    if (!current) return;
 
-    el.counter.textContent =
-      `${ranking.length} selected`;
+    el.counter.textContent = `${current.ranking.length} selected`;
 
-
-    if (!ranking.length) {
-
+    if (!current.ranking.length) {
       el.ranking.innerHTML = `
         <li class="ta-apps-slot empty">
+          <span>No applicants ranked yet. Add applicants from the list above.</span>
+        </li>`;
+      return;
+    }
 
-          <span>
-            No applicants ranked yet.
-            Add applicants from the list above.
+    el.ranking.innerHTML = current.ranking.map((id, i) => {
+      const a = current.byId.get(id);
+      const href = esc(detailUrl(id));
+
+      return `
+        <li class="ta-apps-slot">
+          <span class="ta-apps-slot-num">${i + 1}</span>
+
+          <span class="ta-apps-slot-name">
+            <a class="ta-apps-link" href="${href}">${esc(a.student_name)}</a>
+            <span class="ta-apps-slot-meta">
+              ${esc(a.major ?? '—')} · GPA ${fmtGpa(a.gpa)}
+            </span>
           </span>
 
-        </li>
-      `;
-
-      return;
-    }
-
-
-    el.ranking.innerHTML =
-      ranking.map((key, i) => {
-
-        const r =
-          byKey.get(key);
-
-
-        return `
-          <li class="ta-apps-slot">
-
-            <span class="ta-apps-slot-num">
-              ${i + 1}
-            </span>
-
-
-            <span class="ta-apps-slot-name">
-
-              <a
-                class="ta-apps-link"
-                href="${esc(detailUrl(r))}">
-
-                ${esc(r.name)}
-
-              </a>
-
-
-              <span class="ta-apps-slot-meta">
-
-                ${esc(r.major)}
-                ·
-                GPA ${Number(r.gpa).toFixed(1)}
-
-              </span>
-
-            </span>
-
-
-            <span class="ta-apps-slot-actions">
-
-              <button
-                type="button"
-                data-move="up"
-                data-index="${i}"
-                aria-label="Move ${esc(r.name)} up"
-                ${i === 0 ? 'disabled' : ''}>
-
-                ▲
-
-              </button>
-
-
-              <button
-                type="button"
-                data-move="down"
-                data-index="${i}"
-                aria-label="Move ${esc(r.name)} down"
-                ${i === ranking.length - 1 ? 'disabled' : ''}>
-
-                ▼
-
-              </button>
-
-
-              <button
-                type="button"
-                class="remove"
-                data-remove="${i}"
-                aria-label="Remove ${esc(r.name)} from ranking">
-
-                ×
-
-              </button>
-
-            </span>
-
-          </li>
-        `;
-
-      }).join('');
+          <span class="ta-apps-slot-actions">
+            <button type="button" data-move="up" data-index="${i}"
+              aria-label="Move ${esc(a.student_name)} up" ${i === 0 ? 'disabled' : ''}>▲</button>
+            <button type="button" data-move="down" data-index="${i}"
+              aria-label="Move ${esc(a.student_name)} down" ${i === current.ranking.length - 1 ? 'disabled' : ''}>▼</button>
+            <button type="button" class="remove" data-remove="${i}"
+              aria-label="Remove ${esc(a.student_name)} from ranking">×</button>
+          </span>
+        </li>`;
+    }).join('');
   }
 
-
-  function renderAll() {
+  const renderAll = () => {
     renderPool();
     renderRanking();
+  };
+
+  function updateNotesCount() {
+    el.requestsCount.textContent = `${el.requests.value.length} / ${NOTES_MAX}`;
   }
 
-
   /*
-   * SAVE CURRENT COURSE
+   * LOADING A COURSE FROM THE API
    */
 
-  function saveCourseState() {
-
-    if (!course) {
-      return;
-    }
-
-
-    rankingsByCourse.set(
-      course,
-      [...ranking]
-    );
-
-
-    requestsByCourse.set(
-      course,
-      el.requests.value
-    );
+  function saveNotes() {
+    if (current) current.notes = el.requests.value;
   }
 
+  function applyCourseToPage() {
+    const course = courses.find((c) => c.course_id === courseId);
+    const index = courses.findIndex((c) => c.course_id === courseId);
 
-  /*
-   * LOAD SELECTED COURSE
-   */
-
-  function loadCourse(courseCode) {
-
-    const data =
-      COURSES.find(
-        (item) =>
-          item.course === courseCode
-      );
-
-
-    if (!data) {
-      return;
-    }
-
-
-    course =
-      data.course;
-
-
-    applicants =
-      [...data.all];
-
-
-    byKey.clear();
-
-
-    applicants.forEach((r) => {
-
-      byKey.set(
-        keyOf(r),
-        r
-      );
-
-    });
-
-
-    ranking =
-      rankingsByCourse.get(course)
-      || [];
-
-
-    el.requests.value =
-      requestsByCourse.get(course)
-      || '';
-
-
-    el.requestsCount.textContent =
-      `${el.requests.value.length} / ${el.requests.maxLength}`;
-
-
-    el.title.textContent =
-      `${data.course} – ${data.courseName}`;
-
-
-    const courseIndex =
-      COURSES.findIndex(
-        (item) =>
-          item.course === course
-      );
-
-
+    el.title.textContent = `${course.course_code} – ${course.course_name}`;
     el.progress.textContent =
-      `Course ${courseIndex + 1} of ${COURSES.length}`;
+      `${cycleLabel} · Course ${index + 1} of ${courses.length}`;
 
+    el.requests.value = current.notes;
+    updateNotesCount();
 
     el.name.value = '';
-
-
-    /*
-     * Clear filters when switching courses.
-     */
-
-    el.filterTaken.checked =
-      false;
-
-    el.filterTa.checked =
-      false;
-
-    el.filterPreferred.checked =
-      false;
-
-    el.filterGpa.checked =
-      false;
-
-
-    say('');
-
+    [el.filterTaken, el.filterTa, el.filterGpa].forEach((f) => (f.checked = false));
 
     renderAll();
   }
 
+  async function loadCourse(id) {
+    saveNotes();
+    courseId = id;
+    say('');
 
-  /*
-   * COURSE DROPDOWN
-   */
+    if (courseState.has(id)) {
+      current = courseState.get(id);
+      applyCourseToPage();
+      return;
+    }
 
-  function populateCourses() {
+    current = null;
+    el.all.textContent = 'Loading applicants…';
+    el.ranking.innerHTML = '';
+    el.counter.textContent = '';
 
-    el.courseSelect.innerHTML =
-      COURSES.map((item) => `
+    try {
+      const [apps, saved] = await Promise.all([
+        api(`/professor/courses/${id}/applications`),
+        api(`/professor/courses/${id}/ranking`)
+      ]);
 
-        <option value="${esc(item.course)}">
+      if (courseId !== id) return;
 
-          ${esc(item.course)}
-          –
-          ${esc(item.courseName)}
+      // Ids are numbers in the API; Number() keeps lookups safe if any
+      // arrive as strings.
+      const applicants = apps.applications.map((a) => ({
+        ...a,
+        application_id: Number(a.application_id)
+      }));
+      const byId = new Map(applicants.map((a) => [a.application_id, a]));
 
-        </option>
+      const ranking = [...saved.ranking]
+        .sort((a, b) => a.rank - b.rank)
+        .map((r) => Number(r.application_id))
+        .filter((appId) => byId.has(appId));
 
-      `).join('');
+      current = {
+        applicants,
+        byId,
+        ranking,
+        notes: saved.course_notes ?? ''
+      };
+      courseState.set(id, current);
 
-
-    if (COURSES.length) {
-
-      loadCourse(
-        COURSES[0].course
-      );
+      applyCourseToPage();
+    } catch (err) {
+      console.error('TA page: could not load course', err);
+      if (courseId !== id) return;
+      el.all.textContent = '';
+      say(err.message, 'error');
     }
   }
-
 
   /*
    * CLICK EVENTS
    */
 
   function onClick(event) {
+    const t = event.target;
+    const add = t.closest('[data-add]');
+    const move = t.closest('[data-move]');
+    const remove = t.closest('[data-remove]');
 
-    const t =
-      event.target;
-
-
-    const add =
-      t.closest('[data-add]');
-
-
-    const move =
-      t.closest('[data-move]');
-
-
-    const remove =
-      t.closest('[data-remove]');
-
-
-    /*
-     * ADD TO RANKING
-     */
-
-    if (add) {
-
-      const key =
-        add.dataset.add;
-
-
-      if (!ranking.includes(key)) {
-
-        ranking.push(key);
-      }
-
-
-      saveCourseState();
-
+    if (add && current) {
+      const id = Number(add.dataset.add);
+      if (!current.ranking.includes(id)) current.ranking.push(id);
       say('');
-
       renderAll();
-
       return;
     }
 
+    if (move && current) {
+      const i = Number(move.dataset.index);
+      const j = move.dataset.move === 'up' ? i - 1 : i + 1;
+      if (j < 0 || j >= current.ranking.length) return;
 
-    /*
-     * MOVE RANKING
-     */
-
-    if (move) {
-
-      const i =
-        Number(move.dataset.index);
-
-
-      const j =
-        move.dataset.move === 'up'
-          ? i - 1
-          : i + 1;
-
-
-      if (
-        j < 0 ||
-        j >= ranking.length
-      ) {
-        return;
-      }
-
-
-      [
-        ranking[i],
-        ranking[j]
-      ] = [
-        ranking[j],
-        ranking[i]
-      ];
-
-
-      saveCourseState();
-
+      [current.ranking[i], current.ranking[j]] = [current.ranking[j], current.ranking[i]];
       say('');
-
       renderAll();
-
       return;
     }
 
-
-    /*
-     * REMOVE FROM RANKING
-     */
-
-    if (remove) {
-
-      ranking.splice(
-        Number(remove.dataset.remove),
-        1
-      );
-
-
-      saveCourseState();
-
+    if (remove && current) {
+      current.ranking.splice(Number(remove.dataset.remove), 1);
       say('');
-
       renderAll();
-
       return;
     }
 
+    if (t.closest('input, a, label, button, select, textarea')) return;
 
-    /*
-     * OPEN APPLICATION
-     */
-
-    if (
-      t.closest(
-        'input, a, label, button, select, textarea'
-      )
-    ) {
-      return;
-    }
-
-
-    const row =
-      t.closest(
-        'tr[data-href]'
-      );
-
-
-    if (row) {
-
-      window.location.href =
-        row.dataset.href;
-    }
+    const row = t.closest('tr[data-href]');
+    if (row) window.location.href = row.dataset.href;
   }
 
-
   /*
-   * SUBMIT
+   * SUBMIT (full replace; an empty list clears the ranking)
    */
 
   async function submit() {
+    if (!current) return;
 
-    if (!ranking.length) {
-
-      say(
-        'Please rank at least one applicant before submitting.',
-        'error'
-      );
-
-      return;
-    }
-
-
-    saveCourseState();
-
-
-    el.submit.disabled =
-      true;
-
-
-    say(
-      'Submitting\u2026'
-    );
-
-
-    try {
-
-      const res =
-        await fetch(
-          SUBMIT_ENDPOINT,
-          {
-            method:'POST',
-
-            headers:{
-              'Content-Type':
-                'application/json'
-            },
-
-            body:JSON.stringify({
-              course,
-
-              ranking:
-                ranking.map(
-                  (key, i) => ({
-                    rank:i + 1,
-
-                    studentId:
-                      byKey.get(key).id
-                  })
-                ),
-
-              specialRequests:
-                el.requests.value.trim()
-            })
-          }
-        );
-
-
-      const result =
-        await res
-          .json()
-          .catch(() => ({}));
-
-
-      if (!res.ok) {
-
-        throw new Error(
-          result.message
-          ||
-          `Submission failed (${res.status}).`
-        );
-      }
-
-
-      say(
-        result.message
-        ||
-        `Your preferences for ${course} were submitted.`,
-        'success'
-      );
-
-
-    } catch (err) {
-
-      say(
-        err.message
-        ||
-        'Could not submit. Check the endpoint and try again.',
-        'error'
-      );
-    }
-
-
-    el.submit.disabled =
-      false;
-  }
-
-
-  /*
-   * INITIALIZE
-   */
-
-  function init() {
-
-    el = {
-
-      root:
-        document.querySelector(
-          '#ta-apps'
-        ),
-
-
-      courseSelect:
-        document.querySelector(
-          '#ta-course-select'
-        ),
-
-
-      name:
-        document.querySelector(
-          '#ta-search-name'
-        ),
-
-
-      title:
-        document.querySelector(
-          '#ta-course-title'
-        ),
-
-
-      progress:
-        document.querySelector(
-          '#ta-apps-progress'
-        ),
-
-
-      filterTaken:
-        document.querySelector(
-          '#filter-taken'
-        ),
-
-
-      filterTa:
-        document.querySelector(
-          '#filter-ta'
-        ),
-
-
-      filterPreferred:
-        document.querySelector(
-          '#filter-preferred'
-        ),
-
-
-      filterGpa:
-        document.querySelector(
-          '#filter-gpa'
-        ),
-
-
-      clearFilters:
-        document.querySelector(
-          '#clear-filters'
-        ),
-
-
-      all:
-        document.querySelector(
-          '#ta-all'
-        ),
-
-
-      ranking:
-        document.querySelector(
-          '#ta-ranking'
-        ),
-
-
-      counter:
-        document.querySelector(
-          '#ta-rank-counter'
-        ),
-
-
-      requests:
-        document.querySelector(
-          '#ta-requests'
-        ),
-
-
-      requestsCount:
-        document.querySelector(
-          '#ta-requests-count'
-        ),
-
-
-      msg:
-        document.querySelector(
-          '#ta-apps-message'
-        ),
-
-
-      submit:
-        document.querySelector(
-          '#ta-apps-submit'
-        )
-
-    };
-
+    saveNotes();
 
     if (
-      Object.values(el)
-        .some(
-          (node) => !node
-        )
+      !current.ranking.length &&
+      !window.confirm('Your ranking is empty. Submitting will clear any saved ranking for this course. Continue?')
     ) {
-
-      console.error(
-        'TA applications page: HTML elements not found.'
-      );
-
       return;
     }
 
+    el.submit.disabled = true;
+    say('Submitting…');
 
-    /*
-     * MAIN PAGE EVENTS
-     */
+    try {
+      const saved = await api(`/professor/courses/${courseId}/ranking`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ranking: current.ranking.map((application_id, i) => ({
+            rank: i + 1,
+            application_id
+          })),
+          course_notes: current.notes.trim()
+        })
+      });
 
-    el.root.addEventListener(
-      'click',
-      onClick
-    );
+      current.ranking = [...saved.ranking]
+        .sort((a, b) => a.rank - b.rank)
+        .map((r) => Number(r.application_id))
+        .filter((id) => current.byId.has(id));
+      current.notes = saved.course_notes ?? '';
 
+      el.requests.value = current.notes;
+      updateNotesCount();
+      renderAll();
 
-    /*
-     * COURSE SWITCHING
-     */
+      const course = courses.find((c) => c.course_id === courseId);
+      say(`Your preferences for ${course.course_code} were submitted.`, 'success');
+    } catch (err) {
+      console.error('TA page: submit failed', err);
+      say(err.message, 'error');
+    }
 
-    el.courseSelect.addEventListener(
-      'change',
-      () => {
-
-        saveCourseState();
-
-
-        loadCourse(
-          el.courseSelect.value
-        );
-
-      }
-    );
-
-
-    /*
-     * SEARCH
-     */
-
-    el.name.addEventListener(
-      'input',
-      renderPool
-    );
-
-
-    /*
-     * MULTIPLE FILTERS
-     */
-
-    el.filterTaken.addEventListener(
-      'change',
-      renderPool
-    );
-
-
-    el.filterTa.addEventListener(
-      'change',
-      renderPool
-    );
-
-
-    el.filterPreferred.addEventListener(
-      'change',
-      renderPool
-    );
-
-
-    el.filterGpa.addEventListener(
-      'change',
-      renderPool
-    );
-
-
-    /*
-     * CLEAR FILTERS
-     */
-
-    el.clearFilters.addEventListener(
-      'click',
-      () => {
-
-        el.filterTaken.checked =
-          false;
-
-        el.filterTa.checked =
-          false;
-
-        el.filterPreferred.checked =
-          false;
-
-        el.filterGpa.checked =
-          false;
-
-
-        renderPool();
-
-      }
-    );
-
-
-    /*
-     * SPECIAL REQUEST COUNT
-     */
-
-    el.requests.addEventListener(
-      'input',
-      () => {
-
-        requestsByCourse.set(
-          course,
-          el.requests.value
-        );
-
-
-        el.requestsCount.textContent =
-          `${el.requests.value.length} / ${el.requests.maxLength}`;
-
-      }
-    );
-
-
-    /*
-     * SUBMIT
-     */
-
-    el.submit.addEventListener(
-      'click',
-      submit
-    );
-
-
-    populateCourses();
+    el.submit.disabled = false;
   }
 
+  /*
+   * START
+   */
 
-  if (
-    document.readyState === 'loading'
-  ) {
+  async function start() {
+    try {
+      // /application-cycle may not be deployed yet. A 404 is fine here.
+      let cycle = null;
+      try {
+        cycle = await api('/application-cycle');
+      } catch (err) {
+        if (err.status !== 404) throw err;
+        console.warn('TA page: /application-cycle not available, using fallback term/year.');
+      }
 
-    document.addEventListener(
-      'DOMContentLoaded',
-      init
+      // Term and year: page URL first (?term=Fall&year=2026), then the cycle, then FALLBACK.
+      const params = new URLSearchParams(window.location.search);
+      const term = params.get('term') || (cycle && cycle.term) || FALLBACK.term;
+      const year = params.get('year') || (cycle && cycle.year) || FALLBACK.year;
+      cycleLabel = `${term} ${year}`;
+
+      if (ENFORCE_STAGE && cycle && cycle.stage !== 'professor_ranking') {
+        el.title.textContent = 'Ranking is not open';
+        el.progress.textContent = cycleLabel;
+        el.courseSelect.innerHTML = '<option value="">Unavailable</option>';
+        el.all.textContent = '';
+        el.submit.disabled = true;
+        say(
+          'Professor ranking is not open right now. Check back when the ranking stage begins.',
+          'error'
+        );
+        return;
+      }
+
+      const courseList = await api(
+        `/professor/courses?term=${encodeURIComponent(term)}&year=${encodeURIComponent(year)}`
+      );
+      courses = courseList.map((c) => ({ ...c, course_id: Number(c.course_id) }));
+
+      if (!courses.length) {
+        el.title.textContent = 'No courses found';
+        el.progress.textContent = cycleLabel;
+        el.courseSelect.innerHTML = '<option value="">No courses</option>';
+        el.all.textContent = '';
+        el.submit.disabled = true;
+        say(`You are not listed as teaching any courses for ${cycleLabel}.`);
+        return;
+      }
+
+      el.courseSelect.innerHTML = courses.map((c) =>
+        `<option value="${c.course_id}">${esc(c.course_code)} – ${esc(c.course_name)}</option>`
+      ).join('');
+
+      await loadCourse(courses[0].course_id);
+    } catch (err) {
+      console.error('TA page: could not start', err);
+      el.title.textContent = err.code === 'taas_stage_closed'
+        ? 'Ranking is not open'
+        : 'Could not load courses';
+      el.all.textContent = '';
+      el.submit.disabled = true;
+      say(err.message, 'error');
+    }
+  }
+
+  function init() {
+    el = {
+      root: document.querySelector('#ta-apps'),
+      courseSelect: document.querySelector('#ta-course-select'),
+      name: document.querySelector('#ta-search-name'),
+      title: document.querySelector('#ta-course-title'),
+      progress: document.querySelector('#ta-apps-progress'),
+      filterTaken: document.querySelector('#filter-taken'),
+      filterTa: document.querySelector('#filter-ta'),
+      filterGpa: document.querySelector('#filter-gpa'),
+      clearFilters: document.querySelector('#clear-filters'),
+      all: document.querySelector('#ta-all'),
+      ranking: document.querySelector('#ta-ranking'),
+      counter: document.querySelector('#ta-rank-counter'),
+      requests: document.querySelector('#ta-requests'),
+      requestsCount: document.querySelector('#ta-requests-count'),
+      msg: document.querySelector('#ta-apps-message'),
+      submit: document.querySelector('#ta-apps-submit')
+    };
+
+    if (Object.values(el).some((node) => !node)) {
+      console.error('TA applications page: HTML elements not found.');
+      return;
+    }
+
+    el.root.addEventListener('click', onClick);
+
+    el.courseSelect.addEventListener('change', () => {
+      if (el.courseSelect.value) loadCourse(Number(el.courseSelect.value));
+    });
+
+    el.name.addEventListener('input', renderPool);
+    [el.filterTaken, el.filterTa, el.filterGpa].forEach((f) =>
+      f.addEventListener('change', renderPool)
     );
 
-  } else {
+    el.clearFilters.addEventListener('click', () => {
+      [el.filterTaken, el.filterTa, el.filterGpa].forEach((f) => (f.checked = false));
+      renderPool();
+    });
 
+    el.requests.addEventListener('input', () => {
+      saveNotes();
+      updateNotesCount();
+    });
+
+    el.submit.addEventListener('click', submit);
+
+    start();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
     init();
   }
-
 })();
 </script>
-
-<main class="ta-apps" id="ta-apps">
-
-<header>
-    <p class="ta-apps-eyebrow">
-        TA Applications
-        <span id="ta-apps-progress"></span>
-    </p>
-
-    <h1 id="ta-course-title">Loading course…</h1>
-
-    <p class="ta-apps-intro">
-        Review the applicants for each course, rank your preferred choices,
-        add any special requests, and submit your preferences to the administrator.
-    </p>
-</header>
-
-<section class="ta-apps-card" aria-label="Course selection">
-
-    <div class="ta-apps-course-picker">
-
-        <label for="ta-course-select">
-            Select Course
-
-            <select id="ta-course-select">
-                <option value="">Loading courses...</option>
-            </select>
-        </label>
-
-    </div>
-
-</section>
-
-<section class="ta-apps-card" aria-label="Search and filters">
-
-    <div class="ta-apps-search">
-
-        <label for="ta-search-name">
-            Search Applicants
-
-            <input id="ta-search-name" type="search" placeholder="John Doe..." autocomplete="off">
-        </label>
-
-        <div class="ta-filter-group">
-
-            <span class="ta-filter-title">
-                Add Filters
-            </span>
-
-            <label class="ta-filter-option">
-                <input type="checkbox" id="filter-taken">
-                Taken class before
-            </label>
-
-            <label class="ta-filter-option">
-                <input type="checkbox" id="filter-ta">
-                TA'd before
-            </label>
-
-            <label class="ta-filter-option">
-                <input type="checkbox" id="filter-preferred">
-                Preferred Professor
-            </label>
-
-            <label class="ta-filter-option">
-                <input type="checkbox" id="filter-gpa">
-                GPA 3.5 or higher
-            </label>
-
-            <button type="button" id="clear-filters" class="ta-clear-filters">
-                Clear Filters
-            </button>
-
-        </div>
-
-    </div>
-
-</section>
-
-<section class="ta-apps-card" aria-labelledby="ta-all-heading">
-
-    <h2 id="ta-all-heading">
-        All Applicants
-    </h2>
-
-    <p class="ta-apps-help">
-        Click <strong>Add to ranking</strong> to add someone to your preferences,
-        or click a row to read their full application.
-    </p>
-
-    <div id="ta-all" class="ta-apps-table-host">
-        Loading applicants…
-    </div>
-
-</section>
-
-<section class="ta-apps-card" aria-labelledby="ta-rank-heading">
-
-    <div class="ta-apps-heading-row">
-
-        <h2 id="ta-rank-heading">
-            Your Ranking
-        </h2>
-
-        <p class="ta-apps-counter" id="ta-rank-counter" aria-live="polite">
-        </p>
-
-    </div>
-
-    <p class="ta-apps-help">
-        Your #1 choice goes at the top.
-        Use the arrows to reorder or the × to remove someone.
-    </p>
-
-    <ol class="ta-apps-ranking" id="ta-ranking">
-    </ol>
-
-</section>
-
-<section class="ta-apps-card" aria-labelledby="ta-requests-heading">
-
-    <h2 id="ta-requests-heading">
-        Special Requests
-    </h2>
-
-    <p class="ta-apps-help">
-        Optional. Tell the administrator anything else you would like considered,
-        such as a specific student, scheduling needs, or other notes.
-    </p>
-
-    <label class="ta-apps-sr" for="ta-requests">
-        Special requests
-    </label>
-
-    <textarea id="ta-requests" rows="6" maxlength="1500" placeholder="Type your special requests here..."></textarea>
-
-    <p class="ta-apps-count" id="ta-requests-count">
-        0 / 1500
-    </p>
-
-</section>
-
-<div class="ta-apps-submit">
-
-    <p class="ta-apps-message" id="ta-apps-message" role="status" aria-live="polite">
-    </p>
-
-    <button type="button" id="ta-apps-submit">
-        Submit to Administrator
-    </button>
-
-</div>
-
-</main>
 <!-- /wp:html -->
