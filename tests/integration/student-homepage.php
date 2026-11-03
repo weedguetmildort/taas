@@ -11,6 +11,7 @@
 if ( 'cli' !== PHP_SAPI ) {
 	exit( 1 ); }
 require '/var/www/html/wp-load.php';
+require __DIR__ . '/support/application-cycle.php';
 if ( ! TAAS_Auth::is_local_dev() ) {
 	throw new RuntimeException( 'Local development required.' ); }
 
@@ -28,10 +29,6 @@ $period = array(
 	'is_open'   => true,
 	'closes_at' => null,
 );
-$filter = static function () use ( &$period ) {
-	return $period;
-};
-add_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 $submissions = new TAAS_Student_Submission_Repository();
 $applications = new TAAS_Application_Repository();
 $students = new TAAS_Student_Repository();
@@ -44,6 +41,7 @@ $wpdb->query( 'START TRANSACTION' );
 try {
 	while ( $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] ) || $applications->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] ) ) {
 		--$period['year']; }
+	taas_test_set_period( $period );
 	if ( ! $students->find( $owner ) ) {
 		$students->insert( new TAAS_Student( $owner, 'Homepage test', 'home@ufl.edu' ) ); }
 	taas_home_check( false === taas_student_homepage_state()['already_applied'], 'Applications in other terms do not mark the configured term as applied' );
@@ -62,9 +60,9 @@ try {
 	foreach ( array( 'student-application', 'check-application-status', 'professor-page' ) as $destination ) {
 		taas_home_check( $config['urls'][ $destination ] === TAAS_Pages::url( $destination ), $destination . ' supplies the managed page URL' );
 	}
-	$period['is_open'] = false;
+	taas_test_set_period( array( 'is_open' => false ) + $period );
 	taas_home_check( true === taas_student_homepage_config()['alreadyApplied'], 'Closing applications preserves status feedback and navigation' );
-	$period['is_open'] = true;
+	taas_test_set_period( $period );
 	// Legacy course rows without a snapshot must match initial-form detection too.
 	$submissions->delete( $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] )->submission_id );
 	$professor = '99994000';
@@ -74,13 +72,12 @@ try {
 	$id = $courses->insert( new TAAS_Course( null, 'TEST', 'Homepage test course', $professor, TAAS_Semester::Fall, $period['year'] ) );
 	$applications->insert( new TAAS_Application( null, $owner, $id, true, false, null, 1, null, TAAS_Match_Status::Withdrawn ) );
 	taas_home_check( true === taas_student_homepage_state()['already_applied'], 'Withdrawn legacy course rows still count as an existing application' );
-	$period = array();
+	taas_test_set_period( array() );
 	taas_home_check( is_wp_error( taas_student_homepage_state() ) && taas_student_homepage_config()['unavailable'], 'Missing configuration shows an unavailable state, not a false already-applied result' );
 	$_GET['taas_role'] = 'instructor';
 	taas_home_check( is_wp_error( taas_student_homepage_state() ) && false === taas_student_homepage_config()['alreadyApplied'], 'Non-students receive no personalized homepage controls' );
 } finally {
 	$wpdb->query( 'ROLLBACK' );
-	remove_filter( 'pre_option_' . TAAS_Application_Period::OPTION, $filter );
 	$_GET = $original_get;
 }
 taas_home_check( $before === array_map( static fn( $repo ) => $repo->count(), $repos ), 'All homepage fixtures rolled back' );

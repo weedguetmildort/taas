@@ -58,11 +58,11 @@ function taas_calc_weekly_hours( int $enrollment, int $lab_hours ): ?int {
  *
  * @param TAAS_Course $course Course to staff
  * @return int hours
- * @throws InvalidArgumentException If enrollment is negative or lab_hours is not 0, 1, or 2.
+ * @throws InvalidArgumentException If enrollment is under 10 or lab_hours is not 0, 1, or 2.
  */
 function taas_calc_course_ta_hours( TAAS_Course $course ): int {
 	if ( $course->enrollment < 10 ) {
-		throw new InvalidArgumentException( sprintf( 'Course %d has negative enrollment.', (int) $course->course_id ) );
+		throw new InvalidArgumentException( sprintf( 'Course %d has enrollment under 10.', (int) $course->course_id ) );
 	}
 
 	$hours = taas_calc_weekly_hours( $course->enrollment, $course->lab_hours );

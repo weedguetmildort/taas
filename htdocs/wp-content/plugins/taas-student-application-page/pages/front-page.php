@@ -41,11 +41,11 @@ function taas_student_homepage_state() {
 		|| ! preg_match( '/^[0-9]{8}$/', (string) ( $user['university_id'] ?? '' ) ) ) {
 		return new WP_Error( 'taas_student_identity_unavailable', 'Your verified student identifier is unavailable. Please contact the administrator.' );
 	}
-	$period = TAAS_Application_Period::current();
-	if ( is_wp_error( $period ) ) {
-		return $period;
-	}
 	try {
+		$period = TAAS_Application_Period::current();
+		if ( is_wp_error( $period ) ) {
+			return $period;
+		}
 		$ufid = (string) $user['university_id'];
 		$semester = TAAS_Semester::from( $period['semester'] );
 		$submission = ( new TAAS_Student_Submission_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] );

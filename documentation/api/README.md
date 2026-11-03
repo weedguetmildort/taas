@@ -9,8 +9,9 @@ This page covers the rules shared by every route. The routes themselves are spli
 | [common.md](common.md) | Routes for any signed-in user: current user, application cycle, course listings, status |
 | [admin.md](admin.md) | Routes for the admin: application cycle, courses, professors, students, applications, matching |
 | [professor.md](professor.md) | Routes for a signed-in professor: their courses, applicants and rankings |
+| [student.md](student.md) | Routes for a signed-in student: applying, and checking or editing their applications |
 
-Students and HR have no routes of their own. They use the routes in [common.md](common.md), during their stage.
+HR has no routes of its own. It uses the routes in [common.md](common.md), during its stage.
 
 ## All routes
 
@@ -53,6 +54,11 @@ Paths are relative to the base path, `/wp-json/taas/v1`.
 | GET | `/professor/courses/{course_id}/ranking` | Professor | [professor.md](professor.md#get-current-ranking) |
 | POST | `/professor/courses/{course_id}/ranking` | Professor | [professor.md](professor.md#post-submit-the-ranking) |
 | GET | `/professor/applications/{application_id}` | Professor | [professor.md](professor.md#get-one-applicants-details) |
+| GET | `/student/application` | Student, any stage | [student.md](student.md#get-application-form) |
+| POST | `/student/application` | Student | [student.md](student.md#post-submit-an-application) |
+| GET | `/student/application/terms` | Student, any stage | [student.md](student.md#get-a-students-terms) |
+| GET | `/student/application/{semester}/{year}` | Student, any stage | [student.md](student.md#get-one-application) |
+| PATCH | `/student/application/{semester}/{year}` | Student | [student.md](student.md#patch-edit-an-application) |
 
 ## Conventions
 
@@ -82,6 +88,8 @@ On routes where the term is optional, send both or neither. Sending neither uses
 | `stage` | `student_application`, `hr_review`, `professor_ranking`, `admin_matching` |
 
 **Timestamps** in the application cycle are UTC, in the form `2026-11-16T04:59:59Z`. Other formats are rejected, including UTC offsets. Convert to Eastern for display, and convert Eastern input to UTC before sending. **Dates** on student records are `YYYY-MM-DD`.
+
+The student routes in [student.md](student.md) don't follow all of these. That page lists the differences.
 
 **Lists** with pagination are plain JSON arrays and accept `?page=` (default 1) and `?per_page=` (default 50, from 1 to 100). Totals are in the `X-WP-Total` and `X-WP-TotalPages` response headers. No results is 200 with `[]`. Each route says whether it is paginated.
 
@@ -118,7 +126,12 @@ A cycle is one term's run through four stages, and at most one stage is active a
 
 When `stage` is `null`, or no cycle has been set, only the admin has access.
 
-Admin routes work in every stage. Outside their stage, students, HR and professors get this error from every route except `GET /me` and `GET /application-cycle`, which stay open so pages can show a "closed" message. `data.stage` is the current stage, or `null` if none is active:
+Admin routes work in every stage. Outside their stage, students, HR and professors get this error from every route except these GETs, which stay open in every stage:
+
+- `GET /me` and `GET /application-cycle`, so pages can show a "closed" message
+- the student's own application routes, `GET /student/application`, `GET /student/application/terms` and `GET /student/application/{semester}/{year}`, so students can check their status after their stage
+
+The route's own role check still applies to these. `data.stage` is the current stage, or `null` if none is active:
 
 ```json
 {
@@ -128,7 +141,7 @@ Admin routes work in every stage. Outside their stage, students, HR and professo
 }
 ```
 
-This check runs first, so outside their stage a caller gets `taas_stage_closed` even if the request is invalid or the route isn't for their role. Students have no access after `student_application`, including to their own application's outcome.
+This check runs first, so outside their stage a caller gets `taas_stage_closed` even if the request is invalid or the route isn't for their role.
 
 ## Errors
 
@@ -176,3 +189,4 @@ Changes to the rules on this page, newest first.
 
 | Date | Change |
 | --- | --- |
+| 2026-11-02 | Added the student routes. Their GETs stay open in every stage, so students can check their status after `student_application` |

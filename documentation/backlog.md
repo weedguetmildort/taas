@@ -15,8 +15,7 @@ This is not intended to replace project management and tickets, but rather to no
   - `GET /exports/instructor-preferences`, filterable by `?course_id=`
   - `GET /exports/assignments-by-course`, filterable by `?course_id=`
   - `GET /exports/assignments-by-student`, filterable by `?student_ufid=`
-- **Application submission:** add the route, and only accept submissions during `student_application`.
-- **Student results:** decide whether students can see their status or match after their stage. They have no access after `student_application`, so the Check Application Status page can't show them results.
+- **Student route conventions:** decide whether to align [the student routes](api/student.md#how-these-routes-differ-from-the-conventions) with the rest of the API. They send stored values and terms as integers and `course_id` as a string, and most validation errors have no `data.params`.
 
 ## Matching
 
@@ -29,6 +28,8 @@ This is not intended to replace project management and tickets, but rather to no
 ## Students and HR
 
 - **PhD applications:** create all of a PhD student's applications on their behalf, as part of the student layer.
+- **Re-adding a ranked course:** decide whether a professor's rank is cleared or kept when a student re-adds a course they withdrew from. Until then the edit returns 409 and says the admin must review it, but no admin route can do that, since `PATCH /applications/{application_id}` rejects withdrawn applications.
+- **Already applied:** decide what a second submission for the same term should do. It currently returns 409, and students edit through their status page instead, which only works during `student_application`.
 - **HR decisions:** add somewhere to store them. The HR page collects approve and reject decisions, and the matching algorithm assumes them, but the schema has no field for them.
 
 ## Auth
@@ -47,7 +48,7 @@ This is not intended to replace project management and tickets, but rather to no
 
 ## Frontend
 
-- **Closed state:** student, HR and professor pages need one, driven by `GET /application-cycle` and 403 `taas_stage_closed`.
+- **Closed state:** HR and professor pages need one, driven by `GET /application-cycle` and 403 `taas_stage_closed`.
 - **Course pages:** drop the Course Type filter and the Number of Sections and Course Level columns, since that data isn't in the course import.
 - **Matching page:** replace the Approve Match buttons, the Awaiting Ranking status, and the Top Ranked Student and Top Ranked Course columns.
 - **Stop Accepting Applications button:** replace it with a change to `student_application`'s `end_at`.

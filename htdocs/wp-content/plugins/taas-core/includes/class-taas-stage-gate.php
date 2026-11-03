@@ -23,11 +23,15 @@ class TAAS_Stage_Gate {
 	private const ROUTE_PREFIX = '/taas/v1/';
 
 	/**
-	 * Routes every signed-in user may GET in any stage, so pages can show a "closed" message
+	 * Patterns for routes every signed-in user may GET in any stage, so pages can show a "closed" message
+	 *
+	 * Each route's permission callback still decides which roles may read it.
 	 */
 	private const ALWAYS_READABLE = array(
-		'/taas/v1/me',
-		'/taas/v1/application-cycle',
+		'#^/taas/v1/me$#',
+		'#^/taas/v1/application-cycle$#',
+		// A student's own applications, so they can check their status after their stage closes
+		'#^/taas/v1/student/application(/terms|/[1-5]/[0-9]{4})?$#',
 	);
 
 	/**
@@ -64,11 +68,27 @@ class TAAS_Stage_Gate {
 			return $response;
 		}
 
-		if ( 'GET' === $request->get_method() && in_array( rtrim( $route, '/' ), self::ALWAYS_READABLE, true ) ) {
+		if ( 'GET' === $request->get_method() && self::is_always_readable( rtrim( $route, '/' ) ) ) {
 			return $response;
 		}
 
 		return self::closed_error() ?? $response;
+	}
+
+	/**
+	 * Whether a route matches one of the ALWAYS_READABLE patterns
+	 *
+	 * @param string $route Lowercased route without a trailing slash.
+	 * @return bool
+	 */
+	private static function is_always_readable( string $route ): bool {
+		foreach ( self::ALWAYS_READABLE as $pattern ) {
+			if ( preg_match( $pattern, $route ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

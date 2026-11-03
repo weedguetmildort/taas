@@ -141,6 +141,36 @@ class StageGateTest extends TestCase {
 		$this->assertSame( 'untouched', self::enforce( '/taas/v1/application-cycle' ) );
 	}
 
+	public function test_students_can_read_their_applications_in_any_stage(): void {
+		$_GET['taas_role'] = 'student';
+
+		foreach ( array_merge( TAAS_Cycle_Stage::cases(), array( null ) ) as $stage ) {
+			$this->set_stage( $stage );
+
+			foreach ( array( '/taas/v1/student/application', '/taas/v1/student/application/terms', '/taas/v1/student/application/2/2027/' ) as $route ) {
+				$this->assertSame( 'untouched', self::enforce( $route ), $route . ' in ' . ( $stage?->label() ?? 'no stage' ) );
+			}
+		}
+	}
+
+	public function test_students_cannot_write_applications_outside_their_stage(): void {
+		$_GET['taas_role'] = 'student';
+		$this->set_stage( TAAS_Cycle_Stage::Hr_Review );
+
+		$this->assertSame( 'taas_stage_closed', self::enforce( '/taas/v1/student/application', 'POST' )->get_error_code() );
+		$this->assertSame( 'taas_stage_closed', self::enforce( '/taas/v1/student/application/2/2027', 'POST' )->get_error_code() );
+		$this->assertSame( 'taas_stage_closed', self::enforce( '/taas/v1/student/application/2/2027', 'PUT' )->get_error_code() );
+	}
+
+	public function test_only_the_student_application_routes_are_exempt(): void {
+		$_GET['taas_role'] = 'student';
+		$this->set_stage( null );
+
+		$this->assertSame( 'taas_stage_closed', self::enforce( '/taas/v1/student/applications' )->get_error_code() );
+		$this->assertSame( 'taas_stage_closed', self::enforce( '/taas/v1/student/application/2/2027/extra' )->get_error_code() );
+		$this->assertSame( 'taas_stage_closed', self::enforce( '/taas/v1/students' )->get_error_code() );
+	}
+
 	public function test_writing_the_cycle_is_not_exempt(): void {
 		$_GET['taas_role'] = 'student';
 		$this->set_stage( null );
