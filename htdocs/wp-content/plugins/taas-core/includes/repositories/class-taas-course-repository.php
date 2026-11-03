@@ -145,6 +145,35 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	}
 
 	/**
+	 * One course, locked until the surrounding transaction ends.
+	 *
+	 * A course term change takes the exclusive lock and a student submission takes
+	 * the shared one while checking a course's term, so the two cannot interleave.
+	 *
+	 * @param int  $course_id Course ID.
+	 * @param bool $exclusive True for FOR UPDATE, false for FOR SHARE.
+	 * @return TAAS_Course|null
+	 * @throws RuntimeException If the query fails.
+	 */
+	public function find_locked( int $course_id, bool $exclusive ): ?TAAS_Course {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Conditional suffix is a fixed SQL literal; all values are bound.
+				'SELECT * FROM %i WHERE course_id = %d' . ( $exclusive ? ' FOR UPDATE' : ' FOR SHARE' ),
+				$this->table(),
+				$course_id
+			),
+			ARRAY_A
+		);
+
+		$this->check_error();
+
+		return null === $row ? null : TAAS_Course::from_row( $row );
+	}
+
+	/**
 	 * One course joined to its professor.
 	 *
 	 * @param int $course_id Course ID.

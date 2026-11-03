@@ -89,7 +89,12 @@ final class TAAS_Application_Cycle {
 	 * @return DateTimeImmutable|null Null if it is not a real UTC timestamp in that format.
 	 */
 	public static function parse_api_date( string $value ): ?DateTimeImmutable {
-		$date   = DateTimeImmutable::createFromFormat( '!' . self::API_DATE_FORMAT, $value, new DateTimeZone( 'UTC' ) );
+		// createFromFormat() throws a ValueError on a null byte, which JSON can send as \u0000.
+		if ( str_contains( $value, "\0" ) ) {
+			return null;
+		}
+
+		$date   =DateTimeImmutable::createFromFormat( '!' . self::API_DATE_FORMAT, $value, new DateTimeZone( 'UTC' ) );
 		$errors = DateTimeImmutable::getLastErrors();
 
 		// Reject impossible dates (2026-02-31) that PHP would otherwise roll over.

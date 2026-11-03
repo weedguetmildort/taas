@@ -134,35 +134,40 @@ final class TAAS_REST_Application_Cycle_Controller extends TAAS_REST_Controller 
 					return $this->missing_params( array( 'stage_dates' ) );
 				}
 
-				$current = $this->cycles->current();
-
-				if ( null === $current ) {
-					return $this->no_current_cycle();
-				}
-
 				$changes = $this->parse_stage_dates( $request['stage_dates'] );
 
 				if ( is_wp_error( $changes ) ) {
 					return $changes;
 				}
 
-				$dates = array_filter( $changes + $current->stage_dates );
+				// Lock the cycle from read to save, so a PUT or PATCH running at the same time waits instead of being overwritten.
+				return TAAS_Transaction::run(
+					function () use ( $changes ) {
+						$current = $this->cycles->current( true );
 
-				$schedule_error = $this->schedule_error( $dates );
+						if ( null === $current ) {
+							return $this->no_current_cycle();
+						}
 
-				if ( null !== $schedule_error ) {
-					return $schedule_error;
-				}
+						$dates = array_filter( $changes + $current->stage_dates );
 
-				$cycle = new TAAS_Application_Cycle(
-					$current->cycle_semester,
-					$current->cycle_year,
-					$dates
+						$schedule_error = $this->schedule_error( $dates );
+
+						if ( null !== $schedule_error ) {
+							return $schedule_error;
+						}
+
+						$cycle = new TAAS_Application_Cycle(
+							$current->cycle_semester,
+							$current->cycle_year,
+							$dates
+						);
+
+						$this->cycles->save( $cycle );
+
+						return $cycle->to_response();
+					}
 				);
-
-				$this->cycles->save( $cycle );
-
-				return $cycle->to_response();
 			}
 		);
 	}

@@ -244,6 +244,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	/**
 	 * The list an admin chooses from when matching a course: each non-withdrawn
 	 * application, ranked students first in rank order, then unranked students by name.
+	 * Student name and available hours come from the course term's submission snapshot.
 	 *
 	 * @param int $course_id Course ID.
 	 * @return array<int, array<string, mixed>> Rows in the shape the API sends.
@@ -255,17 +256,20 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 
 		$rows = $this->select_rows(
 			$wpdb->prepare(
-				'SELECT a.application_id, a.student_ufid, s.student_name, a.professor_preference_rank,'
-				. ' a.student_preference_rank, p.available_hours, a.has_taken_course, a.has_ta_for_course,'
-				. ' a.match_status, a.assigned_hours'
+				'SELECT a.application_id, a.student_ufid,'
+				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.student_name')) AS student_name,"
+				. ' a.professor_preference_rank, a.student_preference_rank,'
+				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.available_hours')), 'null') AS available_hours,"
+				. ' a.has_taken_course, a.has_ta_for_course, a.match_status, a.assigned_hours'
 				. ' FROM %i a'
+				. ' INNER JOIN %i c ON c.course_id = a.applied_course_id'
 				. ' INNER JOIN %i s ON s.student_ufid = a.student_ufid'
-				. ' LEFT JOIN %i p ON p.student_ufid = a.student_ufid'
+				. ' AND s.semester = c.course_semester AND s.year = c.course_year'
 				. ' WHERE a.applied_course_id = %d AND a.match_status <> %d'
-				. ' ORDER BY a.professor_preference_rank IS NULL, a.professor_preference_rank, s.student_name, a.application_id',
+				. ' ORDER BY a.professor_preference_rank IS NULL, a.professor_preference_rank, student_name, a.application_id',
 				$this->table(),
-				TAAS_Schema::table( 'students' ),
-				TAAS_Schema::table( 'student_profiles' ),
+				TAAS_Schema::table( 'courses' ),
+				TAAS_Schema::table( 'student_submissions' ),
 				$course_id,
 				TAAS_Match_Status::Withdrawn->value
 			)
@@ -333,6 +337,8 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 
 	/**
 	 * One page of the students with a non-withdrawn application in a term, by name.
+	 * Student details come from that term's submission snapshot, so past terms show
+	 * what the student submitted then.
 	 *
 	 * @param TAAS_Semester $semester     Semester to match.
 	 * @param int           $year         Year to match.
@@ -351,19 +357,21 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 		$rows = $this->select_rows(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The clause's one placeholder is bound through $student_args.
 			$wpdb->prepare(
-				'SELECT DISTINCT s.student_ufid, s.student_name, s.student_email, p.available_hours'
+				'SELECT DISTINCT s.student_ufid,'
+				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.student_name')) AS student_name,"
+				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.student_email')) AS student_email,"
+				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.available_hours')), 'null') AS available_hours"
 				. ' FROM %i a'
 				. ' INNER JOIN %i c ON c.course_id = a.applied_course_id'
 				. ' INNER JOIN %i s ON s.student_ufid = a.student_ufid'
-				. ' LEFT JOIN %i p ON p.student_ufid = a.student_ufid'
+				. ' AND s.semester = c.course_semester AND s.year = c.course_year'
 				. ' WHERE c.course_semester = %d AND c.course_year = %d AND a.match_status <> %d'
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only the fixed clause above is joined in.
 				. $student_clause
-				. ' ORDER BY s.student_name, s.student_ufid LIMIT %d OFFSET %d',
+				. ' ORDER BY student_name, s.student_ufid LIMIT %d OFFSET %d',
 				$this->table(),
 				TAAS_Schema::table( 'courses' ),
-				TAAS_Schema::table( 'students' ),
-				TAAS_Schema::table( 'student_profiles' ),
+				TAAS_Schema::table( 'student_submissions' ),
 				$semester->value,
 				$year,
 				TAAS_Match_Status::Withdrawn->value,
@@ -496,20 +504,35 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	/**
 	 * Set an application's match status and assigned hours, leaving every other column alone.
 	 *
+	 * A withdrawn application is left as it is. The check is part of the UPDATE, so a
+	 * withdrawal that lands just before this call cannot be overwritten.
+	 *
 	 * @param int               $application_id Application id.
 	 * @param TAAS_Match_Status $status         New status.
 	 * @param int               $assigned_hours New assigned hours.
-	 * @return void
+	 * @return int Rows changed; 0 when the application is withdrawn, missing or already held these values.
 	 * @throws RuntimeException If the update fails.
 	 */
-	public function set_match( int $application_id, TAAS_Match_Status $status, int $assigned_hours ): void {
-		$this->update_where(
-			array(
-				'match_status'   => $status->value,
-				'assigned_hours' => $assigned_hours,
-			),
-			array( 'application_id' => $application_id )
+	public function set_match( int $application_id, TAAS_Match_Status $status, int $assigned_hours ): int {
+		global $wpdb;
+
+		$changed = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET match_status = %d, assigned_hours = %d'
+				. ' WHERE application_id = %d AND match_status <> %d',
+				$this->table(),
+				$status->value,
+				$assigned_hours,
+				$application_id,
+				TAAS_Match_Status::Withdrawn->value
+			)
 		);
+
+		if ( false === $changed ) {
+			throw new RuntimeException( 'Update of applications failed: ' . esc_html( $wpdb->last_error ) );
+		}
+
+		return (int) $changed;
 	}
 
 	/**

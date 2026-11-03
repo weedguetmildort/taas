@@ -145,6 +145,31 @@ class AdminRoutesTest extends TestCase {
 		$this->assertStringNotContainsString( '87654321', $this->db->sql );
 	}
 
+	public function test_adding_a_course_that_loses_a_race_to_the_unique_key_is_409(): void {
+		$this->db->row           = array(
+			'professor_ufid'  => '87654321',
+			'professor_name'  => 'Grace Hopper',
+			'professor_email' => 'grace@ufl.edu',
+		);
+		$this->db->insert_result = false;
+		$this->db->insert_error  = "Duplicate entry '2-2027-COP3502C-Programming Fundamentals 1' for key 'course_offering'";
+
+		$result = ( new TAAS_REST_Course_Controller() )->create_item(
+			new WP_REST_Request(
+				array(
+					'course_code'    => 'COP3502C',
+					'course_name'    => 'Programming Fundamentals 1',
+					'term'           => 'Spring',
+					'year'           => 2027,
+					'professor_ufid' => '87654321',
+				)
+			)
+		);
+
+		$this->assertSame( 'taas_course_exists', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+	}
+
 	public function test_adding_a_course_needs_an_existing_professor(): void {
 		$result = ( new TAAS_REST_Course_Controller() )->create_item(
 			new WP_REST_Request(
@@ -175,7 +200,7 @@ class AdminRoutesTest extends TestCase {
 		);
 
 		$this->assertSame( 'rest_invalid_param', $result->get_error_code() );
-		$this->assertSame( array(), $this->db->writes );
+		$this->assertSame( array(), $this->db->queries );
 	}
 
 	public function test_setting_matched_saves_the_hours_and_sends_labels(): void {
@@ -189,13 +214,9 @@ class AdminRoutesTest extends TestCase {
 		);
 
 		$this->assertSame(
-			array(
-				'match_status'   => 2,
-				'assigned_hours' => 20,
-			),
-			$this->db->write['data']
+			array( 'UPDATE `wp_taas_core_applications` SET match_status = 2, assigned_hours = 20 WHERE application_id = 7 AND match_status <> 4' ),
+			$this->db->queries
 		);
-		$this->assertSame( array( 'application_id' => 7 ), $this->db->write['where'] );
 		$this->assertSame( 'Pending', $result->get_data()['match_status'] ); // The fake row does not change.
 		$this->assertTrue( $result->get_data()['has_taken_course'] );
 		$this->assertFalse( $result->get_data()['has_ta_for_course'] );
@@ -215,13 +236,7 @@ class AdminRoutesTest extends TestCase {
 				)
 			);
 
-			$this->assertSame(
-				array(
-					'match_status'   => $value,
-					'assigned_hours' => 0,
-				),
-				$this->db->write['data']
-			);
+			$this->assertStringContainsString( "SET match_status = {$value}, assigned_hours = 0 ", end( $this->db->queries ) );
 		}
 	}
 
@@ -232,7 +247,7 @@ class AdminRoutesTest extends TestCase {
 
 		$this->assertSame( 'taas_application_withdrawn', $result->get_error_code() );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
-		$this->assertSame( array(), $this->db->writes );
+		$this->assertSame( array(), $this->db->queries );
 	}
 
 	public function test_unknown_application_is_404(): void {

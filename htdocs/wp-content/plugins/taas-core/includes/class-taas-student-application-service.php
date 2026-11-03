@@ -325,7 +325,8 @@ final class TAAS_Student_Application_Service {
 		$selected_ranks = array();
 		foreach ( $preferences as $preference ) {
 			$course_id = $preference['course_id'];
-			$course = $this->courses->find( $course_id );
+			// Shared lock until commit, so an admin cannot move the course to another term after this check.
+			$course = $this->courses->find_locked( (int) $course_id, false );
 			if ( null === $course || $course->course_semester !== $semester || $course->course_year !== $year ) {
 				throw new DomainException( 'A selected course is not available in this application term.', 400 );
 			}

@@ -248,8 +248,13 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 					return $error;
 				}
 
-				$course_id = (int) $this->courses->insert( $course );
-				$entry     = $this->courses->find_with_professor( $course_id );
+				$course_id = $this->unless_duplicate( fn() => (int) $this->courses->insert( $course ) );
+
+				if ( is_wp_error( $course_id ) ) {
+					return $course_id;
+				}
+
+				$entry = $this->courses->find_with_professor( $course_id );
 
 				if ( null === $entry ) {
 					return $this->not_found();
@@ -270,26 +275,41 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 		return $this->respond(
 			function () use ( $request ) {
 				$course_id = (int) $this->path_param( $request, 'id' );
-				$existing  = $this->courses->find( $course_id );
 
-				if ( null === $existing ) {
-					return $this->not_found();
-				}
+				// Lock the course until the update commits. A student submission locks it too while checking its term,
+				// so a submission cannot add an application between the check below and the update.
+				$error = $this->unless_duplicate(
+					fn() => TAAS_Transaction::run(
+						function () use ( $request, $course_id ) {
+							$existing = $this->courses->find_locked( $course_id, true );
 
-				$course = $this->course_from_request( $request, $existing );
-				$error  = $this->professor_error( $course ) ?? $this->duplicate_error( $course, $course_id );
+							if ( null === $existing ) {
+								return $this->not_found();
+							}
+
+							$course = $this->course_from_request( $request, $existing );
+							$error  = $this->professor_error( $course ) ?? $this->duplicate_error( $course, $course_id );
+
+							if ( null !== $error ) {
+								return $error;
+							}
+
+							$changes_term = $course->course_semester !== $existing->course_semester || $course->course_year !== $existing->course_year;
+
+							if ( $changes_term && $this->has_applications( $course_id ) ) {
+								return $this->has_applications_error();
+							}
+
+							$this->courses->update_details( $course_id, $course );
+
+							return null;
+						}
+					)
+				);
 
 				if ( null !== $error ) {
 					return $error;
 				}
-
-				$changes_term = $course->course_semester !== $existing->course_semester || $course->course_year !== $existing->course_year;
-
-				if ( $changes_term && $this->has_applications( $course_id ) ) {
-					return $this->has_applications_error();
-				}
-
-				$this->courses->update_details( $course_id, $course );
 
 				$entry = $this->courses->find_with_professor( $course_id );
 
@@ -309,17 +329,22 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 			function () use ( $request ) {
 				$course_id = (int) $this->path_param( $request, 'id' );
 
-				if ( null === $this->courses->find( $course_id ) ) {
-					return $this->not_found();
-				}
+				// Same lock as update_item(), so a submission cannot add an application between the check and the delete.
+				return TAAS_Transaction::run(
+					function () use ( $course_id ) {
+						if ( null === $this->courses->find_locked( $course_id, true ) ) {
+							return $this->not_found();
+						}
 
-				if ( $this->has_applications( $course_id ) ) {
-					return $this->has_applications_error();
-				}
+						if ( $this->has_applications( $course_id ) ) {
+							return $this->has_applications_error();
+						}
 
-				$this->courses->delete( $course_id );
+						$this->courses->delete( $course_id );
 
-				return new WP_REST_Response( null, 204 );
+						return new WP_REST_Response( null, 204 );
+					}
+				);
 			}
 		);
 	}
@@ -384,7 +409,38 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 			return null;
 		}
 
+		return $this->course_exists_error();
+	}
+
+	/**
+	 * A 409 for a course whose term, year, code and name another course already has.
+	 *
+	 * @return WP_Error
+	 */
+	private function course_exists_error(): WP_Error {
 		return $this->conflict( 'taas_course_exists', __( 'A course with this term, year, code and name already exists.', 'taas-core' ) );
+	}
+
+	/**
+	 * Run a course write, turning a unique-key failure into the course_exists 409.
+	 *
+	 * duplicate_error() catches the usual case first. This covers a request that
+	 * saved the same offering after that check ran, which the unique key stops.
+	 *
+	 * @param callable $write Callback that does the write.
+	 * @return mixed What the callback returns, or the 409.
+	 * @throws RuntimeException If the write fails for any other reason.
+	 */
+	private function unless_duplicate( callable $write ): mixed {
+		try {
+			return $write();
+		} catch ( RuntimeException $e ) {
+			if ( TAAS_Repository::DUPLICATE_KEY === $e->getCode() ) {
+				return $this->course_exists_error();
+			}
+
+			throw $e;
+		}
 	}
 
 	/**

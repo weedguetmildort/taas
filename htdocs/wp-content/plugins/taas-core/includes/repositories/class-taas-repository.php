@@ -23,10 +23,16 @@ defined( 'ABSPATH' ) || exit;
  * by a controller calling several repositories; writes that span tables are
  * wrapped in TAAS_Transaction::run().
  *
- * Failed queries throw RuntimeException, matching the CSV importer. A missing
- * row is not a failure: find() returns null.
+ * Failed queries throw RuntimeException, matching the CSV importer. A write that
+ * breaks a unique key throws it with code DUPLICATE_KEY. A missing row is not a
+ * failure: find() returns null.
  */
 abstract class TAAS_Repository {
+
+	/**
+	 * RuntimeException code for a write that broke a unique key (MySQL error 1062).
+	 */
+	public const DUPLICATE_KEY = 1062;
 
 	/**
 	 * Default page size for all().
@@ -147,7 +153,7 @@ abstract class TAAS_Repository {
 		$data = $entity->to_row();
 
 		if ( false === $wpdb->insert( $this->table(), $data ) ) {
-			throw new RuntimeException( 'Insert into ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ) );
+			throw $this->write_failed( 'Insert into' );
 		}
 
 		return (int) $wpdb->insert_id > 0 ? (int) $wpdb->insert_id : (string) $data[ $this->primary_key() ];
@@ -279,7 +285,7 @@ abstract class TAAS_Repository {
 		$changed = $wpdb->update( $this->table(), $data, $conditions );
 
 		if ( false === $changed ) {
-			throw new RuntimeException( 'Update of ' . esc_html( $this->bare_table() ) . ' failed: ' . esc_html( $wpdb->last_error ) );
+			throw $this->write_failed( 'Update of' );
 		}
 
 		return (int) $changed;
@@ -337,12 +343,27 @@ abstract class TAAS_Repository {
 	}
 
 	/**
+	 * The exception for a failed insert or update, coded DUPLICATE_KEY if it broke a unique key.
+	 *
+	 * @param string $action 'Insert into' or 'Update of', for the message.
+	 * @return RuntimeException
+	 */
+	private function write_failed( string $action ): RuntimeException {
+		global $wpdb;
+
+		// $wpdb keeps only the message; MySQL starts error 1062's with this.
+		$code = str_starts_with( $wpdb->last_error, 'Duplicate entry' ) ? self::DUPLICATE_KEY : 0;
+
+		return new RuntimeException( esc_html( $action . ' ' . $this->bare_table() . ' failed: ' . $wpdb->last_error ), $code );
+	}
+
+	/**
 	 * Throw if the last query left an error on $wpdb.
 	 *
 	 * @return void
 	 * @throws RuntimeException If $wpdb->last_error is set.
 	 */
-	private function check_error(): void {
+	protected function check_error(): void {
 		global $wpdb;
 
 		if ( '' !== $wpdb->last_error ) {

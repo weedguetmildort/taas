@@ -133,11 +133,19 @@ final class TAAS_REST_Application_Controller extends TAAS_REST_Resource_Controll
 					return $this->conflict( 'taas_application_withdrawn', __( 'Withdrawn applications cannot be changed.', 'taas-core' ) );
 				}
 
-				$this->applications->set_match( $application_id, $status, $hours );
+				$changed = $this->applications->set_match( $application_id, $status, $hours );
+				$saved   = $this->applications->find( $application_id );
 
-				$saved = $this->applications->find( $application_id );
+				if ( null === $saved ) {
+					return $this->not_found();
+				}
 
-				return null === $saved ? $this->not_found() : $this->prepare_item_for_response( $saved, $request );
+				// The student withdrew between the check above and the update, so the update skipped the row.
+				if ( 0 === $changed && TAAS_Match_Status::Withdrawn === $saved->match_status ) {
+					return $this->conflict( 'taas_application_withdrawn', __( 'Withdrawn applications cannot be changed.', 'taas-core' ) );
+				}
+
+				return $this->prepare_item_for_response( $saved, $request );
 			}
 		);
 	}

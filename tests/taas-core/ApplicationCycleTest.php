@@ -265,6 +265,7 @@ class ApplicationCycleTest extends TestCase {
 			'unknown stage' => array( array( 'grading' => null ) ),
 			'one date only' => array( array( 'hr_review' => array( 'start_at' => '2126-01-01T00:00:00Z' ) ) ),
 			'not a date'    => array( array( 'hr_review' => self::future_dates( 'tomorrow' ) ) ),
+			'null byte'     => array( array( 'hr_review' => self::future_dates( "2126-01-01T00:00:00Z\0" ) ) ),
 			'end before'    => array( array( 'hr_review' => self::future_dates( '2126-02-01T00:00:00Z', '2126-01-01T00:00:00Z' ) ) ),
 			'overlap'       => array(
 				array(
@@ -327,6 +328,15 @@ class ApplicationCycleTest extends TestCase {
 		$this->assertNull( $data['stage_dates']['student_application'] );
 		$this->assertSame( '2126-12-01T00:00:00Z', $data['stage_dates']['hr_review']['end_at'] );
 		$this->assertSame( '2127-02-01T00:00:00Z', $data['stage_dates']['admin_matching']['end_at'] );
+	}
+
+	public function test_patch_locks_the_cycle_from_read_to_save(): void {
+		$this->db->row = self::row();
+
+		$this->patch( array( 'stage_dates' => array( 'hr_review' => self::future_dates() ) ) );
+
+		$this->assertStringEndsWith( 'FOR UPDATE', $this->db->sql );
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->db->queries );
 	}
 
 	public function test_patch_future_dates_do_not_start_a_stage_yet(): void {

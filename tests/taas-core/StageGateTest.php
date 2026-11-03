@@ -141,6 +141,14 @@ class StageGateTest extends TestCase {
 		$this->assertSame( 'untouched', self::enforce( '/taas/v1/application-cycle' ) );
 	}
 
+	public function test_head_is_exempt_like_get(): void {
+		$_GET['taas_role'] = 'student';
+		$this->set_stage( null );
+
+		$this->assertSame( 'untouched', self::enforce( '/taas/v1/application-cycle', 'HEAD' ) );
+		$this->assertSame( 'taas_stage_closed', self::enforce( '/taas/v1/students', 'HEAD' )->get_error_code() );
+	}
+
 	public function test_students_can_read_their_applications_in_any_stage(): void {
 		$_GET['taas_role'] = 'student';
 

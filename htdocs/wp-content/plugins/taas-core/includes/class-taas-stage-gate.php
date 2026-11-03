@@ -68,7 +68,8 @@ class TAAS_Stage_Gate {
 			return $response;
 		}
 
-		if ( 'GET' === $request->get_method() && self::is_always_readable( rtrim( $route, '/' ) ) ) {
+		// WordPress serves HEAD with the GET handler, so it is a read too
+		if ( in_array( $request->get_method(), array( 'GET', 'HEAD' ), true ) && self::is_always_readable( rtrim( $route, '/' ) ) ) {
 			return $response;
 		}
 

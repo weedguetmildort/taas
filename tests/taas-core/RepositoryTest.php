@@ -163,6 +163,19 @@ class RepositoryTest extends TestCase {
 	}
 
 	/**
+	 * A locked course read takes the exclusive or the shared lock asked for
+	 */
+	public function test_find_locked_course_uses_the_lock_asked_for(): void {
+		$repository = new TAAS_Course_Repository();
+
+		$repository->find_locked( 12345, true );
+		$this->assertSame( 'SELECT * FROM `wp_taas_core_courses` WHERE course_id = 12345 FOR UPDATE', $this->db->sql );
+
+		$repository->find_locked( 12345, false );
+		$this->assertSame( 'SELECT * FROM `wp_taas_core_courses` WHERE course_id = 12345 FOR SHARE', $this->db->sql );
+	}
+
+	/**
 	 * Updating notes writes only course_notes, keyed by course_id
 	 */
 	public function test_update_notes_writes_only_course_notes(): void {
@@ -418,6 +431,27 @@ class RepositoryTest extends TestCase {
 
 		$this->expectException( RuntimeException::class );
 		( new TAAS_Student_Repository() )->insert( new TAAS_Student( '12345678', 'Ada', 'ada@ufl.edu' ) );
+	}
+
+	/**
+	 * Only a unique-key failure is coded DUPLICATE_KEY
+	 */
+	public function test_insert_codes_a_duplicate_key_failure(): void {
+		$this->db->insert_result = false;
+
+		foreach ( array(
+			"Duplicate entry '12345678' for key 'PRIMARY'" => TAAS_Repository::DUPLICATE_KEY,
+			'connection lost'                              => 0,
+		) as $error => $code ) {
+			$this->db->insert_error = $error;
+
+			try {
+				( new TAAS_Student_Repository() )->insert( new TAAS_Student( '12345678', 'Ada', 'ada@ufl.edu' ) );
+				$this->fail( 'insert() should throw' );
+			} catch ( RuntimeException $e ) {
+				$this->assertSame( $code, $e->getCode(), $error );
+			}
+		}
 	}
 
 	/**
