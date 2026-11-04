@@ -186,7 +186,7 @@ A health check that shows routing, sign-in and the database connection are worki
 | `local_dev` | Whether sign-in is mocked |
 | `roles` | Every TAAS role the caller holds, in the order `taas_admin`, `taas_hr`, `taas_instructor`, `taas_student`. Empty if they have none |
 | `tables` | Whether each database table exists |
-| `shibboleth` | Only for the admin (WordPress administrators included), and not in local development. The admin's own Shibboleth session, to check what UF sends |
+| `shibboleth` | Only for the admin, which includes WordPress administrators, and not in local development. The admin's own Shibboleth session, to check what UF sends |
 
 | `shibboleth` field | Notes |
 | --- | --- |
@@ -204,5 +204,6 @@ Changes to these routes, newest first.
 
 | Date | Route | Change |
 | --- | --- | --- |
+| 2026-11-04 | `GET /me` | Every flag is `true` for WordPress administrators |
 | 2026-11-03 | `GET /status` | Replaced `role` with `roles`, and added `shibboleth` for the admin |
 | 2026-11-03 | `GET /me` | More than one flag can be `true` for a user with several roles |

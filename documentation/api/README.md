@@ -111,7 +111,7 @@ The student routes in [student.md](student.md) don't follow all of these. That p
 
 Professors hold the `taas_instructor` role, so local requests use `?taas_role=instructor`.
 
-A user can hold several roles, such as an admin who also teaches, and can use the routes of each. WordPress administrators count as admin. In production, the UFID comes from Shibboleth at sign-in. At sign-in, and every 10 minutes after, the professor role is given or removed to match the professors table.
+A user can hold several roles, such as an admin who also teaches, and can use the routes of each. WordPress administrators hold every role, worked out on each request rather than saved. In production, the UFID comes from Shibboleth at sign-in. At sign-in, and every 10 minutes after, the professor role is given or removed to match the professors table.
 
 ## Stage access
 
@@ -191,5 +191,6 @@ Changes to the rules on this page, newest first.
 
 | Date | Change |
 | --- | --- |
+| 2026-11-04 | WordPress administrators hold every role, not just admin |
 | 2026-11-03 | A user can hold several roles. The stage check passes if any of their stages is active, and WordPress administrators count as admin |
 | 2026-11-02 | Added the student routes. Their GETs stay open in every stage, so students can check their status after `student_application` |

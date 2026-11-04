@@ -2,7 +2,7 @@
 
 Routes for a signed-in student to apply for TA positions in the current term, check their applications, and edit them while applications are open. The base path, sign-in, stage access and shared errors are in the [API overview](README.md).
 
-**Access:** every route here needs the `taas_student` role. A signed-in user without it gets 403 `taas_forbidden`, even the admin; holding it alongside other roles is fine. The caller also needs an 8-digit UFID on their account, or every route returns 403 `taas_student_identity_unavailable`.
+**Access:** every route here needs the `taas_student` role. A signed-in user without it gets 403 `taas_forbidden`, even a `taas_admin`; holding it alongside other roles is fine. WordPress administrators hold it, so with a UFID saved they can use these routes as themselves. The caller also needs an 8-digit UFID on their account, or every route returns 403 `taas_student_identity_unavailable`.
 
 **Stages:** the GET routes stay open in every stage, so a student can check their status and see a "closed" message after applying ends. The writes only work during `student_application`, and return 403 `taas_stage_closed` outside it.
 
