@@ -57,9 +57,9 @@ class TAAS_Version {
 	}
 
 	/**
-	 * Return the full version including the build segment
+	 * Return the full version including the deploy number
 	 *
-	 * @return string e.g. '0.7.8.8.2.417'
+	 * @return string e.g. '0.7.8.8.2.3'
 	 */
 	public static function full(): string {
 		return defined( 'TAAS_CORE_VERSION' ) ? TAAS_CORE_VERSION : self::tag() . '.0';

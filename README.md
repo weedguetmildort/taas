@@ -91,6 +91,16 @@ composer lint        # PHPCS, WordPress Coding Standards
 composer test        # PHPUnit
 ```
 
+## Releasing
+
+The last version segment is the deploy number, and the tag must match the
+version exactly (`release.yml` checks this):
+
+1. Bump the deploy number in `taas-core.php`, in both the `Version:` header and
+   `TAAS_CORE_VERSION`, e.g. `0.7.8.8.2.3` to `0.7.8.8.2.4`
+2. Merge into `main`, then tag that commit `v0.7.8.8.2.4` and push the tag
+3. Deploy with the steps in the draft release
+
 ## Database changes
 
 - `sql/schema.sql` and `sql/constraints.sql` describe the end state and are
