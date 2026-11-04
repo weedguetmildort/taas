@@ -50,14 +50,14 @@ if ( $header_version !== $constant_version ) {
 	$version_errors[] = "Header version ({$header_version}) does not match TAAS_CORE_VERSION ({$constant_version}).";
 }
 
-// Rewrite committed build segment in CI at release to 0
+// The last segment is the deploy number, bumped by hand before each release
 $parts = explode( '.', $header_version );
 
 if ( 6 !== count( $parts ) ) {
-	$version_errors[] = "Version must have 6 segments (CONTRACT.WP.PHP.MYSQL.APACHE.BUILD), got {$header_version}.";
+	$version_errors[] = "Version must have 6 segments (CONTRACT.WP.PHP.MYSQL.APACHE.DEPLOY), got {$header_version}.";
 } else {
-	if ( '0' !== $parts[5] ) {
-		$version_errors[] = "Committed build segment must be 0, got {$parts[5]}. Do not hand-edit the build number.";
+	if ( 1 !== preg_match( '/^(0|[1-9]\d*)$/', $parts[5] ) ) {
+		$version_errors[] = "Deploy number must be a whole number, got {$parts[5]}.";
 	}
 
 	$header_tag = implode( '.', array_slice( $parts, 0, 5 ) );
@@ -67,14 +67,14 @@ if ( 6 !== count( $parts ) ) {
 	}
 }
 
-// Compare against a git tag passed as argv[1]: v<baseline>.<deploy number>,
-// e.g. v0.7.8.8.2.3. The deploy number gives every deploy its own tag while
-// the baseline stays put; the committed build segment stays 0.
+// Compare against a git tag passed as argv[1]. The tag must be the committed
+// version exactly, e.g. v0.7.8.8.2.3, so the version WordPress shows on the
+// server matches the tag it was checked out from.
 if ( isset( $argv[1] ) && '' !== $argv[1] ) {
 	$release_tag = $argv[1];
 
-	if ( 1 !== preg_match( '/^v' . preg_quote( $class_tag, '/' ) . '\.([1-9]\d*)$/', $release_tag ) ) {
-		$version_errors[] = "Git tag ({$release_tag}) must be v{$class_tag}.<deploy number>, e.g. v{$class_tag}.1. The baseline comes from TAAS_Version; the deploy number counts up from 1.";
+	if ( "v{$header_version}" !== $release_tag ) {
+		$version_errors[] = "Git tag ({$release_tag}) must match the plugin version: v{$header_version}. Bump the deploy number in taas-core.php (header and TAAS_CORE_VERSION) before tagging.";
 	}
 }
 
@@ -86,5 +86,5 @@ if ( ! empty( $version_errors ) ) {
 	exit( 1 );
 }
 
-echo "Version check passed: {$header_version} (tag {$class_tag})\n";
+echo "Version check passed: {$header_version} (baseline {$class_tag})\n";
 exit( 0 );

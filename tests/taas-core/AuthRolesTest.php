@@ -33,27 +33,27 @@ class AuthRolesTest extends TestCase {
 	}
 
 	/**
-	 * WordPress administrators count as TAAS admin without being assigned it
+	 * WordPress administrators hold every TAAS role without being assigned them
 	 */
-	public function test_wordpress_administrators_are_taas_admins(): void {
-		$this->assertSame( array( TAAS_Auth::ROLE_ADMIN ), TAAS_Auth::resolve_roles( array( 'administrator' ) ) );
+	public function test_wordpress_administrators_hold_every_taas_role(): void {
+		$this->assertSame( TAAS_Auth::ROLE_PRIORITY, TAAS_Auth::resolve_roles( array( 'administrator' ) ) );
 	}
 
 	/**
-	 * An administrator who is also a student keeps the student role
+	 * Saved TAAS roles on an administrator are not listed twice
 	 */
-	public function test_administrator_who_is_a_student_keeps_both(): void {
+	public function test_administrator_roles_are_listed_once(): void {
 		$this->assertSame(
-			array( TAAS_Auth::ROLE_ADMIN, TAAS_Auth::ROLE_STUDENT ),
-			TAAS_Auth::resolve_roles( array( 'administrator', TAAS_Auth::ROLE_STUDENT ) )
+			TAAS_Auth::ROLE_PRIORITY,
+			TAAS_Auth::resolve_roles( array( TAAS_Auth::ROLE_STUDENT, 'administrator', TAAS_Auth::ROLE_ADMIN ) )
 		);
 	}
 
 	/**
-	 * Holding taas_admin and being an administrator does not list admin twice
+	 * TAAS admin given in wp-admin is only TAAS admin; just WordPress administrators get everything
 	 */
-	public function test_admin_is_listed_once(): void {
-		$this->assertSame( array( TAAS_Auth::ROLE_ADMIN ), TAAS_Auth::resolve_roles( array( 'administrator', TAAS_Auth::ROLE_ADMIN ) ) );
+	public function test_taas_admin_alone_is_not_every_role(): void {
+		$this->assertSame( array( TAAS_Auth::ROLE_ADMIN ), TAAS_Auth::resolve_roles( array( TAAS_Auth::ROLE_ADMIN ) ) );
 	}
 
 	/**

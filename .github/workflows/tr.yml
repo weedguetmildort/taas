@@ -1,0 +1,178 @@
+name: TR
+
+# Tag Release. Run from the Actions tab on main: bumps the deploy number, commits, tags and
+# drafts the release. Pushing a v* tag by hand still drafts a release, as a
+# fallback. Deploying to the server stays manual.
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_number:
+        description: 'Deploy number (leave empty for the next one)'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  actions: read
+
+# Two releases at once would race for the same deploy number
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag Release
+    runs-on: ubuntu-26.04
+
+    env:
+      PLUGIN_FILE: htdocs/wp-content/plugins/taas-core/taas-core.php
+
+    steps:
+      - name: Refuse to release from a branch other than main
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run the release from main, not ${GITHUB_REF_NAME}."
+          exit 1
+
+      - name: Check out the repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Require a green CI run for this commit
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --limit 1 --json status,conclusion,url --jq '.[0] // empty')
+          if [ -z "$run" ]; then
+            echo "::error::No CI run found for ${GITHUB_SHA}. Wait for CI on main, then try again."
+            exit 1
+          fi
+          status=$(echo "$run" | jq -r .status)
+          conclusion=$(echo "$run" | jq -r .conclusion)
+          if [ "$status" != "completed" ] || [ "$conclusion" != "success" ]; then
+            echo "::error::CI for ${GITHUB_SHA} is ${status}/${conclusion}: $(echo "$run" | jq -r .url)"
+            exit 1
+          fi
+
+      - name: Work out the version to release
+        id: version
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REQUESTED: ${{ inputs.deploy_number }}
+        run: |
+          current=$(sed -nE "s/^define\( 'TAAS_CORE_VERSION', '([^']+)' \);.*/\1/p" "$PLUGIN_FILE")
+          if [ -z "$current" ]; then
+            echo "::error::Could not read TAAS_CORE_VERSION from ${PLUGIN_FILE}."
+            exit 1
+          fi
+          baseline=${current%.*}
+          deploy=${current##*.}
+
+          # The committed version is released as is until it has a tag;
+          # after that, the next release adds 1
+          if [ -n "$REQUESTED" ]; then
+            next=$REQUESTED
+          elif git rev-parse -q --verify "refs/tags/v${current}" > /dev/null; then
+            next=$((deploy + 1))
+          else
+            next=$deploy
+          fi
+
+          if ! echo "$next" | grep -Eq '^(0|[1-9][0-9]*)$' || [ "$next" -lt "$deploy" ]; then
+            echo "::error::Deploy number must be a whole number of at least ${deploy}, got '${next}'."
+            exit 1
+          fi
+
+          version="${baseline}.${next}"
+          if git rev-parse -q --verify "refs/tags/v${version}" > /dev/null; then
+            echo "::error::Tag v${version} already exists."
+            exit 1
+          fi
+
+          {
+            echo "current=${current}"
+            echo "version=${version}"
+            echo "tag=v${version}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Releasing v${version} (committed version ${current})"
+
+      - name: Bump the version in taas-core.php
+        if: github.event_name == 'workflow_dispatch' && steps.version.outputs.version != steps.version.outputs.current
+        env:
+          CURRENT: ${{ steps.version.outputs.current }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -i -E \
+            -e "s/^( \* Version: )${CURRENT//./\\.}([[:space:]]*)$/\1${VERSION}\2/" \
+            -e "s/^(define\( 'TAAS_CORE_VERSION', ')${CURRENT//./\\.}(' \);)/\1${VERSION}\2/" \
+            "$PLUGIN_FILE"
+          git diff --stat
+
+      - name: Verify the version matches the tag
+        run: php bin/check-version.php "${{ steps.version.outputs.tag || github.ref_name }}"
+
+      - name: Commit, tag and push
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CURRENT: ${{ steps.version.outputs.current }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ "$VERSION" != "$CURRENT" ]; then
+            git commit -am "chore: release ${TAG}"
+          fi
+          git tag -a "$TAG" -m "Release ${TAG}"
+          # Atomic: if main moved since checkout, neither the commit nor the tag lands
+          git push --atomic origin HEAD:main "refs/tags/${TAG}"
+
+      # Prod deploys by checking out the tag, so there is nothing to build or
+      # upload. The release exists to label the tag and record what changed.
+      - name: Create a draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag || github.ref_name }}
+          name: ${{ steps.version.outputs.tag || github.ref_name }}
+          draft: true
+          generate_release_notes: true
+          body: |
+            **Severity:** _set one before publishing_ — `breaking` / `feature` / `fix`
+
+            The last tag segment only counts deploys, so severity is not
+            derivable from the version number. State it here.
+
+            | | |
+            |---|---|
+            | Tag | `${{ steps.version.outputs.tag || github.ref_name }}` |
+            | Baseline | WordPress 7.x, PHP 8.x, MySQL 8.x, Apache 2.x |
+
+            ### Deploying
+
+            On `az1-apacheint-prod01.server.ufl.edu`:
+
+            ```sh
+            cd /h/cnswww-taas.cise/taas.cise.ufl.edu
+            git fetch --tags
+            git status --short    # must print nothing
+            git checkout ${{ steps.version.outputs.tag || github.ref_name }}
+            ```
+
+            Wait about a minute before loading the site, so every web node
+            picks up the new files. Never run `git clean -x` on the server:
+            the ignored files are WordPress core, `wp-config.php`, uploads and
+            third-party plugins. Notify IT before deploying so Sucuri's
+            file-change alerts are expected.

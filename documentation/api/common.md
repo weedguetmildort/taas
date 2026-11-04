@@ -172,7 +172,8 @@ A health check that shows routing, sign-in and the database connection are worki
     "plugin_active": true,
     "glid": "albert",
     "ufid": "******78",
-    "affiliations": ["faculty", "member"],
+    "affiliations": ["STUDENT$"],
+    "is_student": true,
     "session_matches": true,
     "ufid_saved": "******78",
     "last_synced": 1793750400
@@ -186,14 +187,15 @@ A health check that shows routing, sign-in and the database connection are worki
 | `local_dev` | Whether sign-in is mocked |
 | `roles` | Every TAAS role the caller holds, in the order `taas_admin`, `taas_hr`, `taas_instructor`, `taas_student`. Empty if they have none |
 | `tables` | Whether each database table exists |
-| `shibboleth` | Only for the admin (WordPress administrators included), and not in local development. The admin's own Shibboleth session, to check what UF sends |
+| `shibboleth` | Only for the admin, which includes WordPress administrators, and not in local development. The admin's own Shibboleth session, to check what UF sends |
 
 | `shibboleth` field | Notes |
 | --- | --- |
 | `plugin_active` | Whether the Shibboleth plugin is loaded |
 | `glid` | GatorLink ID from the session |
 | `ufid` | UFID from the session, all but the last two digits hidden. Empty if missing or not 8 digits |
-| `affiliations` | Values of the `eduperson_affiliations` attribute, split on `;` |
+| `affiliations` | Values of the `eduperson_affiliations` attribute, split on `;`, as UF sends them (e.g. `STUDENT$`) |
+| `is_student` | Whether those values give the student role. `null` if the attribute is missing |
 | `session_matches` | Whether the session belongs to this WordPress account, by GatorLink ID or email |
 | `ufid_saved` | The UFID saved to the account, masked the same way. Empty if none is saved |
 | `last_synced` | Unix time of the last sync from Shibboleth, or `0` if never |
@@ -204,5 +206,7 @@ Changes to these routes, newest first.
 
 | Date | Route | Change |
 | --- | --- | --- |
+| 2026-11-04 | `GET /status` | Added `shibboleth.is_student` |
+| 2026-11-04 | `GET /me` | Every flag is `true` for WordPress administrators |
 | 2026-11-03 | `GET /status` | Replaced `role` with `roles`, and added `shibboleth` for the admin |
 | 2026-11-03 | `GET /me` | More than one flag can be `true` for a user with several roles |

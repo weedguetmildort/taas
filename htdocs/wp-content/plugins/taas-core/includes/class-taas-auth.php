@@ -23,7 +23,7 @@ class TAAS_Auth {
 	public const ROLE_PRIORITY = array( self::ROLE_ADMIN, self::ROLE_HR, self::ROLE_INSTRUCTOR, self::ROLE_STUDENT );
 
 	/**
-	 * WordPress role that counts as TAAS admin without being assigned it
+	 * WordPress role that holds every TAAS role without being assigned them
 	 */
 	public const WP_ADMIN_ROLE = 'administrator';
 
@@ -155,15 +155,17 @@ class TAAS_Auth {
 	/**
 	 * Return every TAAS role in a list of WordPress roles, highest first
 	 *
-	 * WordPress administrators count as TAAS admin. Roles that are not TAAS
-	 * roles are ignored.
+	 * WordPress administrators hold every TAAS role. This is worked out on each
+	 * request rather than saved, so it never conflicts with the Shibboleth sync
+	 * and ends the moment the administrator role is taken away. Roles that are
+	 * not TAAS roles are ignored.
 	 *
 	 * @param string[] $wp_roles WordPress role slugs
 	 * @return string[] ROLE_* constants, in ROLE_PRIORITY order
 	 */
 	public static function resolve_roles( array $wp_roles ): array {
 		if ( in_array( self::WP_ADMIN_ROLE, $wp_roles, true ) ) {
-			$wp_roles[] = self::ROLE_ADMIN;
+			return self::ROLE_PRIORITY;
 		}
 
 		return array_values( array_intersect( self::ROLE_PRIORITY, $wp_roles ) );

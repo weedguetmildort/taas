@@ -27,6 +27,7 @@ jobs:
             php:
               - 'htdocs/wp-content/plugins/taas-*/**'
               - 'bin/**'
+              - 'dev/**'
               - 'tests/**'
               - 'composer.json'
               - 'composer.lock'

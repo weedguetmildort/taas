@@ -1,6 +1,6 @@
 # Admin Routes
 
-Routes for the admin. All of them work in every stage, and a user without the admin role gets 403. WordPress administrators count as admin. The base path, sign-in and shared errors are in the [API overview](README.md).
+Routes for the admin. All of them work in every stage, and a user without the admin role gets 403. WordPress administrators hold every role, admin included. The base path, sign-in and shared errors are in the [API overview](README.md).
 
 The admin also uses the routes in [common.md](common.md), including `GET /application-cycle` and `GET /courses`.
 
