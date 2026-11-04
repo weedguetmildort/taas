@@ -60,7 +60,6 @@ final class TAAS_REST_Status_Controller extends TAAS_REST_Controller {
 		$status = array(
 			'version'   => TAAS_CORE_VERSION,
 			'local_dev' => TAAS_Auth::is_local_dev(),
-			'role'      => $user['role'] ?? '',
 			'roles'     => $user['roles'] ?? array(),
 			'tables'    => $tables,
 		);

@@ -18,7 +18,7 @@ class TAAS_Auth {
 	public const ROLE_ADMIN      = 'taas_admin';
 
 	/**
-	 * TAAS roles from highest to lowest; the first one a user holds is their primary role
+	 * Order resolve_roles() returns roles in; it decides which home page staff are redirected to
 	 */
 	public const ROLE_PRIORITY = array( self::ROLE_ADMIN, self::ROLE_HR, self::ROLE_INSTRUCTOR, self::ROLE_STUDENT );
 
@@ -108,15 +108,12 @@ class TAAS_Auth {
 			return null;
 		}
 
-		$roles = self::resolve_roles( (array) $user->roles );
-
 		return array(
 			'wp_user_id'    => $user->ID,
 			'university_id' => self::university_id_for( $user ),
 			'email'         => $user->user_email,
 			'display_name'  => $user->display_name,
-			'role'          => $roles[0] ?? '',
-			'roles'         => $roles,
+			'roles'         => self::resolve_roles( (array) $user->roles ),
 		);
 	}
 
@@ -194,7 +191,6 @@ class TAAS_Auth {
 			'university_id' => $university_id,
 			'email'         => $email,
 			'display_name'  => $name,
-			'role'          => $role,
 			'roles'         => array( $role ),
 		);
 	}

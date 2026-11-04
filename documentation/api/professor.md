@@ -2,7 +2,7 @@
 
 Routes for a signed-in professor to list their courses, review applicants, and submit a ranking plus notes for matching. The base path, sign-in and shared errors are in the [API overview](README.md).
 
-**Access:** every route here is for the `taas_instructor` role only, during the `professor_ranking` stage. Any other signed-in role gets 403, including the admin. Reads are closed outside the stage too, with 403 `taas_stage_closed`.
+**Access:** every route here needs the `taas_instructor` role, during the `professor_ranking` stage. A signed-in user without it gets 403, even the admin; holding it alongside other roles is fine. Reads are closed outside the stage too, with 403 `taas_stage_closed`.
 
 **Ownership:** the professor is identified by their session, never by anything in the request. A course or application that doesn't exist, isn't this professor's, or (applications only) was withdrawn all return the same 404 `taas_not_found`, so the API never reveals which ids exist.
 

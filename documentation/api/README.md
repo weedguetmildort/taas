@@ -111,7 +111,7 @@ The student routes in [student.md](student.md) don't follow all of these. That p
 
 Professors hold the `taas_instructor` role, so local requests use `?taas_role=instructor`.
 
-A user can hold several roles, such as an admin who also teaches, and can use the routes of each. WordPress administrators count as admin. In production, the UFID comes from Shibboleth at sign-in, and the professor role is given or removed to match the professors table.
+A user can hold several roles, such as an admin who also teaches, and can use the routes of each. WordPress administrators count as admin. In production, the UFID comes from Shibboleth at sign-in. At sign-in, and every 10 minutes after, the professor role is given or removed to match the professors table.
 
 ## Stage access
 

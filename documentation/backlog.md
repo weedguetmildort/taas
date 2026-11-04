@@ -35,8 +35,8 @@ This is not intended to replace project management and tickets, but rather to no
 ## Auth
 
 - **Nonce:** confirm that requests need an `X-WP-Nonce` header in production, and how pages obtain it.
-- **UFID on the server:** confirm that UF's Shibboleth sends the `ufid` attribute, so it is saved to the `taas_ufid` user meta at sign-in. As an admin, `GET /status` shows what the session carries. Without it, the UFID is empty: professors see no courses and students cannot apply.
-- **Role assignment:** only the professor role is synced, from the professors table at sign-in. Decide how students get `taas_student`. HR and admin are assigned in wp-admin.
+- **UFID on the server:** UF's Shibboleth sends a `ufid` attribute (listed on `/Shibboleth.sso/Session`). After the next deploy, confirm as an admin that `GET /status` shows `shibboleth.ufid_saved`. Without a saved UFID, professors see no courses and students cannot apply.
+- **Student role (stage 2):** read the real `shibboleth.affiliations` values from `GET /status`, then sync `taas_student` from `eduperson_affiliations` the same way the professor role is synced from the professors table. HR and admin stay assigned in wp-admin.
 
 ## Deployment
 
