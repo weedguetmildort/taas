@@ -24,7 +24,7 @@ Routes for any signed-in user. The base path, sign-in, stage access and shared e
 }
 ```
 
-These flags only decide what a page shows, since the server still checks each request. Each user currently has one role, so only one flag is `true`. A signed-in user with no TAAS role has them all `false`.
+These flags only decide what a page shows, since the server still checks each request. A user can hold several roles, so more than one flag can be `true`. A signed-in user with no TAAS role has them all `false`.
 
 ## Application cycle
 
@@ -158,7 +158,7 @@ A health check that shows routing, sign-in and the database connection are worki
 {
   "version": "0.7.8.8.2.0",
   "local_dev": false,
-  "role": "taas_admin",
+  "roles": ["taas_admin", "taas_instructor"],
   "tables": {
     "professors": true,
     "students": true,
@@ -167,6 +167,15 @@ A health check that shows routing, sign-in and the database connection are worki
     "courses": true,
     "applications": true,
     "application_cycle": true
+  },
+  "shibboleth": {
+    "plugin_active": true,
+    "glid": "albert",
+    "ufid": "******78",
+    "affiliations": ["faculty", "member"],
+    "session_matches": true,
+    "ufid_saved": "******78",
+    "last_synced": 1793750400
   }
 }
 ```
@@ -175,8 +184,19 @@ A health check that shows routing, sign-in and the database connection are worki
 | --- | --- |
 | `version` | The plugin version |
 | `local_dev` | Whether sign-in is mocked |
-| `role` | The caller's WordPress role: `taas_student`, `taas_instructor`, `taas_hr` or `taas_admin`. Empty if they have none |
+| `roles` | Every TAAS role the caller holds, in the order `taas_admin`, `taas_hr`, `taas_instructor`, `taas_student`. Empty if they have none |
 | `tables` | Whether each database table exists |
+| `shibboleth` | Only for the admin (WordPress administrators included), and not in local development. The admin's own Shibboleth session, to check what UF sends |
+
+| `shibboleth` field | Notes |
+| --- | --- |
+| `plugin_active` | Whether the Shibboleth plugin is loaded |
+| `glid` | GatorLink ID from the session |
+| `ufid` | UFID from the session, all but the last two digits hidden. Empty if missing or not 8 digits |
+| `affiliations` | Values of the `eduperson_affiliations` attribute, split on `;` |
+| `session_matches` | Whether the session belongs to this WordPress account, by GatorLink ID or email |
+| `ufid_saved` | The UFID saved to the account, masked the same way. Empty if none is saved |
+| `last_synced` | Unix time of the last sync from Shibboleth, or `0` if never |
 
 ## Changelog
 
@@ -184,3 +204,5 @@ Changes to these routes, newest first.
 
 | Date | Route | Change |
 | --- | --- | --- |
+| 2026-11-03 | `GET /status` | Replaced `role` with `roles`, and added `shibboleth` for the admin |
+| 2026-11-03 | `GET /me` | More than one flag can be `true` for a user with several roles |

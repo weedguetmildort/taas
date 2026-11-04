@@ -111,7 +111,7 @@ The student routes in [student.md](student.md) don't follow all of these. That p
 
 Professors hold the `taas_instructor` role, so local requests use `?taas_role=instructor`.
 
-Each user has one role, so an admin who also teaches gets 403 `taas_forbidden` from `/professor` routes.
+A user can hold several roles, such as an admin who also teaches, and can use the routes of each. WordPress administrators count as admin. In production, the UFID comes from Shibboleth at sign-in. At sign-in, and every 10 minutes after, the professor role is given or removed to match the professors table.
 
 ## Stage access
 
@@ -125,6 +125,8 @@ A cycle is one term's run through four stages, and at most one stage is active a
 | 4 | `admin_matching` | Admin handles final matches | Admin only |
 
 When `stage` is `null`, or no cycle has been set, only the admin has access.
+
+A caller with several roles passes this check if any one of their stages is active, and an admin always passes it. The check doesn't look at which route is called, so such a caller can also use their other roles' routes in that stage. For example, a professor who is also a student can use `/professor` routes during `student_application`.
 
 Admin routes work in every stage. Outside their stage, students, HR and professors get this error from every route except these GETs, which stay open in every stage:
 
@@ -189,4 +191,5 @@ Changes to the rules on this page, newest first.
 
 | Date | Change |
 | --- | --- |
+| 2026-11-03 | A user can hold several roles. The stage check passes if any of their stages is active, and WordPress administrators count as admin |
 | 2026-11-02 | Added the student routes. Their GETs stay open in every stage, so students can check their status after `student_application` |

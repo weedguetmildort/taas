@@ -3,6 +3,10 @@
  * Plugin Name: TAAS Backend Test
  * Description: Testing ground for backend implementation and functionality
  * Version: 1.0
+ * Requires Plugins: taas-core
+ *
+ * Local development only: docker-compose.yml mounts this folder as a plugin.
+ * It lives outside htdocs/ so it never reaches the server.
  *
  * @package TAAS_Backend_Test
  */
@@ -15,10 +19,10 @@ define( 'TAAS_BACKEND_TEST_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_BACKEND_TEST_URL', plugin_dir_url( __FILE__ ) );
 
 /*
- * Explicit requires
+ * Explicit requires from taas-core, which loads after this plugin
  */
-require_once TAAS_BACKEND_TEST_PATH . 'includes/func-taas-xlsx-ingest.php';
-require_once TAAS_BACKEND_TEST_PATH . 'includes/func-matching.php';
+require_once WP_PLUGIN_DIR . '/taas-core/includes/func-taas-xlsx-ingest.php';
+require_once WP_PLUGIN_DIR . '/taas-core/includes/func-matching.php';
 
 /**
  * Activate plugin

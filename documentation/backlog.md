@@ -34,9 +34,9 @@ This is not intended to replace project management and tickets, but rather to no
 
 ## Auth
 
-- **Multiple roles:** decide whether one person can hold several, such as admin and professor. Until then, an admin who also teaches gets 403 from `/professor` routes. If it's allowed, their professor actions are assumed to follow the `professor_ranking` stage like any other professor's.
 - **Nonce:** confirm that requests need an `X-WP-Nonce` header in production, and how pages obtain it.
-- **UFID mapping:** confirm that Shibboleth provides the UFID in the `shibboleth_account` user meta. If it provides a GatorLink username or eppn instead, every professor will see no courses and get 404s.
+- **UFID on the server:** UF's Shibboleth sends a `ufid` attribute (listed on `/Shibboleth.sso/Session`). After the next deploy, confirm as an admin that `GET /status` shows `shibboleth.ufid_saved`. Without a saved UFID, professors see no courses and students cannot apply.
+- **Student role (stage 2):** read the real `shibboleth.affiliations` values from `GET /status`, then sync `taas_student` from `eduperson_affiliations` the same way the professor role is synced from the professors table. HR and admin stay assigned in wp-admin.
 
 ## Deployment
 

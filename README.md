@@ -14,6 +14,7 @@ The repo root **is** the server root, so a deploy is a `git checkout`.
 | `htdocs/.htaccess` | | FastCGI handler, Shibboleth, rewrites. Never mount it into Docker |
 | `htdocs/wp-content/plugins/taas-core/` | | The plugin: `includes/`, `sql/`, `migrations/`, `pages/`, `seeds/` |
 | `bin/`, `tests/`, `snapshots/` | | Dev tooling, kept out of the document root on purpose |
+| `dev/` | | Local-only plugins such as `taas-backend-test`, mounted by docker-compose and never deployed |
 
 Everything else on the server (WordPress core, third-party plugins, themes,
 uploads, `cgi-bin/`, `logs/`) is ignored. `.gitignore` is an allow list under

@@ -18,6 +18,21 @@ class TAAS_Auth {
 	public const ROLE_ADMIN      = 'taas_admin';
 
 	/**
+	 * Order resolve_roles() returns roles in; it decides which home page staff are redirected to
+	 */
+	public const ROLE_PRIORITY = array( self::ROLE_ADMIN, self::ROLE_HR, self::ROLE_INSTRUCTOR, self::ROLE_STUDENT );
+
+	/**
+	 * WordPress role that counts as TAAS admin without being assigned it
+	 */
+	public const WP_ADMIN_ROLE = 'administrator';
+
+	/**
+	 * User meta key holding the UFID saved from Shibboleth at sign-in
+	 */
+	public const UFID_META_KEY = 'taas_ufid';
+
+	/**
 	 * Create TAAS roles and their display names
 	 *
 	 * @return array<string, string>
@@ -98,15 +113,19 @@ class TAAS_Auth {
 			'university_id' => self::university_id_for( $user ),
 			'email'         => $user->user_email,
 			'display_name'  => $user->display_name,
-			'role'          => self::taas_role_for( $user ),
+			'roles'         => self::resolve_roles( (array) $user->roles ),
 		);
 	}
 
 	/**
-	 * Extract the university identifier for a WordPress user
+	 * Return the UFID saved for a WordPress user, or '' if none is saved
+	 *
+	 * Only the UFID Shibboleth sent at sign-in counts. The login name and the
+	 * Shibboleth plugin's own meta (which holds the identity provider, "preset")
+	 * are never used: every account would share them.
 	 *
 	 * @param WP_User $user WordPress user object
-	 * @return string University identifier, or '' if not resolvable
+	 * @return string Eight-digit UFID, or ''
 	 */
 	private static function university_id_for( WP_User $user ): string {
 		/**
@@ -116,41 +135,38 @@ class TAAS_Auth {
 		 *
 		 * @param string $meta_key Meta key to read
 		 */
-		$meta_key = apply_filters( 'taas_university_id_meta_key', 'shibboleth_account' );
+		$meta_key = apply_filters( 'taas_university_id_meta_key', self::UFID_META_KEY );
 
-		$value = get_user_meta( $user->ID, $meta_key, true );
-
-		if ( ! empty( $value ) ) {
-			return (string) $value;
-		}
-
-		if ( ! empty( $user->user_login ) ) {
-			return (string) $user->user_login;
-		}
-
-		if ( ! empty( $_SERVER['REMOTE_USER'] ) ) {
-			return sanitize_text_field( wp_unslash( $_SERVER['REMOTE_USER'] ) );
-		}
-
-		return '';
+		return self::valid_ufid( (string) get_user_meta( $user->ID, $meta_key, true ) );
 	}
 
 	/**
-	 * Return the TAAS role for a user, or '' if they have none
+	 * Return the value if it is an eight-digit UFID, or ''
 	 *
-	 * @param WP_User $user WordPress user object
+	 * @param string $value Candidate UFID
 	 * @return string
 	 */
-	private static function taas_role_for( WP_User $user ): string {
-		$ordered = array( self::ROLE_ADMIN, self::ROLE_HR, self::ROLE_INSTRUCTOR, self::ROLE_STUDENT );
+	public static function valid_ufid( string $value ): string {
+		$value = trim( $value );
 
-		foreach ( $ordered as $role ) {
-			if ( in_array( $role, (array) $user->roles, true ) ) {
-				return $role;
-			}
+		return 1 === preg_match( '/^[0-9]{8}$/', $value ) ? $value : '';
+	}
+
+	/**
+	 * Return every TAAS role in a list of WordPress roles, highest first
+	 *
+	 * WordPress administrators count as TAAS admin. Roles that are not TAAS
+	 * roles are ignored.
+	 *
+	 * @param string[] $wp_roles WordPress role slugs
+	 * @return string[] ROLE_* constants, in ROLE_PRIORITY order
+	 */
+	public static function resolve_roles( array $wp_roles ): array {
+		if ( in_array( self::WP_ADMIN_ROLE, $wp_roles, true ) ) {
+			$wp_roles[] = self::ROLE_ADMIN;
 		}
 
-		return '';
+		return array_values( array_intersect( self::ROLE_PRIORITY, $wp_roles ) );
 	}
 
 	/**
@@ -175,19 +191,19 @@ class TAAS_Auth {
 			'university_id' => $university_id,
 			'email'         => $email,
 			'display_name'  => $name,
-			'role'          => $role,
+			'roles'         => array( $role ),
 		);
 	}
 
 	/**
-	 * Check if the current user holds the given TAAS role
+	 * Check if the current user holds the given TAAS role, among any others
 	 *
 	 * @param string $role One of the ROLE_* constants
 	 * @return bool
 	 */
 	public static function has_role( string $role ): bool {
 		$user = self::current_user();
-		return null !== $user && $user['role'] === $role;
+		return null !== $user && in_array( $role, $user['roles'], true );
 	}
 
 	/**
