@@ -93,13 +93,20 @@ composer test        # PHPUnit
 
 ## Releasing
 
-The last version segment is the deploy number, and the tag must match the
-version exactly (`release.yml` checks this):
+The last version segment is the deploy number, and the tag always matches the
+version exactly, e.g. `v0.7.8.8.2.4`.
 
-1. Bump the deploy number in `taas-core.php`, in both the `Version:` header and
-   `TAAS_CORE_VERSION`, e.g. `0.7.8.8.2.3` to `0.7.8.8.2.4`
-2. Merge into `main`, then tag that commit `v0.7.8.8.2.4` and push the tag
-3. Deploy with the steps in the draft release
+1. Once CI is green on `main`, open **Actions → TR → Run workflow** (Tag Release) on
+   `main`. Leave the deploy number empty to use the next one
+2. The workflow bumps the version in `taas-core.php`, commits
+   `chore: release v…` to `main`, tags it and drafts a GitHub release. If the
+   committed version has no tag yet, it tags it as is without a commit
+3. Set the severity on the draft release and publish it
+4. Deploy by hand with the steps in the release, then `git pull` locally to
+   pick up the release commit
+
+A tag pushed by hand still drafts a release, but it must match the committed
+version or the workflow fails.
 
 ## Database changes
 
