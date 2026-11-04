@@ -12,9 +12,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * The Shibboleth plugin creates the WordPress account and gives it a single
  * WordPress role. This class adds what TAAS needs on top: the UFID, saved to
- * user meta, and the TAAS roles that have a source of truth. Roles listed in
- * synced_roles() are added and removed to match that source; every other role,
- * including TAAS HR and TAAS admin, is left to wp-admin.
+ * user meta, and the TAAS roles that have a source of truth: student from the
+ * affiliations attribute, instructor from the professors table. Those roles are
+ * added and removed to match their source; TAAS HR and TAAS admin are left to
+ * wp-admin.
  */
 class TAAS_Shibboleth {
 
@@ -27,6 +28,13 @@ class TAAS_Shibboleth {
 	 * Seconds between syncs for a user who stays signed in
 	 */
 	private const SYNC_INTERVAL = 600;
+
+	/**
+	 * Affiliation values, lowercased, that give the student role
+	 *
+	 * UF sends them as e.g. "STUDENT$"; affiliations() normalizes that to "student".
+	 */
+	public const STUDENT_AFFILIATIONS = array( 'student' );
 
 	/**
 	 * Hook the sync into sign-in and into requests from signed-in users
@@ -116,13 +124,18 @@ class TAAS_Shibboleth {
 	 * Return whether each synced role should be held, keyed by role
 	 *
 	 * A role whose source cannot be read right now is left out, so a database
-	 * error never strips anyone's access.
+	 * error or a missing attribute never strips anyone's access.
 	 *
 	 * @param string $ufid Valid UFID of the account
 	 * @return array<string, bool>
 	 */
 	private static function synced_roles( string $ufid ): array {
-		$wanted = array();
+		$wanted  = array();
+		$student = self::is_student( self::attribute( 'eduperson_affiliations' ), self::student_affiliations() );
+
+		if ( null !== $student ) {
+			$wanted[ TAAS_Auth::ROLE_STUDENT ] = $student;
+		}
 
 		try {
 			$wanted[ TAAS_Auth::ROLE_INSTRUCTOR ] = null !== ( new TAAS_Professor_Repository() )->find( $ufid );
@@ -131,6 +144,57 @@ class TAAS_Shibboleth {
 		}
 
 		return $wanted;
+	}
+
+	/**
+	 * Affiliation values that give the student role, lowercased
+	 *
+	 * @return string[]
+	 */
+	private static function student_affiliations(): array {
+		/**
+		 * Filter the affiliation values that give the student role
+		 *
+		 * @since 0.7.8.8.2
+		 *
+		 * @param string[] $values Lowercased values, without UF's trailing "$"
+		 */
+		$values = (array) apply_filters( 'taas_student_affiliations', self::STUDENT_AFFILIATIONS );
+
+		return array_map( 'strtolower', array_map( 'strval', $values ) );
+	}
+
+	/**
+	 * Whether the affiliations attribute makes this user a student
+	 *
+	 * @param string   $raw            Raw eduperson_affiliations value
+	 * @param string[] $student_values Lowercased values that count as student
+	 * @return bool|null Null when the attribute is empty, so the role is left alone
+	 */
+	public static function is_student( string $raw, array $student_values = self::STUDENT_AFFILIATIONS ): ?bool {
+		$affiliations = self::affiliations( $raw );
+
+		if ( ! $affiliations ) {
+			return null;
+		}
+
+		return (bool) array_intersect( $affiliations, $student_values );
+	}
+
+	/**
+	 * Normalize the affiliations attribute into lowercased values
+	 *
+	 * UF ends each value with "$" (e.g. "STUDENT$"), and Shibboleth joins
+	 * multiple values with ";", so both separate values.
+	 *
+	 * @param string $raw Raw eduperson_affiliations value
+	 * @return string[]
+	 */
+	public static function affiliations( string $raw ): array {
+		$values = preg_split( '/[;$]/', strtolower( $raw ) );
+		$values = array_map( 'trim', false === $values ? array() : $values );
+
+		return array_values( array_unique( array_filter( $values, 'strlen' ) ) );
 	}
 
 	/**
@@ -227,13 +291,15 @@ class TAAS_Shibboleth {
 	 * @return array<string, mixed>
 	 */
 	public static function diagnostics( WP_User $user ): array {
-		$glid = self::attribute( 'glid' );
+		$glid         = self::attribute( 'glid' );
+		$affiliations = self::attribute( 'eduperson_affiliations' );
 
 		return array(
 			'plugin_active'   => function_exists( 'shibboleth_getenv' ),
 			'glid'            => $glid,
 			'ufid'            => self::mask_ufid( self::attribute( 'ufid' ) ),
-			'affiliations'    => self::parse_values( self::attribute( 'eduperson_affiliations' ) ),
+			'affiliations'    => self::parse_values( $affiliations ),
+			'is_student'      => self::is_student( $affiliations, self::student_affiliations() ),
 			'session_matches' => self::session_matches( $user->user_login, $user->user_email, $glid, self::attribute( 'mail' ) ),
 			'ufid_saved'      => self::mask_ufid( (string) get_user_meta( $user->ID, TAAS_Auth::UFID_META_KEY, true ) ),
 			'last_synced'     => (int) get_user_meta( $user->ID, self::SYNCED_META_KEY, true ),

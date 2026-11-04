@@ -105,6 +105,67 @@ class ShibbolethTest extends TestCase {
 	}
 
 	/**
+	 * UF's "$"-terminated values and Shibboleth's ";" both separate affiliations
+	 */
+	public function test_affiliations_normalize_uf_format(): void {
+		$this->assertSame( array( 'student' ), TAAS_Shibboleth::affiliations( 'STUDENT$' ) );
+		$this->assertSame( array( 'student', 'employee' ), TAAS_Shibboleth::affiliations( 'STUDENT$EMPLOYEE$' ) );
+		$this->assertSame( array( 'member', 'student' ), TAAS_Shibboleth::affiliations( 'member; Student;STUDENT$' ) );
+		$this->assertSame( array(), TAAS_Shibboleth::affiliations( '' ) );
+		$this->assertSame( array(), TAAS_Shibboleth::affiliations( ' $ ; ' ) );
+	}
+
+	/**
+	 * The value UF sends for a student, alone or with others, makes them a student
+	 */
+	public function test_student_affiliation_is_a_student(): void {
+		$this->assertTrue( TAAS_Shibboleth::is_student( 'STUDENT$' ) );
+		$this->assertTrue( TAAS_Shibboleth::is_student( 'EMPLOYEE$STUDENT$' ) );
+		$this->assertTrue( TAAS_Shibboleth::is_student( 'member;student' ) );
+	}
+
+	/**
+	 * Only a whole value counts, so a former student is not a student
+	 */
+	public function test_other_affiliations_are_not_a_student(): void {
+		$this->assertFalse( TAAS_Shibboleth::is_student( 'FACULTY$' ) );
+		$this->assertFalse( TAAS_Shibboleth::is_student( 'FORMER_STUDENT$' ) );
+		$this->assertFalse( TAAS_Shibboleth::is_student( 'STUDENTS$' ) );
+	}
+
+	/**
+	 * A missing attribute is unknown, so the student role is left alone
+	 */
+	public function test_missing_affiliations_are_unknown(): void {
+		$this->assertNull( TAAS_Shibboleth::is_student( '' ) );
+		$this->assertNull( TAAS_Shibboleth::is_student( '$' ) );
+	}
+
+	/**
+	 * The values that count as student can be changed
+	 */
+	public function test_student_values_can_be_overridden(): void {
+		$this->assertTrue( TAAS_Shibboleth::is_student( 'GRAD_STUDENT$', array( 'student', 'grad_student' ) ) );
+	}
+
+	/**
+	 * A student loses the role when the affiliation goes, and an unknown affiliation keeps it
+	 */
+	public function test_student_role_follows_the_affiliation(): void {
+		$holds = array( 'subscriber', TAAS_Auth::ROLE_STUDENT );
+
+		$this->assertSame( array( TAAS_Auth::ROLE_STUDENT ), TAAS_Shibboleth::role_changes( $holds, array( TAAS_Auth::ROLE_STUDENT => false ) )['remove'] );
+		$this->assertSame( array( TAAS_Auth::ROLE_STUDENT ), TAAS_Shibboleth::role_changes( array( 'subscriber' ), array( TAAS_Auth::ROLE_STUDENT => true ) )['add'] );
+		$this->assertSame(
+			array(
+				'add'    => array(),
+				'remove' => array(),
+			),
+			TAAS_Shibboleth::role_changes( $holds, array() )
+		);
+	}
+
+	/**
 	 * Only the last two digits of a UFID are shown
 	 */
 	public function test_mask_ufid(): void {
