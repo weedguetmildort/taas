@@ -20,9 +20,26 @@ function taas_student_pages_is_page( string $slug ): bool {
 	return ( $id > 0 && is_page( $id ) ) || is_page( $slug );
 }
 
-// TODO: Fix core's multi-role handling. current_user() exposes only the first
-// matching role (admin > HR > instructor > student), hiding other assigned roles.
-// Use the existing single-role contract until the core API and callers are updated.
+/**
+ * Homepage URL for the caller's highest non-student role, or '' if they have none.
+ *
+ * @param array|null $user TAAS_Auth::current_user() result.
+ * @return string
+ */
+function taas_student_pages_other_home( ?array $user ): string {
+	$homes = array(
+		TAAS_Auth::ROLE_ADMIN      => 'admin-page',
+		TAAS_Auth::ROLE_HR         => 'hr-page',
+		TAAS_Auth::ROLE_INSTRUCTOR => 'professor-homepage',
+	);
+	foreach ( $user['roles'] ?? array() as $role ) {
+		if ( isset( $homes[ $role ] ) ) {
+			return TAAS_Pages::url( $homes[ $role ] );
+		}
+	}
+	return '';
+}
+
 /** Protect every student page before rendering content or issuing a REST nonce. */
 function taas_student_pages_require_student(): void {
 	$protected = false;
@@ -33,22 +50,23 @@ function taas_student_pages_require_student(): void {
 		return;
 	}
 	nocache_headers();
-	// TODO: Verify upstream authentication integration. current_user() may return
-	// null despite the expectation that SSO runs first; this is not a confirmed bug.
-	$user = TAAS_Auth::current_user();
-	if ( null !== $user && TAAS_Auth::ROLE_STUDENT === $user['role'] ) {
+	if ( TAAS_Auth::has_role( TAAS_Auth::ROLE_STUDENT ) ) {
 		return;
 	}
-	$message = '<p>You are not authorized to view this page.</p>';
-	$homes   = array(
-		TAAS_Auth::ROLE_ADMIN      => 'admin-page',
-		TAAS_Auth::ROLE_HR         => 'hr-page',
-		TAAS_Auth::ROLE_INSTRUCTOR => 'professor-homepage',
-	);
-	$slug = $homes[ $user['role'] ?? '' ] ?? null;
-	$url  = null === $slug ? '' : TAAS_Pages::url( $slug );
-	if ( '' !== $url ) {
-		$message .= '<p><a href="' . esc_url( $url ) . '">Go to your homepage</a></p>';
+	$user = TAAS_Auth::current_user();
+	$home = taas_student_pages_other_home( $user );
+	// The front page is the site root, so staff land there first: send them home.
+	if ( '' !== $home && taas_student_pages_is_page( 'front-page' ) ) {
+		wp_safe_redirect( $home );
+		exit;
+	}
+	if ( null !== $user && '' === $home ) {
+		$message = '<p>Your account does not have access to TAAS yet. Please contact an administrator.</p>';
+	} else {
+		$message = '<p>You are not authorized to view this page.</p>';
+	}
+	if ( '' !== $home ) {
+		$message .= '<p><a href="' . esc_url( $home ) . '">Go to your homepage</a></p>';
 	}
 	wp_die( wp_kses_post( $message ), 'Access denied', array( 'response' => null === $user ? 401 : 403 ) );
 }

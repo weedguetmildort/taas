@@ -16,10 +16,9 @@ function taas_student_homepage_assets(): void {
 	}
 	$file = 'assets/front-page.css';
 	wp_enqueue_style( 'taas-student-homepage', TAAS_STUDENT_PAGES_URL . $file, array(), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $file ) );
-	// TODO: Adapt this check with core's deferred multi-role fix.
-	$user = TAAS_Auth::current_user();
-	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) {
-		return; }
+	if ( ! TAAS_Auth::has_role( TAAS_Auth::ROLE_STUDENT ) ) {
+		return;
+	}
 	$script = 'assets/front-page.js';
 	wp_enqueue_script( 'taas-student-homepage', TAAS_STUDENT_PAGES_URL . $script, array(), (string) filemtime( TAAS_STUDENT_PAGES_PATH . $script ), true );
 	wp_add_inline_script( 'taas-student-homepage', 'window.TAASStudentHome = ' . wp_json_encode( taas_student_homepage_config(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';', 'before' );
@@ -34,10 +33,9 @@ function taas_student_homepage_assets(): void {
  * @return array|WP_Error
  */
 function taas_student_homepage_state() {
-	// TODO: Core resolves one priority role; use all assigned roles after its deferred fix.
-	// TODO: Verify upstream session/UFID mapping; do not accept a URL-supplied owner.
+	// The UFID comes from the Shibboleth sign-in only; never accept a URL-supplied owner.
 	$user = TAAS_Auth::current_user();
-	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role']
+	if ( ! TAAS_Auth::has_role( TAAS_Auth::ROLE_STUDENT )
 		|| ! preg_match( '/^[0-9]{8}$/', (string) ( $user['university_id'] ?? '' ) ) ) {
 		return new WP_Error( 'taas_student_identity_unavailable', 'Your verified student identifier is unavailable. Please contact the administrator.' );
 	}

@@ -12,8 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * GET taas/v1/me: who the caller is, so pages can decide what to show.
  *
  * The flags only decide what to show; the server still checks each request.
- * Provisional until auth is finished: the flags are independent so one person
- * could be both admin and professor, but TAAS_Auth gives each user one role.
+ * They are independent: one person can be both admin and professor.
  */
 final class TAAS_REST_Me_Controller extends TAAS_REST_Controller {
 

@@ -65,7 +65,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 	}
 
 	/**
-	 * Enforce the current single-role auth contract and require a usable owner ID.
+	 * Require the student role, among any others, and a usable owner ID.
 	 *
 	 * @param WP_REST_Request $request Current request.
 	 * @return true|WP_Error
@@ -274,7 +274,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 
 	/**
 	 * Resolve ownership only from authentication, after the route permission check.
-	 * TODO: Confirm production university_id-to-UFID mapping; never use request input.
+	 * The UFID is the one Shibboleth sent at sign-in; never use request input.
 	 */
 	private function authenticated_ufid(): string {
 		return (string) ( TAAS_Auth::current_user()['university_id'] ?? '' );

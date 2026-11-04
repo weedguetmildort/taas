@@ -4,6 +4,7 @@
 
     <file>htdocs/wp-content/plugins</file>
     <file>bin</file>
+    <file>dev</file>
     <file>tests</file>
 
     <!-- Lint TAAS plugins only; local copies of third-party plugins sit beside them -->

@@ -12,8 +12,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * This runs on the whole namespace rather than per route, so a controller added
  * later (student submission, HR, exports) is closed by default. It only decides
- * whether the caller's stage is open: each route's permission callback still
- * decides whether their role may use that route.
+ * whether one of the caller's stages is open: each route's permission callback
+ * still decides whether their roles may use that route.
  */
 class TAAS_Stage_Gate {
 
@@ -102,7 +102,7 @@ class TAAS_Stage_Gate {
 	public static function closed_error(): ?WP_Error {
 		$user = TAAS_Auth::current_user();
 
-		if ( null === $user || TAAS_Auth::ROLE_ADMIN === $user['role'] ) {
+		if ( null === $user || in_array( TAAS_Auth::ROLE_ADMIN, $user['roles'], true ) ) {
 			return null;
 		}
 
@@ -118,10 +118,11 @@ class TAAS_Stage_Gate {
 			);
 		}
 
-		$open_stage = self::ROLE_STAGES[ $user['role'] ] ?? null;
-
-		if ( null !== $stage && $open_stage === $stage ) {
-			return null;
+		// Someone with several roles may continue if any one of their stages is active
+		foreach ( $user['roles'] as $role ) {
+			if ( null !== $stage && ( self::ROLE_STAGES[ $role ] ?? null ) === $stage ) {
+				return null;
+			}
 		}
 
 		return new WP_Error(

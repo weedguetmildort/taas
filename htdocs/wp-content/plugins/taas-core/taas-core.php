@@ -21,6 +21,7 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-logger.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-version.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-db.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-auth.php';
+require_once TAAS_CORE_PATH . 'includes/class-taas-shibboleth.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-stage-gate.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-pages.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-schema.php';
@@ -94,6 +95,7 @@ require_once TAAS_CORE_PATH . 'includes/func-matching.php';
 
 TAAS_REST::init();
 TAAS_Stage_Gate::init();
+TAAS_Shibboleth::init();
 
 /**
  * Apply the database schema and any pending migrations

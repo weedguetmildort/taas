@@ -57,13 +57,19 @@ final class TAAS_REST_Status_Controller extends TAAS_REST_Controller {
 			$tables[ $bare ] = TAAS_Schema::exists( $bare );
 		}
 
-		return new WP_REST_Response(
-			array(
-				'version'   => TAAS_CORE_VERSION,
-				'local_dev' => TAAS_Auth::is_local_dev(),
-				'role'      => $user['role'] ?? '',
-				'tables'    => $tables,
-			)
+		$status = array(
+			'version'   => TAAS_CORE_VERSION,
+			'local_dev' => TAAS_Auth::is_local_dev(),
+			'role'      => $user['role'] ?? '',
+			'roles'     => $user['roles'] ?? array(),
+			'tables'    => $tables,
 		);
+
+		// Admins see their own Shibboleth session, to check what UF sends
+		if ( ! TAAS_Auth::is_local_dev() && TAAS_Auth::has_role( TAAS_Auth::ROLE_ADMIN ) ) {
+			$status['shibboleth'] = TAAS_Shibboleth::diagnostics( wp_get_current_user() );
+		}
+
+		return new WP_REST_Response( $status );
 	}
 }

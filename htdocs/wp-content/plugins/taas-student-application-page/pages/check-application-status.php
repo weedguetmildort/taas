@@ -14,9 +14,7 @@ function taas_check_application_status_assets(): void {
 	if ( ! taas_student_pages_is_page( 'check-application-status' ) ) {
 		return;
 	}
-	// TODO: Adapt with core's deferred multi-role fix; keep its single-role contract for now.
-	$user = TAAS_Auth::current_user();
-	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) {
+	if ( ! TAAS_Auth::has_role( TAAS_Auth::ROLE_STUDENT ) ) {
 		return;
 	}
 	$list = rest_url( 'taas/v1/student/application/terms' );

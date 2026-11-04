@@ -14,10 +14,7 @@ function taas_student_application_assets(): void {
 	if ( ! taas_student_pages_is_page( 'student-application' ) ) {
 		return;
 	}
-	// TODO: Core resolves one priority role; update this caller with the deferred multi-role fix.
-	// TODO: Verify upstream session/UFID mapping; retain the null-user check meanwhile.
-	$user = TAAS_Auth::current_user();
-	if ( null === $user || TAAS_Auth::ROLE_STUDENT !== $user['role'] ) {
+	if ( ! TAAS_Auth::has_role( TAAS_Auth::ROLE_STUDENT ) ) {
 		return;
 	}
 	$endpoint = rest_url( 'taas/v1/student/application' );
