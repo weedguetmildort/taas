@@ -28,7 +28,6 @@ const TAAS_COURSE_HEADERS = array(
 	'Year'               => array( 'course_year', true ),
 	'UFO'                => array( 'is_online', true ),
 	'Description'        => array( 'course_description', false ),
-	'Notes'              => array( 'course_notes', false ),
 	'Lab Hour'           => array( 'lab_hours', true ),
 	'Current Enrollment' => array( 'enrollment', true ),
 	'Maximum Enrollment' => array( 'max_enrollment', true ),

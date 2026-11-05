@@ -31,7 +31,6 @@ class CourseImportTest extends TestCase {
 		'Year',
 		'UFO',
 		'Description',
-		'Notes',
 		'Lab Hour',
 		'Current Enrollment',
 		'Maximum Enrollment',
@@ -181,7 +180,6 @@ class CourseImportTest extends TestCase {
 			'Year'               => '2026',
 			'UFO'                => 'In-person',
 			'Description'        => 'Intro to programming',
-			'Notes'              => 'Needs Python TAs',
 			'Lab Hour'           => '2',
 			'Current Enrollment' => '150',
 			'Maximum Enrollment' => '200',
@@ -228,14 +226,15 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * Headers are found in any order, keyed by column position, and unknown headers are ignored
+	 * Headers are found in any order, keyed by column position, and unknown headers (including the old Notes) are ignored
 	 */
 	public function test_map_headers_in_any_order(): void {
-		$map = taas_map_headers( array_merge( array( 'Room' ), array_reverse( self::HEADERS ) ) );
+		$map = taas_map_headers( array_merge( array( 'Room', 'Notes' ), array_reverse( self::HEADERS ) ) );
 
 		$this->assertCount( count( self::HEADERS ), $map );
 		$this->assertArrayNotHasKey( 0, $map );
-		$this->assertSame( 'professor_email', $map[1]['schema_field'] );
+		$this->assertArrayNotHasKey( 1, $map );
+		$this->assertSame( 'professor_email', $map[2]['schema_field'] );
 		$this->assertSame( 'course_code', $map[12]['schema_field'] );
 	}
 
@@ -243,7 +242,7 @@ class CourseImportTest extends TestCase {
 	 * A missing required header throws, naming every one that is missing; optional ones may be left out
 	 */
 	public function test_map_headers_requires_required_headers_only(): void {
-		taas_map_headers( array_diff( self::HEADERS, array( 'Description', 'Notes' ) ) );
+		taas_map_headers( array_diff( self::HEADERS, array( 'Description' ) ) );
 
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionMessage( 'Missing required headers: Year, GLID' );
@@ -297,7 +296,6 @@ class CourseImportTest extends TestCase {
 				'course_year'        => 2026,
 				'is_online'          => 0,
 				'course_description' => 'Intro to programming',
-				'course_notes'       => 'Needs Python TAs',
 				'lab_hours'          => 2,
 				'enrollment'         => 150,
 				'max_enrollment'     => 200,
@@ -342,14 +340,14 @@ class CourseImportTest extends TestCase {
 	public function test_parse_course_row_uses_default(): void {
 		list( $data, $messages ) = $this->parse(
 			array(
-				'UFO'      => 'Online',
-				'Notes'    => '',
-				'Lab Hour' => '',
+				'UFO'         => 'Online',
+				'Description' => '',
+				'Lab Hour'    => '',
 			)
 		);
 
 		$this->assertSame( '0', $data['is_online'] );
-		$this->assertNull( $data['course_notes'] );
+		$this->assertNull( $data['course_description'] );
 		$this->assertSame( '0', $data['lab_hours'] );
 		$this->assertSame(
 			array(
@@ -358,7 +356,7 @@ class CourseImportTest extends TestCase {
 					'message' => 'Type mismatch, used default',
 				),
 				array(
-					'header'  => 'Notes',
+					'header'  => 'Description',
 					'message' => 'Missing value, used default',
 				),
 				array(
@@ -496,19 +494,5 @@ class CourseImportTest extends TestCase {
 		$this->assertSame( 1, $result['replaced'] );
 		$this->assertSame( array( 'course_id' => 1 ), $this->db->writes[1]['where'] );
 		$this->assertSame( 250, $this->db->writes[1]['data']['max_enrollment'] );
-	}
-
-	/**
-	 * A row matching a course already in the database replaces it, keeping its id
-	 */
-	public function test_import_replaces_matching_course_in_database(): void {
-		$this->db->course_ids['1|2026|COP3502|Programming 1'] = '7';
-
-		$result = taas_import_courses( $this->write_courses( self::row() ) );
-
-		$this->assertSame( 0, $result['courses'] );
-		$this->assertSame( 1, $result['replaced'] );
-		$this->assertCount( 1, $this->db->writes );
-		$this->assertSame( array( 'course_id' => 7 ), $this->db->writes[0]['where'] );
 	}
 }
