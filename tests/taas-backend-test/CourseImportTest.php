@@ -73,11 +73,6 @@ class CourseImportTest extends TestCase {
 			'wp_taas_core_courses'    => array_values( self::course_fields() ),
 			'wp_taas_core_professors' => array_values( self::professor_fields() ),
 		);
-
-		$this->db->professors = array(
-			array( 1, '11111111', 'Jane Doe', 'jdoe@ufl.edu' ),
-			array( 2, null, 'Alan Turing', 'aturing@ufl.edu' ),
-		);
 	}
 
 	/**
@@ -369,7 +364,7 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * Valid rows are saved with the professor's id; bad rows are skipped and reported
+	 * Valid rows are saved with their new professor's id; bad rows are skipped and reported
 	 */
 	public function test_import_saves_valid_rows_and_skips_bad_ones(): void {
 		$result = taas_import_courses(
@@ -396,13 +391,22 @@ class CourseImportTest extends TestCase {
 		$this->assertSame( 1, $this->db->writes[0]['data']['professor_id'] );
 		$this->assertArrayNotHasKey( 'professor_name', $this->db->writes[0]['data'] );
 		$this->assertArrayNotHasKey( 'professor_email', $this->db->writes[0]['data'] );
-		$this->assertSame( array(), $this->db->professor_inserts );
+		$this->assertSame(
+			array(
+				array(
+					'professor_ufid'  => null,
+					'professor_name'  => 'Jane Doe',
+					'professor_email' => 'jdoe@ufl.edu',
+				),
+			),
+			$this->db->professor_inserts
+		);
 	}
 
 	/**
-	 * A professor not yet in the database is added once, by email, with no UFID
+	 * Each professor is created once, by email, with no UFID or id of their own; later rows reuse the database's id
 	 */
-	public function test_import_adds_new_professor_by_email(): void {
+	public function test_import_creates_each_professor_once(): void {
 		$result = taas_import_courses(
 			$this->write_courses(
 				self::row(
@@ -417,11 +421,12 @@ class CourseImportTest extends TestCase {
 						'GLID'               => 'someone@ufl.edu',
 						'Professor Teaching' => 'One, Some',
 					)
-				)
+				),
+				self::row( array( 'Title' => 'Programming 3' ) )
 			)
 		);
 
-		$this->assertSame( 2, $result['courses'] );
+		$this->assertSame( 3, $result['courses'] );
 		$this->assertSame(
 			array(
 				array(
@@ -429,30 +434,17 @@ class CourseImportTest extends TestCase {
 					'professor_name'  => 'Some One',
 					'professor_email' => 'someone@ufl.edu',
 				),
+				array(
+					'professor_ufid'  => null,
+					'professor_name'  => 'Jane Doe',
+					'professor_email' => 'jdoe@ufl.edu',
+				),
 			),
 			$this->db->professor_inserts
 		);
-		$this->assertSame( 3, $this->db->writes[0]['data']['professor_id'] );
-		$this->assertSame( 3, $this->db->writes[1]['data']['professor_id'] );
-	}
-
-	/**
-	 * A professor already in the database is found by email alone and keeps their name
-	 */
-	public function test_import_finds_existing_professor_by_email_alone(): void {
-		taas_import_courses(
-			$this->write_courses(
-				self::row(
-					array(
-						'GLID'               => 'ATuring@ufl.edu',
-						'Professor Teaching' => 'Turing, Alan',
-					)
-				)
-			)
-		);
-
-		$this->assertSame( array(), $this->db->professor_inserts );
-		$this->assertSame( 2, $this->db->writes[0]['data']['professor_id'] );
+		$this->assertSame( 1, $this->db->writes[0]['data']['professor_id'] );
+		$this->assertSame( 1, $this->db->writes[1]['data']['professor_id'] );
+		$this->assertSame( 2, $this->db->writes[2]['data']['professor_id'] );
 	}
 
 	/**

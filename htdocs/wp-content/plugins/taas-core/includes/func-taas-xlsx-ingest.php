@@ -236,8 +236,9 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
  * imported on its own: a bad row is skipped and reported, and the rest carry on.
  *
  * Notes:
- * - Each row's professor is found by GLID (email) alone, and added if new. An existing
- *   professor keeps their name, however a row spells it. Their UFID is filled in when they first sign in.
+ * - The professors table is expected to be empty: professors are created from the file, not looked up.
+ *   Each professor is added the first time their GLID (email) appears, with the database assigning their id,
+ *   and later rows with the same GLID reuse that id. Their UFID is filled in when they first sign in.
  * - A course with the same term, year, code and name, in the database or earlier in the file, is replaced by the later row.
  *
  * @param string $file_path Path to a .xlsx file
@@ -259,6 +260,9 @@ function taas_import_courses( string $file_path ): array {
 	$fields     = taas_table_fields( 'courses' ) + taas_table_fields( 'professors' );
 	$courses    = TAAS_Schema::table( 'courses' );
 	$professors = new TAAS_Professor_Repository();
+
+	// Ids of the professors created by this import, keyed by normalized email
+	$professor_ids = array();
 	$result     = array(
 		'courses'  => 0,
 		'replaced' => 0,
@@ -287,9 +291,15 @@ function taas_import_courses( string $file_path ): array {
 
 			// If course was successfully parsed
 			if ( null !== $course ) {
-				// Find the professor by email, adding them if new
+				// Create the professor the first time their email appears, then reuse their id
+				$email = TAAS_Professor_Repository::normalize_email( $course['professor_email'] );
+
 				try {
-					$course['professor_id'] = $professors->find_or_create( $course['professor_email'], $course['professor_name'] );
+					$professor_ids[ $email ] ??= (int) $professors->insert(
+						new TAAS_Professor( null, null, TAAS_Professor_Repository::normalize_name( $course['professor_name'] ), $email )
+					);
+
+					$course['professor_id'] = $professor_ids[ $email ];
 				} catch ( RuntimeException $e ) {
 					$course['professor_id'] = null;
 					$messages[]             = array(
