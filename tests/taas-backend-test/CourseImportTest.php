@@ -448,6 +448,31 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
+	 * A professor already in the database is found by email alone and keeps their name
+	 */
+	public function test_import_finds_existing_professor_by_email_alone(): void {
+		$this->db->professors = array(
+			array( 1, '11111111', 'Jane Doe', 'jdoe@ufl.edu' ),
+			array( 2, null, 'Alan Turing', 'aturing@ufl.edu' ),
+		);
+
+		$result = taas_import_courses(
+			$this->write_courses(
+				self::row(
+					array(
+						'GLID'               => 'ATuring@ufl.edu',
+						'Professor Teaching' => 'Turing, Alan',
+					)
+				)
+			)
+		);
+
+		$this->assertSame( 1, $result['courses'] );
+		$this->assertSame( array(), $this->db->professor_inserts );
+		$this->assertSame( 2, $this->db->writes[0]['data']['professor_id'] );
+	}
+
+	/**
 	 * A row differing in any one of term, year, code or name is a new course, with the id left to the database
 	 */
 	public function test_import_inserts_course_differing_in_any_identifying_field(): void {
@@ -486,5 +511,19 @@ class CourseImportTest extends TestCase {
 		$this->assertSame( 1, $result['replaced'] );
 		$this->assertSame( array( 'course_id' => 1 ), $this->db->writes[1]['where'] );
 		$this->assertSame( 250, $this->db->writes[1]['data']['max_enrollment'] );
+	}
+
+	/**
+	 * A row matching a course already in the database replaces it, keeping its id
+	 */
+	public function test_import_replaces_matching_course_in_database(): void {
+		$this->db->course_ids['1|2026|COP3502|Programming 1'] = '7';
+
+		$result = taas_import_courses( $this->write_courses( self::row() ) );
+
+		$this->assertSame( 0, $result['courses'] );
+		$this->assertSame( 1, $result['replaced'] );
+		$this->assertCount( 1, $this->db->writes );
+		$this->assertSame( array( 'course_id' => 7 ), $this->db->writes[0]['where'] );
 	}
 }

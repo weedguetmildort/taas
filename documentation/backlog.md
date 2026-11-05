@@ -39,11 +39,7 @@ This is not intended to replace project management and tickets, but rather to no
 
 ## Deployment
 
-- **PhpSpreadsheet:** XLSX exports need it on the server, but production deploys by git checkout and has no `vendor/` directory.
-
-## Course ingestion
-
-- **Professor records:** decide how they get created, with input from the admin who provides the course XLSX.
+- **PhpSpreadsheet:** the course import and the XLSX exports need it on the server, but production deploys by git checkout and has no `vendor/` directory.
 
 ## Frontend
 

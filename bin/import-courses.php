@@ -5,9 +5,7 @@
  * Run inside the container:
  *   php /var/www/taas/bin/import-courses.php <courses.xlsx>
  *
- * Run against an empty professors table: professors are created from the file, not looked up.
- * Each professor is added the first time their email appears, with the database assigning their id,
- * and later rows with the same email reuse that id.
+ * Each course's professor is found by email, and added if new.
  *
  * @package TAAS_Core
  */
