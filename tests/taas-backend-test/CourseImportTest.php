@@ -76,8 +76,8 @@ class CourseImportTest extends TestCase {
 		);
 
 		$this->db->professors = array(
-			array( '11111111', 'Jane Doe', 'jdoe@ufl.edu' ),
-			array( '22222222', 'Alan Turing', 'aturing@ufl.edu' ),
+			array( 1, '11111111', 'Jane Doe', 'jdoe@ufl.edu' ),
+			array( 2, null, 'Alan Turing', 'aturing@ufl.edu' ),
 		);
 	}
 
@@ -136,7 +136,7 @@ class CourseImportTest extends TestCase {
 			self::field( 'lab_hours', 'int', false, '0' ),
 			self::field( 'enrollment', 'int', false, '0' ),
 			self::field( 'max_enrollment', 'int', false, '0' ),
-			self::field( 'professor_ufid', 'varchar(8)' ),
+			self::field( 'professor_id', 'bigint unsigned' ),
 		);
 
 		return array_column( $fields, null, 'Field' );
@@ -149,7 +149,8 @@ class CourseImportTest extends TestCase {
 	 */
 	private static function professor_fields(): array {
 		$fields = array(
-			self::field( 'professor_ufid', 'varchar(8)' ),
+			self::field( 'professor_id', 'bigint unsigned' ),
+			self::field( 'professor_ufid', 'varchar(8)', true ),
 			self::field( 'professor_name', 'varchar(255)' ),
 			self::field( 'professor_email', 'varchar(255)' ),
 		);
@@ -370,19 +371,18 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * Valid rows are saved with the professor's ufid; bad rows and unknown professors are skipped and reported
+	 * Valid rows are saved with the professor's id; bad rows are skipped and reported
 	 */
 	public function test_import_saves_valid_rows_and_skips_bad_ones(): void {
 		$result = taas_import_courses(
 			$this->write_courses(
 				self::row(),
-				self::row( array( 'Year' => 'next year' ) ),
-				self::row( array( 'GLID' => 'someone@ufl.edu' ) )
+				self::row( array( 'Year' => 'next year' ) )
 			)
 		);
 
 		$this->assertSame( 1, $result['courses'] );
-		$this->assertSame( 2, $result['skipped'] );
+		$this->assertSame( 1, $result['skipped'] );
 		$this->assertSame(
 			array(
 				array(
@@ -390,19 +390,71 @@ class CourseImportTest extends TestCase {
 					'header'  => 'Year',
 					'message' => 'Type mismatch, row skipped',
 				),
-				array(
-					'row'     => 4,
-					'header'  => 'Professor Teaching',
-					'message' => 'Professor not found, row skipped',
-				),
 			),
 			$result['messages']
 		);
 
 		$this->assertCount( 1, $this->db->writes );
-		$this->assertSame( '11111111', $this->db->writes[0]['data']['professor_ufid'] );
+		$this->assertSame( 1, $this->db->writes[0]['data']['professor_id'] );
 		$this->assertArrayNotHasKey( 'professor_name', $this->db->writes[0]['data'] );
 		$this->assertArrayNotHasKey( 'professor_email', $this->db->writes[0]['data'] );
+		$this->assertSame( array(), $this->db->professor_inserts );
+	}
+
+	/**
+	 * A professor not yet in the database is added once, by email, with no UFID
+	 */
+	public function test_import_adds_new_professor_by_email(): void {
+		$result = taas_import_courses(
+			$this->write_courses(
+				self::row(
+					array(
+						'GLID'               => 'Someone@UFL.edu',
+						'Professor Teaching' => 'Some   One',
+					)
+				),
+				self::row(
+					array(
+						'Title'              => 'Programming 2',
+						'GLID'               => 'someone@ufl.edu',
+						'Professor Teaching' => 'One, Some',
+					)
+				)
+			)
+		);
+
+		$this->assertSame( 2, $result['courses'] );
+		$this->assertSame(
+			array(
+				array(
+					'professor_ufid'  => null,
+					'professor_name'  => 'Some One',
+					'professor_email' => 'someone@ufl.edu',
+				),
+			),
+			$this->db->professor_inserts
+		);
+		$this->assertSame( 3, $this->db->writes[0]['data']['professor_id'] );
+		$this->assertSame( 3, $this->db->writes[1]['data']['professor_id'] );
+	}
+
+	/**
+	 * A professor already in the database is found by email alone and keeps their name
+	 */
+	public function test_import_finds_existing_professor_by_email_alone(): void {
+		taas_import_courses(
+			$this->write_courses(
+				self::row(
+					array(
+						'GLID'               => 'ATuring@ufl.edu',
+						'Professor Teaching' => 'Turing, Alan',
+					)
+				)
+			)
+		);
+
+		$this->assertSame( array(), $this->db->professor_inserts );
+		$this->assertSame( 2, $this->db->writes[0]['data']['professor_id'] );
 	}
 
 	/**

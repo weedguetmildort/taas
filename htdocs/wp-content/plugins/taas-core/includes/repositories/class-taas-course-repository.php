@@ -30,7 +30,7 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 		return $this->select_rows(
 			$wpdb->prepare(
 				'SELECT c.course_id, c.course_code, c.course_name, p.professor_name AS instructor_name'
-				. ' FROM %i c INNER JOIN %i p ON p.professor_ufid = c.professor_ufid'
+				. ' FROM %i c INNER JOIN %i p ON p.professor_id = c.professor_id'
 				. ' WHERE c.course_semester = %d AND c.course_year = %d ORDER BY c.course_code, c.course_id',
 				$this->table(),
 				TAAS_Schema::table( 'professors' ),
@@ -77,7 +77,7 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 */
 	public function find_by_professor( string $professor_ufid ): array {
 		TAAS_Guard::ufid( 'professor_ufid', $professor_ufid );
-		return $this->find_by( 'professor_ufid', $professor_ufid );
+		return $this->find_joined_to_professor( 'p.professor_ufid = %s', array( $professor_ufid ) );
 	}
 
 	/**
@@ -112,13 +112,35 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	public function find_by_professor_and_term( string $professor_ufid, TAAS_Semester $semester, int $year ): array {
 		TAAS_Guard::ufid( 'professor_ufid', $professor_ufid );
 		TAAS_Guard::year( 'year', $year );
-		return $this->find_where(
-			array(
-				'professor_ufid'  => $professor_ufid,
-				'course_semester' => $semester->value,
-				'course_year'     => $year,
+		return $this->find_joined_to_professor(
+			'p.professor_ufid = %s AND c.course_semester = %d AND c.course_year = %d',
+			array( $professor_ufid, $semester->value, $year )
+		);
+	}
+
+	/**
+	 * Courses matching a WHERE clause over courses (c) joined to professors (p), ordered by course_id.
+	 *
+	 * @param string                 $where Fixed SQL fragment with placeholders.
+	 * @param array<int, string|int> $args  Values for the placeholders.
+	 * @return TAAS_Course[]
+	 * @throws RuntimeException If the query fails.
+	 */
+	private function find_joined_to_professor( string $where, array $args ): array {
+		global $wpdb;
+
+		$rows = $this->select_rows(
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Only fixed fragments are joined in; every value is bound.
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only fixed fragments are joined in.
+				'SELECT c.* FROM %i c INNER JOIN %i p ON p.professor_id = c.professor_id WHERE ' . $where . ' ORDER BY c.course_id',
+				$this->table(),
+				TAAS_Schema::table( 'professors' ),
+				...$args
 			)
 		);
+
+		return array_map( array( TAAS_Course::class, 'from_row' ), $rows );
 	}
 
 	/**
@@ -186,7 +208,7 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 		$rows = $this->select_rows(
 			$wpdb->prepare(
 				'SELECT c.*, p.professor_name, p.professor_email'
-				. ' FROM %i c INNER JOIN %i p ON p.professor_ufid = c.professor_ufid'
+				. ' FROM %i c INNER JOIN %i p ON p.professor_id = c.professor_id'
 				. ' WHERE c.course_id = %d',
 				$this->table(),
 				TAAS_Schema::table( 'professors' ),
@@ -203,22 +225,22 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 * @param TAAS_Semester $semester       Semester to match.
 	 * @param int           $year           Year to match.
 	 * @param string|null   $course_code    Exact code to match, or null for any.
-	 * @param string|null   $professor_ufid Professor to match, or null for any.
+	 * @param int|null      $professor_id   Professor to match, or null for any.
 	 * @param int           $limit          Page size, clamped to 1..MAX_LIMIT.
 	 * @param int           $offset         Rows to skip, 0 or greater.
 	 * @return array<int, array{course: TAAS_Course, professor_name: string, professor_email: string}>
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function search_with_professor( TAAS_Semester $semester, int $year, ?string $course_code = null, ?string $professor_ufid = null, int $limit = self::DEFAULT_LIMIT, int $offset = 0 ): array {
+	public function search_with_professor( TAAS_Semester $semester, int $year, ?string $course_code = null, ?int $professor_id = null, int $limit = self::DEFAULT_LIMIT, int $offset = 0 ): array {
 		global $wpdb;
 
-		list( $where, $args ) = self::search_where( $semester, $year, $course_code, $professor_ufid );
+		list( $where, $args ) = self::search_where( $semester, $year, $course_code, $professor_id );
 
 		$rows = $this->select_rows(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Only fixed fragments are joined in; every value is bound.
 			$wpdb->prepare(
 				'SELECT c.*, p.professor_name, p.professor_email'
-				. ' FROM %i c INNER JOIN %i p ON p.professor_ufid = c.professor_ufid'
+				. ' FROM %i c INNER JOIN %i p ON p.professor_id = c.professor_id'
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only fixed fragments are joined in.
 				. ' WHERE ' . $where
 				. ' ORDER BY c.course_code, c.course_name, c.course_id LIMIT %d OFFSET %d',
@@ -238,14 +260,14 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 * @param TAAS_Semester $semester       Semester to match.
 	 * @param int           $year           Year to match.
 	 * @param string|null   $course_code    Exact code to match, or null for any.
-	 * @param string|null   $professor_ufid Professor to match, or null for any.
+	 * @param int|null      $professor_id   Professor to match, or null for any.
 	 * @return int
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function count_search( TAAS_Semester $semester, int $year, ?string $course_code = null, ?string $professor_ufid = null ): int {
+	public function count_search( TAAS_Semester $semester, int $year, ?string $course_code = null, ?int $professor_id = null ): int {
 		global $wpdb;
 
-		list( $where, $args ) = self::search_where( $semester, $year, $course_code, $professor_ufid );
+		list( $where, $args ) = self::search_where( $semester, $year, $course_code, $professor_id );
 
 		$rows = $this->select_rows(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Only fixed fragments are joined in; every value is bound.
@@ -317,10 +339,10 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	 * @param TAAS_Semester $semester       Semester to match.
 	 * @param int           $year           Year to match.
 	 * @param string|null   $course_code    Exact code to match, or null for any.
-	 * @param string|null   $professor_ufid Professor to match, or null for any.
+	 * @param int|null      $professor_id   Professor to match, or null for any.
 	 * @return array{0: string, 1: array<int, string|int>}
 	 */
-	private static function search_where( TAAS_Semester $semester, int $year, ?string $course_code, ?string $professor_ufid ): array {
+	private static function search_where( TAAS_Semester $semester, int $year, ?string $course_code, ?int $professor_id ): array {
 		$clauses = array( 'c.course_semester = %d', 'c.course_year = %d' );
 		$args    = array( $semester->value, $year );
 
@@ -329,9 +351,9 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 			$args[]    = $course_code;
 		}
 
-		if ( null !== $professor_ufid ) {
-			$clauses[] = 'c.professor_ufid = %s';
-			$args[]    = $professor_ufid;
+		if ( null !== $professor_id ) {
+			$clauses[] = 'c.professor_id = %d';
+			$args[]    = $professor_id;
 		}
 
 		return array( implode( ' AND ', $clauses ), $args );

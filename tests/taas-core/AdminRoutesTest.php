@@ -127,27 +127,28 @@ class AdminRoutesTest extends TestCase {
 		$this->assertSame( 'taas_no_current_cycle', $result->get_error_code() );
 	}
 
-	public function test_only_admin_and_hr_can_filter_by_professor(): void {
+	public function test_courses_can_be_filtered_by_professor(): void {
 		$_GET['taas_role'] = 'student';
 
 		( new TAAS_REST_Course_Controller() )->get_items(
 			new WP_REST_Request(
 				array(
-					'term'           => 'Fall',
-					'year'           => 2027,
-					'page'           => 1,
-					'per_page'       => 50,
-					'professor_ufid' => '87654321',
+					'term'         => 'Fall',
+					'year'         => 2027,
+					'page'         => 1,
+					'per_page'     => 50,
+					'professor_id' => 3,
 				)
 			)
 		);
 
-		$this->assertStringNotContainsString( '87654321', $this->db->sql );
+		$this->assertStringContainsString( 'c.professor_id = 3', $this->db->sql );
 	}
 
 	public function test_adding_a_course_that_loses_a_race_to_the_unique_key_is_409(): void {
 		$this->db->row           = array(
-			'professor_ufid'  => '87654321',
+			'professor_id'    => '3',
+			'professor_ufid'  => null,
 			'professor_name'  => 'Grace Hopper',
 			'professor_email' => 'grace@ufl.edu',
 		);
@@ -157,11 +158,11 @@ class AdminRoutesTest extends TestCase {
 		$result = ( new TAAS_REST_Course_Controller() )->create_item(
 			new WP_REST_Request(
 				array(
-					'course_code'    => 'COP3502C',
-					'course_name'    => 'Programming Fundamentals 1',
-					'term'           => 'Spring',
-					'year'           => 2027,
-					'professor_ufid' => '87654321',
+					'course_code'  => 'COP3502C',
+					'course_name'  => 'Programming Fundamentals 1',
+					'term'         => 'Spring',
+					'year'         => 2027,
+					'professor_id' => 3,
 				)
 			)
 		);
@@ -174,17 +175,17 @@ class AdminRoutesTest extends TestCase {
 		$result = ( new TAAS_REST_Course_Controller() )->create_item(
 			new WP_REST_Request(
 				array(
-					'course_code'    => 'COP3502C',
-					'course_name'    => 'Programming Fundamentals 1',
-					'term'           => 'Spring',
-					'year'           => 2027,
-					'professor_ufid' => '87654321',
+					'course_code'  => 'COP3502C',
+					'course_name'  => 'Programming Fundamentals 1',
+					'term'         => 'Spring',
+					'year'         => 2027,
+					'professor_id' => 3,
 				)
 			)
 		);
 
 		$this->assertSame( 'rest_invalid_param', $result->get_error_code() );
-		$this->assertArrayHasKey( 'professor_ufid', $result->get_error_data()['params'] );
+		$this->assertArrayHasKey( 'professor_id', $result->get_error_data()['params'] );
 	}
 
 	public function test_setting_matched_needs_at_least_1_hour(): void {
@@ -332,7 +333,7 @@ class AdminRoutesTest extends TestCase {
 			'course_semester' => '2',
 			'course_year'     => '2027',
 			'course_notes'    => 'Written by the professor',
-			'professor_ufid'  => '87654321',
+			'professor_id'    => '3',
 			'professor_name'  => 'Dr. Smith',
 			'professor_email' => 'smith@ufl.edu',
 		);
@@ -352,7 +353,7 @@ class AdminRoutesTest extends TestCase {
 				'course_name'     => 'Programming 1',
 				'course_semester' => '2',
 				'course_year'     => '2027',
-				'professor_ufid'  => 'much-too-long',
+				'professor_id'    => '0',
 				'professor_name'  => 'Dr. Smith',
 				'professor_email' => 'smith@ufl.edu',
 			),

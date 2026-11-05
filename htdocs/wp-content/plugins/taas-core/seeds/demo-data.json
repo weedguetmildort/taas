@@ -106,7 +106,7 @@
       "lab_hours": 2,
       "enrollment": 280,
       "max_enrollment": 300,
-      "professor_ufid": "10000001"
+      "professor_email": "anguyen@ufl.edu"
     },
     {
       "course_id": 5678,
@@ -120,7 +120,7 @@
       "lab_hours": 1,
       "enrollment": 140,
       "max_enrollment": 160,
-      "professor_ufid": "10000002"
+      "professor_email": "mreed@ufl.edu"
     },
     {
       "course_id": 12345,
@@ -135,7 +135,7 @@
       "lab_hours": 0,
       "enrollment": 60,
       "max_enrollment": 75,
-      "professor_ufid": "87654321"
+      "professor_email": "test.professor@ufl.edu"
     },
     {
       "course_id": 54321,
@@ -149,7 +149,7 @@
       "lab_hours": 0,
       "enrollment": 40,
       "max_enrollment": 50,
-      "professor_ufid": "87654321"
+      "professor_email": "test.professor@ufl.edu"
     },
     {
       "course_id": 18238,
@@ -163,7 +163,7 @@
       "lab_hours": 1,
       "enrollment": 35,
       "max_enrollment": 40,
-      "professor_ufid": "87654321"
+      "professor_email": "test.professor@ufl.edu"
     }
   ],
   "applications": [

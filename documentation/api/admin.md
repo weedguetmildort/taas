@@ -104,7 +104,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
   "course_name": "Programming Fundamentals 1",
   "term": "Spring",
   "year": 2027,
-  "professor_ufid": "87654321",
+  "professor_id": 3,
   "enrollment": 175,
   "max_enrollment": 200,
   "lab_hours": 2,
@@ -118,7 +118,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 | `course_code` | yes | Up to 20 characters |
 | `course_name` | yes | Up to 255 characters |
 | `term`, `year` | yes | |
-| `professor_ufid` | yes | Must be an existing professor |
+| `professor_id` | yes | Must be an existing professor, from [GET: professors](#get-professors) |
 | `enrollment` | no | Whole number, default 0 |
 | `max_enrollment` | no | Whole number, default 0 |
 | `lab_hours` | no | 0, 1 or 2, default 0 |
@@ -131,7 +131,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `rest_invalid_param` | A field is invalid, or `professor_ufid` isn't an existing professor |
+| 400 | `rest_invalid_param` | A field is invalid, or `professor_id` isn't an existing professor |
 | 409 | `taas_course_exists` | The same term, year, code and name already exists |
 
 ### PATCH: edit a course
@@ -144,7 +144,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `rest_invalid_param` | A field is invalid, or `professor_ufid` isn't an existing professor |
+| 400 | `rest_invalid_param` | A field is invalid, or `professor_id` isn't an existing professor |
 | 404 | `taas_not_found` | No such course |
 | 409 | `taas_course_exists` | The edit would duplicate another course |
 | 409 | `taas_course_has_applications` | `term` or `year` changes on a course that has applications |
@@ -168,7 +168,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 
 Lists professors, and is used by the course forms to pick one.
 
-**Paginated:** yes, ordered by UFID. With `search`, ordered by name.
+**Paginated:** yes, ordered by `professor_id`. With `search`, ordered by name.
 
 **Request params:** `?search=smi` (optional), which matches part of the name or email.
 
@@ -177,6 +177,7 @@ Lists professors, and is used by the course forms to pick one.
 ```json
 [
   {
+    "professor_id": 3,
     "professor_ufid": "87654321",
     "professor_name": "Dr. Smith",
     "professor_email": "smith@ufl.edu"
@@ -184,9 +185,11 @@ Lists professors, and is used by the course forms to pick one.
 ]
 ```
 
+`professor_ufid` is `null` until the professor first signs in. Course import adds professors by email, since the admin does not have their UFIDs.
+
 ### GET: one professor
 
-`GET /professors/{professor_ufid}`
+`GET /professors/{professor_id}`
 
 **Response:** one professor, in the same shape as one item in GET: professors, or 404 `taas_not_found`.
 

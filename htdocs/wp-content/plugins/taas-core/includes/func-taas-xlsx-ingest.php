@@ -16,7 +16,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
  * - Headers must match exactly, including case and spacing
  * - Any other header is ignored
  * - Columns come from the courses table, except professor_name and professor_email, which
- * come from the professors table and are used to look up professor_ufid
+ * come from the professors table and are used to find or add the course's professor
  * - Type, length and default for each column are read from the database, not set here
  * - Order of headers do not matter
  */
@@ -237,7 +237,8 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
  * imported on its own: a bad row is skipped and reported, and the rest carry on.
  *
  * Notes:
- * - Professors must already exist; each row's professor is found by name and GLID (email).
+ * - Each row's professor is found by GLID (email) alone, and added if new. An existing
+ *   professor keeps their name, however a row spells it. Their UFID is filled in when they first sign in.
  * - A course with the same term, year, code and name, in the database or earlier in the file, is replaced by the later row.
  *
  * @param string $file_path Path to a .xlsx file
@@ -258,7 +259,7 @@ function taas_import_courses( string $file_path ): array {
 
 	$fields     = taas_table_fields( 'courses' ) + taas_table_fields( 'professors' );
 	$courses    = TAAS_Schema::table( 'courses' );
-	$professors = TAAS_Schema::table( 'professors' );
+	$professors = new TAAS_Professor_Repository();
 	$result     = array(
 		'courses'  => 0,
 		'replaced' => 0,
@@ -287,28 +288,25 @@ function taas_import_courses( string $file_path ): array {
 
 			// If course was successfully parsed
 			if ( null !== $course ) {
-				// Get professor_ufid
-				$course['professor_ufid'] = $wpdb->get_var(
-					$wpdb->prepare(
-						'SELECT professor_ufid FROM %i WHERE professor_name = %s AND professor_email = %s',
-						$professors,
-						$course['professor_name'],
-						$course['professor_email']
-					)
-				);
+				// Find the professor by email, adding them if new
+				try {
+					$course['professor_id'] = $professors->find_or_create( $course['professor_email'], $course['professor_name'] );
+				} catch ( RuntimeException $e ) {
+					$course['professor_id'] = null;
+					$messages[]             = array(
+						'header'  => 'GLID',
+						'message' => 'Could not save professor (' . $e->getMessage() . '), row skipped',
+					);
+				}
 
 				// Unset these professor_name and professor_email since these aren't fields that a course object has in schema
 				unset( $course['professor_name'], $course['professor_email'] );
 
 				$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
 
-				// If professor_ufid is not found, skip row
-				if ( null === $course['professor_ufid'] ) {
-					$messages[] = array(
-						'header'  => 'Professor Teaching',
-						'message' => 'Professor not found, row skipped',
-					);
-					$course     = null;
+				// If the professor could not be saved, skip row
+				if ( null === $course['professor_id'] ) {
+					$course = null;
 				} else {
 					// A course that already exists is replaced by this row, keeping its id so its applications stay linked
 					$existing_id = $wpdb->get_var(

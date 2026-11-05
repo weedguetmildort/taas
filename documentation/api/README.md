@@ -30,7 +30,7 @@ Paths are relative to the base path, `/wp-json/taas/v1`.
 | PATCH | `/courses/{course_id}` | Admin | [admin.md](admin.md#patch-edit-a-course) |
 | DELETE | `/courses/{course_id}` | Admin | [admin.md](admin.md#delete-delete-a-course) |
 | GET | `/professors` | Admin | [admin.md](admin.md#get-professors) |
-| GET | `/professors/{professor_ufid}` | Admin | [admin.md](admin.md#get-one-professor) |
+| GET | `/professors/{professor_id}` | Admin | [admin.md](admin.md#get-one-professor) |
 | GET | `/students` | Admin | [admin.md](admin.md#get-students) |
 | GET | `/students/{student_ufid}` | Admin | [admin.md](admin.md#get-one-student) |
 | GET | `/student-profiles` | Admin | [admin.md](admin.md#get-student-profiles) |
@@ -111,7 +111,7 @@ The student routes in [student.md](student.md) don't follow all of these. That p
 
 Professors hold the `taas_instructor` role, so local requests use `?taas_role=instructor`.
 
-A user can hold several roles, such as an admin who also teaches, and can use the routes of each. WordPress administrators hold every role, worked out on each request rather than saved. In production, the UFID comes from Shibboleth at sign-in. At sign-in, and every 10 minutes after, the student role is given or removed to match the `eduperson_affiliations` attribute (UF sends `STUDENT$`), and the professor role to match the professors table. If the attribute is missing, the student role is left as it is.
+A user can hold several roles, such as an admin who also teaches, and can use the routes of each. WordPress administrators hold every role, worked out on each request rather than saved. In production, the UFID comes from Shibboleth at sign-in. At sign-in, and every 10 minutes after, the student role is given or removed to match the `eduperson_affiliations` attribute (UF sends `STUDENT$`), and the professor role to match the professors table. If the attribute is missing, the student role is left as it is. Course import adds professors by email without a UFID, so a professor's first sign-in saves their UFID to the professors row whose email matches their Shibboleth `mail` or `<glid>@ufl.edu`.
 
 ## Stage access
 

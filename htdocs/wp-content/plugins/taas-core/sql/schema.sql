@@ -3,12 +3,18 @@
 -- Based on: Frontend Data Requirements - Blackboard Builders
 -- ============================================================
 
--- Professors: identification + portal display info
+-- Professors: identification + portal display info.
+-- Course ingestion creates professors from name and email alone, since the admin
+-- does not have UFIDs. The UFID is filled in on the professor's first Shibboleth
+-- sign-in, matched by email (TAAS_Professor_Repository::find_or_claim()).
 CREATE TABLE {prefix}professors (
-	professor_ufid varchar(8) NOT NULL,
+	professor_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+	professor_ufid varchar(8) DEFAULT NULL,             -- NULL until the professor first signs in
 	professor_name varchar(255) NOT NULL,
-	professor_email varchar(255) NOT NULL,
-	PRIMARY KEY  (professor_ufid)
+	professor_email varchar(255) NOT NULL,              -- stored lowercased
+	PRIMARY KEY  (professor_id),
+	UNIQUE KEY professor_ufid (professor_ufid),         -- many NULLs are allowed
+	UNIQUE KEY professor_email (professor_email)
 );
 
 -- Students: identification + applicant list display info
@@ -90,11 +96,11 @@ CREATE TABLE {prefix}courses (
 	lab_hours int NOT NULL DEFAULT 0,
 	enrollment int NOT NULL DEFAULT 0,
 	max_enrollment int NOT NULL DEFAULT 0,
-	professor_ufid varchar(8) NOT NULL,
+	professor_id bigint(20) unsigned NOT NULL,
 	PRIMARY KEY  (course_id),
 	UNIQUE KEY course_offering (course_semester,course_year,course_code,course_name), -- code alone is not unique, e.g. CIS4930 covers every special topic
 	KEY course_code (course_code),
-	KEY professor_ufid (professor_ufid)
+	KEY professor_id (professor_id)
 );
 
 -- Applications: the join between a student and a course they applied to TA for.

@@ -24,7 +24,7 @@ class TAAS_Seeds {
 	 */
 	private const NATURAL_KEYS = array(
 		'student_submissions' => array( 'student_ufid', 'semester', 'year' ),
-		'professors'          => array( 'professor_ufid' ),
+		'professors'          => array( 'professor_email' ),
 		'students'            => array( 'student_ufid' ),
 		'student_profiles'    => array( 'student_ufid' ),
 		'academic_background' => array( 'student_ufid', 'university', 'degree_type' ),
@@ -85,6 +85,12 @@ class TAAS_Seeds {
 				}
 
 				if ( self::row_exists( $bare, $row ) ) {
+					continue;
+				}
+
+				$row = self::resolve_professor( $bare, $row );
+
+				if ( null === $row ) {
 					continue;
 				}
 
@@ -151,6 +157,34 @@ class TAAS_Seeds {
 		$sql   = "SELECT 1 FROM {$table} WHERE " . implode( ' AND ', $where ) . ' LIMIT 1';
 
 		return null !== $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+	}
+
+	/**
+	 * Swap a seed course's professor_email for that professor's professor_id
+	 *
+	 * Seed courses name their professor by email, since professor_id is assigned
+	 * by the database and may already be taken by imported professors.
+	 *
+	 * @param string $bare Bare table name
+	 * @param array  $row  Row data
+	 * @return array|null The row, or null if its professor is not in the database
+	 */
+	private static function resolve_professor( string $bare, array $row ): ?array {
+		if ( 'courses' !== $bare || ! isset( $row['professor_email'] ) ) {
+			return $row;
+		}
+
+		$professor = ( new TAAS_Professor_Repository() )->find_by_email( (string) $row['professor_email'] );
+
+		if ( null === $professor ) {
+			TAAS_Logger::error( 'Seed course professor missing.', array( 'professor_email' => $row['professor_email'] ) );
+			return null;
+		}
+
+		unset( $row['professor_email'] );
+		$row['professor_id'] = $professor->professor_id;
+
+		return $row;
 	}
 
 	/**

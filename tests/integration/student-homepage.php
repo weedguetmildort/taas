@@ -65,10 +65,7 @@ try {
 	taas_test_set_period( $period );
 	// Legacy course rows without a snapshot must match initial-form detection too.
 	$submissions->delete( $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] )->submission_id );
-	$professor = '99994000';
-	while ( $professors->find( $professor ) ) {
-		$professor = (string) ( (int) $professor - 1 ); }
-	$professors->insert( new TAAS_Professor( $professor, 'Homepage test', 'home-professor@example.invalid' ) );
+	$professor = (int) $professors->insert( new TAAS_Professor( null, null, 'Homepage test', 'home-professor@example.invalid' ) );
 	$id = $courses->insert( new TAAS_Course( null, 'TEST', 'Homepage test course', $professor, TAAS_Semester::Fall, $period['year'] ) );
 	$applications->insert( new TAAS_Application( null, $owner, $id, true, false, null, 1, null, TAAS_Match_Status::Withdrawn ) );
 	taas_home_check( true === taas_student_homepage_state()['already_applied'], 'Withdrawn legacy course rows still count as an existing application' );

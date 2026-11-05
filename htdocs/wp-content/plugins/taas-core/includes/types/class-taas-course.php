@@ -23,7 +23,7 @@ final class TAAS_Course {
 	 * @param int|null      $course_id          Auto-increment id; null on a new, unsaved record.
 	 * @param string        $course_code        Course code, e.g. COP3502.
 	 * @param string        $course_name        Course title.
-	 * @param string        $professor_ufid     Professor's UFID, 1-8 characters.
+	 * @param int           $professor_id       Professor's professor_id.
 	 * @param TAAS_Semester $course_semester    Semester the course runs in.
 	 * @param int           $course_year        Year the course runs in, e.g. 2026.
 	 * @param bool          $is_online          Whether the course is offered online.
@@ -33,13 +33,13 @@ final class TAAS_Course {
 	 * @param int           $lab_hours          Lab hours per week.
 	 * @param int           $enrollment         Current enrollment.
 	 * @param int           $max_enrollment     Enrollment cap.
-	 * @throws InvalidArgumentException If the course id, professor UFID or year is invalid.
+	 * @throws InvalidArgumentException If the course id, professor id or year is invalid.
 	 */
 	public function __construct(
 		public readonly ?int $course_id,
 		public readonly string $course_code,
 		public readonly string $course_name,
-		public readonly string $professor_ufid,
+		public readonly int $professor_id,
 		public readonly TAAS_Semester $course_semester,
 		public readonly int $course_year,
 		public readonly bool $is_online = false,
@@ -51,7 +51,7 @@ final class TAAS_Course {
 		public readonly int $max_enrollment = 0,
 	) {
 		TAAS_Guard::course_id( 'course_id', $course_id );
-		TAAS_Guard::ufid( 'professor_ufid', $professor_ufid );
+		TAAS_Guard::course_id( 'professor_id', $professor_id );
 		TAAS_Guard::year( 'course_year', $course_year );
 	}
 
@@ -75,7 +75,7 @@ final class TAAS_Course {
 			course_id: TAAS_Cast::int_or_null( $r['course_id'] ?? null ),
 			course_code: (string) $r['course_code'],
 			course_name: (string) $r['course_name'],
-			professor_ufid: (string) $r['professor_ufid'],
+			professor_id: TAAS_Cast::int( $r['professor_id'] ?? 0 ),
 			course_semester: $semester,
 			course_year: $year,
 			is_online: TAAS_Cast::bool( $r['is_online'] ?? 0 ),
@@ -113,7 +113,7 @@ final class TAAS_Course {
 			'lab_hours'          => $this->lab_hours,
 			'enrollment'         => $this->enrollment,
 			'max_enrollment'     => $this->max_enrollment,
-			'professor_ufid'     => $this->professor_ufid,
+			'professor_id'       => $this->professor_id,
 		);
 
 		if ( null !== $this->course_id ) {

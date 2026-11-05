@@ -101,7 +101,7 @@ class TAAS_Shibboleth {
 
 		update_user_meta( $user->ID, TAAS_Auth::UFID_META_KEY, $ufid );
 
-		$changes = self::role_changes( (array) $user->roles, self::synced_roles( $ufid ) );
+		$changes = self::role_changes( (array) $user->roles, self::synced_roles( $ufid, self::emails() ) );
 
 		foreach ( $changes['add'] as $role ) {
 			$user->add_role( $role );
@@ -126,10 +126,14 @@ class TAAS_Shibboleth {
 	 * A role whose source cannot be read right now is left out, so a database
 	 * error or a missing attribute never strips anyone's access.
 	 *
-	 * @param string $ufid Valid UFID of the account
+	 * Professors are added by email before anyone knows their UFID, so on a
+	 * professor's first sign-in this also saves their UFID to their professors row.
+	 *
+	 * @param string   $ufid   Valid UFID of the account
+	 * @param string[] $emails Emails from the Shibboleth session
 	 * @return array<string, bool>
 	 */
-	private static function synced_roles( string $ufid ): array {
+	private static function synced_roles( string $ufid, array $emails ): array {
 		$wanted  = array();
 		$student = self::is_student( self::attribute( 'eduperson_affiliations' ), self::student_affiliations() );
 
@@ -138,7 +142,7 @@ class TAAS_Shibboleth {
 		}
 
 		try {
-			$wanted[ TAAS_Auth::ROLE_INSTRUCTOR ] = null !== ( new TAAS_Professor_Repository() )->find( $ufid );
+			$wanted[ TAAS_Auth::ROLE_INSTRUCTOR ] = null !== ( new TAAS_Professor_Repository() )->find_or_claim( $ufid, $emails );
 		} catch ( RuntimeException $e ) {
 			TAAS_Logger::error( 'Could not check the professors table: ' . $e->getMessage() );
 		}
@@ -195,6 +199,17 @@ class TAAS_Shibboleth {
 		$values = array_map( 'trim', false === $values ? array() : $values );
 
 		return array_values( array_unique( array_filter( $values, 'strlen' ) ) );
+	}
+
+	/**
+	 * Emails the current Shibboleth session may go by: its mail attribute and GatorLink address
+	 *
+	 * @return string[]
+	 */
+	private static function emails(): array {
+		$glid = self::attribute( 'glid' );
+
+		return array_values( array_filter( array( self::attribute( 'mail' ), '' === $glid ? '' : $glid . '@ufl.edu' ) ) );
 	}
 
 	/**
