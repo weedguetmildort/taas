@@ -103,4 +103,18 @@ if ( ! function_exists( 'apply_filters' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_delete_file' ) ) {
+	/**
+	 * Stand-in for the WordPress file deleter.
+	 *
+	 * @param string $file Path to delete.
+	 * @return void
+	 */
+	function wp_delete_file( $file ) {
+		if ( is_file( $file ) ) {
+			unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- stands in for wp_delete_file itself.
+		}
+	}
+}
+
 require dirname( __DIR__ ) . '/vendor/autoload.php';

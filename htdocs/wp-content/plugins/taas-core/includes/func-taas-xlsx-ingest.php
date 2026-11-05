@@ -40,7 +40,7 @@ const TAAS_COURSE_HEADERS = array(
  *
  * @param array $cells Header row cells
  * @return array<int, array{header: string, schema_field: string}> Known headers, keyed by cell index
- * @throws RuntimeException If a required header is missing.
+ * @throws UnexpectedValueException If a required header is missing.
  */
 function taas_map_headers( array $cells ): array {
 	$wanted = array();
@@ -79,7 +79,7 @@ function taas_map_headers( array $cells ): array {
 
 	// If required header(s) missing, throw exception and do not ingest file at all
 	if ( ! empty( $missing ) ) {
-		throw new RuntimeException( 'Missing required headers: ' . esc_html( implode( ', ', $missing ) ) );
+		throw new UnexpectedValueException( 'Missing required headers: ' . esc_html( implode( ', ', $missing ) ) );
 	}
 
 	return $map;
@@ -240,11 +240,13 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
  *   An existing professor keeps their name, however a row spells it. Later rows with the same GLID reuse that id.
  *   Their UFID is filled in when they first sign in.
  * - A course with the same term, year, code and name, in the database or earlier in the file, is replaced by the later row.
+ * - A missing required header throws UnexpectedValueException, from taas_map_headers(), and a file
+ *   that isn't a readable XLSX throws \PhpOffice\PhpSpreadsheet\Exception.
  *
  * @param string $file_path Path to a .xlsx file
  * @return array{courses: int, replaced: int, skipped: int, messages: array<array{row: int, header: string, message: string}>}
  * @throws InvalidArgumentException If the file is not .xlsx.
- * @throws RuntimeException If the file is unreadable or a required header is missing.
+ * @throws RuntimeException If the file does not exist or cannot be read.
  */
 function taas_import_courses( string $file_path ): array {
 	global $wpdb;
@@ -270,7 +272,8 @@ function taas_import_courses( string $file_path ): array {
 		'messages' => array(),
 	);
 
-	$spreadsheet = IOFactory::load( $file_path );
+	// Read it only as XLSX, since PhpSpreadsheet would otherwise guess the format from the contents
+	$spreadsheet = IOFactory::load( $file_path, 0, array( IOFactory::READER_XLSX ) );
 
 	try {
 		$sheet       = $spreadsheet->getSheet( 0 );

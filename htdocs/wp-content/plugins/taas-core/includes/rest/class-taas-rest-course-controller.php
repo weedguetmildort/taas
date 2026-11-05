@@ -80,6 +80,18 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/import',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'import_items' ),
+					'permission_callback' => $admin_only,
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/(?P<id>' . $this->id_pattern() . ')',
 			array(
 				array(
@@ -262,6 +274,68 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 				return new WP_REST_Response( $this->course_body( $entry ), 201 );
 			}
 		);
+	}
+
+	/**
+	 * POST /courses/import: add or replace courses from an uploaded .xlsx file.
+	 *
+	 * The file is sent as multipart/form-data in the `file` field. Each row is imported on its own,
+	 * so a bad row is skipped and reported in the response while the rest are saved.
+	 *
+	 * @param WP_REST_Request $request Current request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function import_items( $request ) {
+		$file = $request->get_file_params()['file'] ?? null;
+
+		if ( ! is_array( $file ) || UPLOAD_ERR_NO_FILE === ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
+			return $this->missing_params( array( 'file' ) );
+		}
+
+		if ( UPLOAD_ERR_OK !== $file['error'] ) {
+			return $this->invalid_param( 'file', __( 'The file could not be uploaded.', 'taas-core' ) );
+		}
+
+		if ( 'xlsx' !== strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) ) ) {
+			return $this->invalid_param( 'file', __( 'The file must be an .xlsx file.', 'taas-core' ) );
+		}
+
+		// PhpSpreadsheet comes from Composer, which only some environments have
+		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) && defined( 'TAAS_COMPOSER_AUTOLOAD' ) && is_readable( TAAS_COMPOSER_AUTOLOAD ) ) {
+			require_once TAAS_COMPOSER_AUTOLOAD;
+		}
+
+		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
+			return new WP_Error(
+				'taas_import_unavailable',
+				__( 'Course import is not available on this server.', 'taas-core' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		// The importer checks the extension, and PHP's upload has none
+		$path = $file['tmp_name'] . '.xlsx';
+
+		if ( ! rename( $file['tmp_name'], $path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- PHP's own upload temp file, not a WordPress upload.
+			return $this->server_error( new RuntimeException( 'Could not move the uploaded course file.' ) );
+		}
+
+		try {
+			return $this->respond(
+				function () use ( $path ) {
+					try {
+						return taas_import_courses( $path );
+					} catch ( UnexpectedValueException $e ) {
+						// A required header is missing, which respond() would otherwise treat as a server failure
+						return $this->invalid_param( 'file', $e->getMessage() );
+					} catch ( \PhpOffice\PhpSpreadsheet\Exception $e ) {
+						return $this->invalid_param( 'file', __( 'The file could not be read as a spreadsheet.', 'taas-core' ) );
+					}
+				}
+			);
+		} finally {
+			wp_delete_file( $path );
+		}
 	}
 
 	/**

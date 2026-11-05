@@ -29,6 +29,7 @@ Paths are relative to the base path, `/wp-json/taas/v1`.
 | POST | `/courses` | Admin | [admin.md](admin.md#post-add-a-course) |
 | PATCH | `/courses/{course_id}` | Admin | [admin.md](admin.md#patch-edit-a-course) |
 | DELETE | `/courses/{course_id}` | Admin | [admin.md](admin.md#delete-delete-a-course) |
+| POST | `/courses/import` | Admin | [admin.md](admin.md#post-import-courses) |
 | GET | `/professors` | Admin | [admin.md](admin.md#get-professors) |
 | GET | `/professors/{professor_id}` | Admin | [admin.md](admin.md#get-one-professor) |
 | GET | `/students` | Admin | [admin.md](admin.md#get-students) |

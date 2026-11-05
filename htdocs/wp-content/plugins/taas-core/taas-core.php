@@ -93,6 +93,11 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
  */
 require_once TAAS_CORE_PATH . 'includes/func-matching.php';
 
+/*
+ * Course import from XLSX. PhpSpreadsheet itself is loaded only when an import runs.
+ */
+require_once TAAS_CORE_PATH . 'includes/func-taas-xlsx-ingest.php';
+
 TAAS_REST::init();
 TAAS_Stage_Gate::init();
 TAAS_Shibboleth::init();

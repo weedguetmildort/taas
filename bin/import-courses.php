@@ -18,10 +18,6 @@ if ( 'cli' !== PHP_SAPI ) {
 require dirname( __DIR__ ) . '/vendor/autoload.php';
 require '/var/www/html/wp-load.php';
 
-// taas-core does not load the importer, so load it here. Use the plugin path, the same one
-// the local taas-backend-test plugin uses, so require_once skips it if that plugin is active.
-require_once WP_PLUGIN_DIR . '/taas-core/includes/func-taas-xlsx-ingest.php';
-
 $courses_file = $argv[1] ?? '';
 
 if ( '' === $courses_file ) {

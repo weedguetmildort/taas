@@ -9,6 +9,10 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__ ) . '/support/class-wp-error.php';
+require_once dirname( __DIR__ ) . '/support/class-wp-rest-controller.php';
+require_once dirname( __DIR__ ) . '/support/class-wp-rest-request.php';
+require_once dirname( __DIR__ ) . '/support/class-wp-rest-response.php';
 require_once dirname( __DIR__ ) . '/support/class-taas-fake-wpdb.php';
 require_once dirname( __DIR__ ) . '/support/class-taas-course-import-fake-wpdb.php';
 
@@ -239,7 +243,7 @@ class CourseImportTest extends TestCase {
 	public function test_map_headers_requires_required_headers_only(): void {
 		taas_map_headers( array_diff( self::HEADERS, array( 'Description' ) ) );
 
-		$this->expectException( RuntimeException::class );
+		$this->expectException( UnexpectedValueException::class );
 		$this->expectExceptionMessage( 'Missing required headers: Year, GLID' );
 
 		taas_map_headers( array_diff( self::HEADERS, array( 'Year', 'GLID' ) ) );
@@ -525,5 +529,106 @@ class CourseImportTest extends TestCase {
 		$this->assertSame( 1, $result['replaced'] );
 		$this->assertCount( 1, $this->db->writes );
 		$this->assertSame( array( 'course_id' => 7 ), $this->db->writes[0]['where'] );
+	}
+
+	/**
+	 * Send a file to POST /courses/import as PHP hands over an upload: in a temp file with no extension
+	 *
+	 * @param string $source Spreadsheet to upload.
+	 * @param string $name   File name the browser sent.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private function upload( string $source, string $name = 'courses.xlsx' ) {
+		$tmp_name      = tempnam( sys_get_temp_dir(), 'php' );
+		$this->files[] = $tmp_name;
+		$this->files[] = $tmp_name . '.xlsx';
+
+		copy( $source, $tmp_name );
+
+		$files = array(
+			'file' => array(
+				'name'     => $name,
+				'tmp_name' => $tmp_name,
+				'error'    => UPLOAD_ERR_OK,
+			),
+		);
+
+		return ( new TAAS_REST_Course_Controller() )->import_items( new WP_REST_Request( array(), array(), 'POST', '/taas/v1/courses/import', $files ) );
+	}
+
+	/**
+	 * The route imports the uploaded file, returns the importer's counts and messages, and deletes the file
+	 */
+	public function test_import_route_imports_uploaded_file(): void {
+		$source   = $this->write_courses(
+			self::row(),
+			self::row( array( 'Year' => 'next year' ) )
+		);
+		$response = $this->upload( $source );
+
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 1, $response->get_data()['courses'] );
+		$this->assertSame( 1, $response->get_data()['skipped'] );
+		$this->assertSame( 3, $response->get_data()['messages'][0]['row'] );
+		$this->assertCount( 1, $this->db->writes );
+
+		foreach ( array_diff( $this->files, array( $source ) ) as $file ) {
+			$this->assertFileDoesNotExist( $file );
+		}
+	}
+
+	/**
+	 * A request with no file is refused as a missing parameter
+	 */
+	public function test_import_route_requires_file(): void {
+		$response = ( new TAAS_REST_Course_Controller() )->import_items( new WP_REST_Request( array(), array(), 'POST' ) );
+
+		$this->assertSame( 'rest_missing_callback_param', $response->get_error_code() );
+	}
+
+	/**
+	 * A file not named .xlsx is refused before it is read
+	 */
+	public function test_import_route_refuses_other_file_types(): void {
+		$response = $this->upload( $this->write_courses( self::row() ), 'courses.csv' );
+
+		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
+		$this->assertSame( array(), $this->db->writes );
+	}
+
+	/**
+	 * A file missing required headers is the client's error, with the missing headers named
+	 */
+	public function test_import_route_reports_missing_headers(): void {
+		$spreadsheet = new Spreadsheet();
+		$spreadsheet->getActiveSheet()->fromArray( array( array( 'Prefix', 'Title' ) ) );
+
+		$path          = sys_get_temp_dir() . '/taas-course-import-' . uniqid() . '.xlsx';
+		$this->files[] = $path;
+
+		( new Xlsx( $spreadsheet ) )->save( $path );
+		$spreadsheet->disconnectWorksheets();
+
+		$response = $this->upload( $path );
+
+		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
+		$this->assertSame( 400, $response->get_error_data()['status'] );
+		$this->assertStringStartsWith( 'Missing required headers: Semester', $response->get_error_data()['params']['file'] );
+	}
+
+	/**
+	 * A file named .xlsx that is not a spreadsheet is the client's error, not a server failure
+	 */
+	public function test_import_route_reports_unreadable_file(): void {
+		$path          = sys_get_temp_dir() . '/taas-course-import-' . uniqid() . '.txt';
+		$this->files[] = $path;
+
+		file_put_contents( $path, 'not a spreadsheet' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture.
+
+		$response = $this->upload( $path );
+
+		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
+		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 }

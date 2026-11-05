@@ -39,7 +39,7 @@ This is not intended to replace project management and tickets, but rather to no
 
 ## Deployment
 
-- **PhpSpreadsheet:** the course import and the XLSX exports need it on the server, but production deploys by git checkout and has no `vendor/` directory.
+- **PhpSpreadsheet:** the course import and the XLSX exports need it on the server, but production deploys by git checkout and has no `vendor/` directory. `POST /courses/import` returns 503 `taas_import_unavailable` until it's there. The route loads the autoloader named by `TAAS_COMPOSER_AUTOLOAD`, so production needs that defined in `wp-config.php` too.
 
 ## Frontend
 
