@@ -54,19 +54,26 @@ function taas_student_pages_require_student(): void {
 		return;
 	}
 	$user = TAAS_Auth::current_user();
+	// Apache only uses lazy Shibboleth sessions, so nothing else sends visitors to
+	// sign in. The login URL goes to GatorLink, then back to this page.
+	if ( null === $user ) {
+		$here = isset( $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI'] )
+			? set_url_scheme( 'http://' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) . esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) )
+			: home_url( '/' );
+		wp_safe_redirect( wp_login_url( $here ) );
+		exit;
+	}
 	$home = taas_student_pages_other_home( $user );
 	// The front page is the site root, so staff land there first: send them home.
 	if ( '' !== $home && taas_student_pages_is_page( 'front-page' ) ) {
 		wp_safe_redirect( $home );
 		exit;
 	}
-	if ( null !== $user && '' === $home ) {
+	if ( '' === $home ) {
 		$message = '<p>Your account does not have access to TAAS yet. Please contact an administrator.</p>';
 	} else {
 		$message = '<p>You are not authorized to view this page.</p>';
-	}
-	if ( '' !== $home ) {
 		$message .= '<p><a href="' . esc_url( $home ) . '">Go to your homepage</a></p>';
 	}
-	wp_die( wp_kses_post( $message ), 'Access denied', array( 'response' => null === $user ? 401 : 403 ) );
+	wp_die( wp_kses_post( $message ), 'Access denied', array( 'response' => 403 ) );
 }
