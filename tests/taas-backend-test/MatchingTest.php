@@ -124,13 +124,13 @@ class MatchingTest extends TestCase {
 	 *
 	 * @param TAAS_Course            $course   Course to staff
 	 * @param TAAS_Application[]     $apps     Applications for the course
-	 * @param TAAS_Student_Profile[] $profiles Applicant profiles
-	 * @param int                    $cth      Hours to fill
-	 * @param array<string, int>     $assigned Existing assignments
+	 * @param TAAS_Student_Profile[] $profiles   Applicant profiles
+	 * @param int                    $cth        Hours to fill
+	 * @param array<string, int>     $hours_left Hours each student has left after earlier courses
 	 * @return array Matches keyed by UFID
 	 */
-	private function match_course( TAAS_Course $course, array $apps, array $profiles, int $cth, array $assigned = array() ): array {
-		return taas_match_course( $course, $apps, $this->by_ufid( ...$profiles ), $assigned, $cth );
+	private function match_course( TAAS_Course $course, array $apps, array $profiles, int $cth, array $hours_left = array() ): array {
+		return taas_match_course( $course, $apps, $this->by_ufid( ...$profiles ), $hours_left, $cth );
 	}
 
 	// ---------------------------------------------------------------------
@@ -171,27 +171,31 @@ class MatchingTest extends TestCase {
 	 * Test matching candidates of a mix of assigned status/various hours, including edge cases
 	 */
 	public function test_candidates_skip_unavailable_and_update_state(): void {
-		$assigned = array( 'TAKEN' => 99 );
-		$cth      = 40;
+		$hours_left = array(
+			'USEDUP' => 0,  // Gave all their hours to an earlier course
+			'SPLIT'  => 10, // Gave 10 of their 20 hours to an earlier course
+		);
+		$cth        = 50;
 
 		$matches = taas_match_candidates(
-			$this->course( 1, 40 ),
-			array( 'TAKEN', 'NOHOURS', 'ZERO', 'OVER', 'FIT20', 'FIT15', 'SMALL' ),
+			$this->course( 1, 50 ),
+			array( 'USEDUP', 'NOHOURS', 'ZERO', 'FIT20', 'SPLIT', 'PARTIAL', 'AFTER' ),
 			'test_reason',
 			$this->by_ufid(
-				$this->profile( 'TAKEN' ),
+				$this->profile( 'USEDUP' ),
 				$this->profile( 'NOHOURS', hours: null ),
 				$this->profile( 'ZERO', hours: 0 ),
-				$this->profile( 'OVER', hours: 50 ),
 				$this->profile( 'FIT20', hours: 20 ),
-				$this->profile( 'FIT15', hours: 15 ),
-				$this->profile( 'SMALL', hours: 2 ), // Would fit, but only 5 hours are left
+				$this->profile( 'SPLIT', hours: 20 ),   // Only their 10 leftover hours count
+				$this->profile( 'PARTIAL', hours: 20 ), // Only 20 course hours are left, so all 20 are used
+				$this->profile( 'AFTER', hours: 10 ),   // Course is full by now
 			),
-			$assigned,
+			$hours_left,
 			$cth
 		);
 
-		$this->assertSame( array( 'FIT20', 'FIT15' ), $this->ufids( $matches ) );
+		$this->assertSame( array( 'FIT20', 'SPLIT', 'PARTIAL' ), $this->ufids( $matches ) );
+		$this->assertSame( array( 20, 10, 20 ), array_column( $matches, 'hours' ) );
 		$this->assertSame(
 			array(
 				'student_ufid' => 'FIT20',
@@ -202,13 +206,57 @@ class MatchingTest extends TestCase {
 		);
 		$this->assertSame(
 			array(
-				'TAKEN' => 99,
-				'FIT20' => 1,
-				'FIT15' => 1,
+				'USEDUP'  => 0,
+				'SPLIT'   => 0,
+				'FIT20'   => 0,
+				'PARTIAL' => 0,
 			),
-			$assigned
+			$hours_left
 		);
-		$this->assertSame( 5, $cth );
+		$this->assertSame( 0, $cth );
+	}
+
+	/**
+	 * Course needs 10, student has 20: the student gives 10 and keeps 10 for another course
+	 */
+	public function test_candidates_student_partially_used(): void {
+		$hours_left = array();
+		$cth        = 10;
+
+		$matches = taas_match_candidates(
+			$this->course( 1, 10 ),
+			array( 'BIG', 'NEXT' ),
+			'test_reason',
+			$this->by_ufid( $this->profile( 'BIG', hours: 20 ), $this->profile( 'NEXT', hours: 10 ) ),
+			$hours_left,
+			$cth
+		);
+
+		$this->assertSame( array( 'BIG' ), $this->ufids( $matches ) );
+		$this->assertSame( 10, $matches['BIG']['hours'] );
+		$this->assertSame( array( 'BIG' => 10 ), $hours_left );
+		$this->assertSame( 0, $cth );
+	}
+
+	/**
+	 * Course needs 20, student has 10: the student gives all 10 and the course still needs 10
+	 */
+	public function test_candidates_course_partially_filled(): void {
+		$hours_left = array();
+		$cth        = 20;
+
+		$matches = taas_match_candidates(
+			$this->course( 1, 20 ),
+			array( 'SMALL' ),
+			'test_reason',
+			$this->by_ufid( $this->profile( 'SMALL', hours: 10 ) ),
+			$hours_left,
+			$cth
+		);
+
+		$this->assertSame( 10, $matches['SMALL']['hours'] );
+		$this->assertSame( array( 'SMALL' => 0 ), $hours_left );
+		$this->assertSame( 10, $cth );
 	}
 
 	/**
@@ -289,7 +337,7 @@ class MatchingTest extends TestCase {
 				$this->profile( 'MUTUAL', hours: 10 ),
 			),
 			50,
-			array( 'UNAVAIL' => 99 )
+			array( 'UNAVAIL' => 0 ) // Used all their hours on an earlier course
 		);
 
 		$this->assertSame( array( 'MUTUAL', 'ONESIDED' ), $this->ufids( $matches ) );
@@ -334,7 +382,8 @@ class MatchingTest extends TestCase {
 
 	/**
 	 * Every PhD student applies to every course, so tiers 5 and 6 place PhD students
-	 * in courses they did not rank
+	 * in courses they did not rank. Courses go in order, so course 1 uses 10 of PHD1's
+	 * hours under 'applied' before course 2, where the professor ranked PHD1 first.
 	 */
 	public function test_phd_priority(): void {
 		// Course ID => UFID => [student rank, professor rank]; every other application is unranked
@@ -364,12 +413,57 @@ class MatchingTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( array( 'PHD1' ), $this->ufids( $result['matches'][2] ) );
-		$this->assertSame( 'professor_preference_1', $result['matches'][2]['PHD1']['reason'] );
-		$this->assertSame( array( 'PHDTA' ), $this->ufids( $result['matches'][1] ) );
-		$this->assertSame( 'ta_experience', $result['matches'][1]['PHDTA']['reason'] );
-		$this->assertSame( array( 'PHD2' ), $this->ufids( $result['matches'][3] ) );
-		$this->assertSame( 'applied', $result['matches'][3]['PHD2']['reason'] );
+		// Course 1: PHDTA by TA experience, then PHD1 fills the last 10 hours
+		$this->assertSame( array( 'PHDTA', 'PHD1' ), $this->ufids( $result['matches'][1] ) );
+		$this->assertSame( array( 'ta_experience', 'applied' ), array_column( $result['matches'][1], 'reason' ) );
+		$this->assertSame( array( 20, 10 ), array_column( $result['matches'][1], 'hours' ) );
+
+		// Course 2: PHD1 gives their other 10 hours, PHD2 fills the rest
+		$this->assertSame( array( 'PHD1', 'PHD2' ), $this->ufids( $result['matches'][2] ) );
+		$this->assertSame( array( 'professor_preference_1', 'professor_preference_2' ), array_column( $result['matches'][2], 'reason' ) );
+		$this->assertSame( array( 10, 20 ), array_column( $result['matches'][2], 'hours' ) );
+
+		// Course 3: only PHDNEW has hours left
+		$this->assertSame( array( 'PHDNEW' ), $this->ufids( $result['matches'][3] ) );
+		$this->assertSame( 'applied', $result['matches'][3]['PHDNEW']['reason'] );
+		$this->assertSame( 20, $result['matches'][3]['PHDNEW']['hours'] );
+
+		$this->assertSame(
+			array(
+				1 => 0,
+				2 => 0,
+				3 => 10,
+			),
+			$result['unfilled_hours']
+		);
+		$this->assertSame( array(), $result['students_with_hours_left'] );
+	}
+
+	/**
+	 * A student with more hours than one course needs is split across courses
+	 */
+	public function test_student_split_across_courses(): void {
+		$result = taas_run_matching(
+			array( $this->course( 1, 10 ), $this->course( 2, 10 ) ),
+			array(
+				$this->app( 'S1', 1, student_rank: 1 ),
+				$this->app( 'S1', 2, student_rank: 2 ),
+			),
+			array( $this->profile( 'S1', hours: 20 ) )
+		);
+
+		$this->assertSame( 10, $result['matches'][1]['S1']['hours'] );
+		$this->assertSame( 'student_preference_1', $result['matches'][1]['S1']['reason'] );
+		$this->assertSame( 10, $result['matches'][2]['S1']['hours'] );
+		$this->assertSame( 'student_preference_2', $result['matches'][2]['S1']['reason'] );
+		$this->assertSame(
+			array(
+				1 => 0,
+				2 => 0,
+			),
+			$result['unfilled_hours']
+		);
+		$this->assertSame( array(), $result['students_with_hours_left'] );
 	}
 
 	/**
