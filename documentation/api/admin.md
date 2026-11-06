@@ -104,7 +104,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
   "course_name": "Programming Fundamentals 1",
   "term": "Spring",
   "year": 2027,
-  "professor_ufid": "87654321",
+  "professor_id": 3,
   "enrollment": 175,
   "max_enrollment": 200,
   "lab_hours": 2,
@@ -118,7 +118,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 | `course_code` | yes | Up to 20 characters |
 | `course_name` | yes | Up to 255 characters |
 | `term`, `year` | yes | |
-| `professor_ufid` | yes | Must be an existing professor |
+| `professor_id` | yes | Must be an existing professor, from [GET: professors](#get-professors) |
 | `enrollment` | no | Whole number, default 0 |
 | `max_enrollment` | no | Whole number, default 0 |
 | `lab_hours` | no | 0, 1 or 2, default 0 |
@@ -131,7 +131,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `rest_invalid_param` | A field is invalid, or `professor_ufid` isn't an existing professor |
+| 400 | `rest_invalid_param` | A field is invalid, or `professor_id` isn't an existing professor |
 | 409 | `taas_course_exists` | The same term, year, code and name already exists |
 
 ### PATCH: edit a course
@@ -144,7 +144,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `rest_invalid_param` | A field is invalid, or `professor_ufid` isn't an existing professor |
+| 400 | `rest_invalid_param` | A field is invalid, or `professor_id` isn't an existing professor |
 | 404 | `taas_not_found` | No such course |
 | 409 | `taas_course_exists` | The edit would duplicate another course |
 | 409 | `taas_course_has_applications` | `term` or `year` changes on a course that has applications |
@@ -158,6 +158,64 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 | Status | `code` | When |
 | --- | --- | --- |
 | 404 | `taas_not_found` | No such course |
+
+### POST: import courses
+
+`POST /courses/import`
+
+Adds or replaces courses from an `.xlsx` file.
+
+**Request body:** `multipart/form-data`, with the file in the `file` field.
+
+**The file:** the first sheet's first row holds the headers, in any order. Headers must match exactly, and any other header is ignored.
+
+| Header | Required | Saved as |
+| --- | --- | --- |
+| `Prefix` | yes | `course_code` |
+| `Title` | yes | `course_name` |
+| `Semester` | yes | `term`: a name, like `Fall`, or its number |
+| `Year` | yes | `year` |
+| `UFO` | yes | `is_online`: `UFO` or `In-person` |
+| `Description` | no | `course_description` |
+| `Lab Hour` | yes | `lab_hours` |
+| `Current Enrollment` | yes | `enrollment` |
+| `Maximum Enrollment` | yes | `max_enrollment` |
+| `Professor Teaching` | yes | The professor's name, used only when adding them |
+| `GLID` | yes | The professor's email |
+
+How each row is handled:
+
+- Each row is imported on its own. A row with a bad or missing value uses the column's default if it has one, and is otherwise skipped. Either way it's reported in `messages`.
+- The professor is found by email, ignoring case, and added without a UFID if new. An existing professor keeps their name. See [GET: professors](#get-professors).
+- A row with the same term, year, code and name as a course in the database, or as an earlier row, replaces that course and keeps its `course_id`, so its applications stay linked.
+- `weekly_hours` is calculated, as on [POST: add a course](#post-add-a-course). `course_notes` is left alone.
+
+**Response:** 200 OK, including when some rows were skipped.
+
+```json
+{
+  "courses": 41,
+  "replaced": 2,
+  "skipped": 1,
+  "messages": [
+    { "row": 7, "header": "Year", "message": "Type mismatch, row skipped" },
+    { "row": 9, "header": "Description", "message": "Missing value, used default" }
+  ]
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `courses` | Courses added |
+| `replaced` | Courses replaced |
+| `skipped` | Rows not saved |
+| `messages` | Every problem found. `row` is the spreadsheet row number, counting the header row as 1 |
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `rest_missing_callback_param` | No `file` was sent |
+| 400 | `rest_invalid_param` | The upload failed, the file isn't named `.xlsx` or can't be read as one, or a required header is missing. `data.params.file` says which |
+| 503 | `taas_import_unavailable` | The server doesn't have PhpSpreadsheet |
 | 409 | `taas_course_has_applications` | The course has any application, including withdrawn ones |
 
 ## Professors
@@ -168,7 +226,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 
 Lists professors, and is used by the course forms to pick one.
 
-**Paginated:** yes, ordered by UFID. With `search`, ordered by name.
+**Paginated:** yes, ordered by `professor_id`. With `search`, ordered by name.
 
 **Request params:** `?search=smi` (optional), which matches part of the name or email.
 
@@ -177,6 +235,7 @@ Lists professors, and is used by the course forms to pick one.
 ```json
 [
   {
+    "professor_id": 3,
     "professor_ufid": "87654321",
     "professor_name": "Dr. Smith",
     "professor_email": "smith@ufl.edu"
@@ -184,9 +243,11 @@ Lists professors, and is used by the course forms to pick one.
 ]
 ```
 
+`professor_ufid` is `null` until the professor first signs in. Course import adds professors by email, since the admin does not have their UFIDs.
+
 ### GET: one professor
 
-`GET /professors/{professor_ufid}`
+`GET /professors/{professor_id}`
 
 **Response:** one professor, in the same shape as one item in GET: professors, or 404 `taas_not_found`.
 

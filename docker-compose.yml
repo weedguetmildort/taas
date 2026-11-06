@@ -80,6 +80,7 @@ services:
         define( 'SCRIPT_DEBUG', true );
         define( 'TAAS_LOCAL_DEV', true );
         define( 'TAAS_LOCAL_DEV_USER', '${TAAS_LOCAL_DEV_USER:-student}' );
+        define( 'TAAS_COMPOSER_AUTOLOAD', '/var/www/taas/vendor/autoload.php' );
       WORDPRESS_DEBUG: 1
     volumes:
       - wp_data:/var/www/html

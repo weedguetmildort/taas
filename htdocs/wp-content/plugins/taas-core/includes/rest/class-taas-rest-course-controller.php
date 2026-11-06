@@ -80,6 +80,18 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/import',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'import_items' ),
+					'permission_callback' => $admin_only,
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/(?P<id>' . $this->id_pattern() . ')',
 			array(
 				array(
@@ -104,13 +116,14 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	 */
 	public function get_collection_params() {
 		return parent::get_collection_params() + $this->term_args() + array(
-			'course_code'    => array(
+			'course_code'  => array(
 				'description' => __( 'Exact course code to match.', 'taas-core' ),
 				'type'        => 'string',
 			),
-			'professor_ufid' => array(
-				'description' => __( 'Professor to match. Admin and HR only; ignored for other callers.', 'taas-core' ),
-				'type'        => 'string',
+			'professor_id' => array(
+				'description' => __( 'Professor to match.', 'taas-core' ),
+				'type'        => 'integer',
+				'minimum'     => 1,
 			),
 		);
 	}
@@ -143,12 +156,10 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 				'maxLength' => 255,
 				'pattern'   => '\S',
 			),
-			'professor_ufid'     => array(
-				'type'      => 'string',
-				'required'  => $is_new,
-				'minLength' => 1,
-				'maxLength' => 8,
-				'pattern'   => '^[A-Za-z0-9_-]+$',
+			'professor_id'       => array(
+				'type'     => 'integer',
+				'required' => $is_new,
+				'minimum'  => 1,
 			),
 			'enrollment'         => $whole_number,
 			'max_enrollment'     => $whole_number,
@@ -202,14 +213,14 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 				$page     = (int) $request['page'];
 				$per_page = (int) $request['per_page'];
 				$code     = $request->has_param( 'course_code' ) ? (string) $request['course_code'] : null;
-				$ufid     = $this->caller_sees_ufids() && $request->has_param( 'professor_ufid' ) ? (string) $request['professor_ufid'] : null;
+				$prof_id  = $request->has_param( 'professor_id' ) ? (int) $request['professor_id'] : null;
 
 				return $this->paged_response(
 					array_map(
 						array( $this, 'course_body' ),
-						$this->courses->search_with_professor( $semester, $year, $code, $ufid, $per_page, ( $page - 1 ) * $per_page )
+						$this->courses->search_with_professor( $semester, $year, $code, $prof_id, $per_page, ( $page - 1 ) * $per_page )
 					),
-					$this->courses->count_search( $semester, $year, $code, $ufid ),
+					$this->courses->count_search( $semester, $year, $code, $prof_id ),
 					$per_page
 				);
 			}
@@ -263,6 +274,68 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 				return new WP_REST_Response( $this->course_body( $entry ), 201 );
 			}
 		);
+	}
+
+	/**
+	 * POST /courses/import: add or replace courses from an uploaded .xlsx file.
+	 *
+	 * The file is sent as multipart/form-data in the `file` field. Each row is imported on its own,
+	 * so a bad row is skipped and reported in the response while the rest are saved.
+	 *
+	 * @param WP_REST_Request $request Current request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function import_items( $request ) {
+		$file = $request->get_file_params()['file'] ?? null;
+
+		if ( ! is_array( $file ) || UPLOAD_ERR_NO_FILE === ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
+			return $this->missing_params( array( 'file' ) );
+		}
+
+		if ( UPLOAD_ERR_OK !== $file['error'] ) {
+			return $this->invalid_param( 'file', __( 'The file could not be uploaded.', 'taas-core' ) );
+		}
+
+		if ( 'xlsx' !== strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) ) ) {
+			return $this->invalid_param( 'file', __( 'The file must be an .xlsx file.', 'taas-core' ) );
+		}
+
+		// PhpSpreadsheet comes from Composer, which only some environments have
+		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) && defined( 'TAAS_COMPOSER_AUTOLOAD' ) && is_readable( TAAS_COMPOSER_AUTOLOAD ) ) {
+			require_once TAAS_COMPOSER_AUTOLOAD;
+		}
+
+		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
+			return new WP_Error(
+				'taas_import_unavailable',
+				__( 'Course import is not available on this server.', 'taas-core' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		// The importer checks the extension, and PHP's upload has none
+		$path = $file['tmp_name'] . '.xlsx';
+
+		if ( ! rename( $file['tmp_name'], $path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- PHP's own upload temp file, not a WordPress upload.
+			return $this->server_error( new RuntimeException( 'Could not move the uploaded course file.' ) );
+		}
+
+		try {
+			return $this->respond(
+				function () use ( $path ) {
+					try {
+						return taas_import_courses( $path );
+					} catch ( UnexpectedValueException $e ) {
+						// A required header is missing, which respond() would otherwise treat as a server failure
+						return $this->invalid_param( 'file', $e->getMessage() );
+					} catch ( \PhpOffice\PhpSpreadsheet\Exception $e ) {
+						return $this->invalid_param( 'file', __( 'The file could not be read as a spreadsheet.', 'taas-core' ) );
+					}
+				}
+			);
+		} finally {
+			wp_delete_file( $path );
+		}
 	}
 
 	/**
@@ -366,7 +439,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 			course_id: $existing?->course_id,
 			course_code: trim( (string) $value( 'course_code', $existing?->course_code ) ),
 			course_name: trim( (string) $value( 'course_name', $existing?->course_name ) ),
-			professor_ufid: (string) $value( 'professor_ufid', $existing?->professor_ufid ),
+			professor_id: (int) $value( 'professor_id', $existing?->professor_id ),
 			course_semester: $request->has_param( 'term' ) ? TAAS_Semester::try_from_label( (string) $request['term'] ) : $existing->course_semester,
 			course_year: (int) $value( 'year', $existing?->course_year ),
 			is_online: (bool) $value( 'is_online', $existing?->is_online ?? false ),
@@ -387,11 +460,11 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	 * @throws RuntimeException If the query fails.
 	 */
 	private function professor_error( TAAS_Course $course ): ?WP_Error {
-		if ( null !== ( new TAAS_Professor_Repository() )->find( $course->professor_ufid ) ) {
+		if ( null !== ( new TAAS_Professor_Repository() )->find( $course->professor_id ) ) {
 			return null;
 		}
 
-		return $this->invalid_param( 'professor_ufid', __( 'professor_ufid must be an existing professor.', 'taas-core' ) );
+		return $this->invalid_param( 'professor_id', __( 'professor_id must be an existing professor.', 'taas-core' ) );
 	}
 
 	/**

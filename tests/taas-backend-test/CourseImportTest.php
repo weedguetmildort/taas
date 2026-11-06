@@ -9,6 +9,10 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__ ) . '/support/class-wp-error.php';
+require_once dirname( __DIR__ ) . '/support/class-wp-rest-controller.php';
+require_once dirname( __DIR__ ) . '/support/class-wp-rest-request.php';
+require_once dirname( __DIR__ ) . '/support/class-wp-rest-response.php';
 require_once dirname( __DIR__ ) . '/support/class-taas-fake-wpdb.php';
 require_once dirname( __DIR__ ) . '/support/class-taas-course-import-fake-wpdb.php';
 
@@ -31,7 +35,6 @@ class CourseImportTest extends TestCase {
 		'Year',
 		'UFO',
 		'Description',
-		'Notes',
 		'Lab Hour',
 		'Current Enrollment',
 		'Maximum Enrollment',
@@ -73,11 +76,6 @@ class CourseImportTest extends TestCase {
 		$this->db->columns = array(
 			'wp_taas_core_courses'    => array_values( self::course_fields() ),
 			'wp_taas_core_professors' => array_values( self::professor_fields() ),
-		);
-
-		$this->db->professors = array(
-			array( '11111111', 'Jane Doe', 'jdoe@ufl.edu' ),
-			array( '22222222', 'Alan Turing', 'aturing@ufl.edu' ),
 		);
 	}
 
@@ -136,7 +134,7 @@ class CourseImportTest extends TestCase {
 			self::field( 'lab_hours', 'int', false, '0' ),
 			self::field( 'enrollment', 'int', false, '0' ),
 			self::field( 'max_enrollment', 'int', false, '0' ),
-			self::field( 'professor_ufid', 'varchar(8)' ),
+			self::field( 'professor_id', 'bigint unsigned' ),
 		);
 
 		return array_column( $fields, null, 'Field' );
@@ -149,7 +147,8 @@ class CourseImportTest extends TestCase {
 	 */
 	private static function professor_fields(): array {
 		$fields = array(
-			self::field( 'professor_ufid', 'varchar(8)' ),
+			self::field( 'professor_id', 'bigint unsigned' ),
+			self::field( 'professor_ufid', 'varchar(8)', true ),
 			self::field( 'professor_name', 'varchar(255)' ),
 			self::field( 'professor_email', 'varchar(255)' ),
 		);
@@ -180,7 +179,6 @@ class CourseImportTest extends TestCase {
 			'Year'               => '2026',
 			'UFO'                => 'In-person',
 			'Description'        => 'Intro to programming',
-			'Notes'              => 'Needs Python TAs',
 			'Lab Hour'           => '2',
 			'Current Enrollment' => '150',
 			'Maximum Enrollment' => '200',
@@ -227,14 +225,15 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * Headers are found in any order, keyed by column position, and unknown headers are ignored
+	 * Headers are found in any order, keyed by column position, and unknown headers (including the old Notes) are ignored
 	 */
 	public function test_map_headers_in_any_order(): void {
-		$map = taas_map_headers( array_merge( array( 'Room' ), array_reverse( self::HEADERS ) ) );
+		$map = taas_map_headers( array_merge( array( 'Room', 'Notes' ), array_reverse( self::HEADERS ) ) );
 
 		$this->assertCount( count( self::HEADERS ), $map );
 		$this->assertArrayNotHasKey( 0, $map );
-		$this->assertSame( 'professor_email', $map[1]['schema_field'] );
+		$this->assertArrayNotHasKey( 1, $map );
+		$this->assertSame( 'professor_email', $map[2]['schema_field'] );
 		$this->assertSame( 'course_code', $map[12]['schema_field'] );
 	}
 
@@ -242,9 +241,9 @@ class CourseImportTest extends TestCase {
 	 * A missing required header throws, naming every one that is missing; optional ones may be left out
 	 */
 	public function test_map_headers_requires_required_headers_only(): void {
-		taas_map_headers( array_diff( self::HEADERS, array( 'Description', 'Notes' ) ) );
+		taas_map_headers( array_diff( self::HEADERS, array( 'Description' ) ) );
 
-		$this->expectException( RuntimeException::class );
+		$this->expectException( UnexpectedValueException::class );
 		$this->expectExceptionMessage( 'Missing required headers: Year, GLID' );
 
 		taas_map_headers( array_diff( self::HEADERS, array( 'Year', 'GLID' ) ) );
@@ -296,7 +295,6 @@ class CourseImportTest extends TestCase {
 				'course_year'        => 2026,
 				'is_online'          => 0,
 				'course_description' => 'Intro to programming',
-				'course_notes'       => 'Needs Python TAs',
 				'lab_hours'          => 2,
 				'enrollment'         => 150,
 				'max_enrollment'     => 200,
@@ -341,14 +339,14 @@ class CourseImportTest extends TestCase {
 	public function test_parse_course_row_uses_default(): void {
 		list( $data, $messages ) = $this->parse(
 			array(
-				'UFO'      => 'Online',
-				'Notes'    => '',
-				'Lab Hour' => '',
+				'UFO'         => 'Online',
+				'Description' => '',
+				'Lab Hour'    => '',
 			)
 		);
 
 		$this->assertSame( '0', $data['is_online'] );
-		$this->assertNull( $data['course_notes'] );
+		$this->assertNull( $data['course_description'] );
 		$this->assertSame( '0', $data['lab_hours'] );
 		$this->assertSame(
 			array(
@@ -357,7 +355,7 @@ class CourseImportTest extends TestCase {
 					'message' => 'Type mismatch, used default',
 				),
 				array(
-					'header'  => 'Notes',
+					'header'  => 'Description',
 					'message' => 'Missing value, used default',
 				),
 				array(
@@ -370,19 +368,18 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * Valid rows are saved with the professor's ufid; bad rows and unknown professors are skipped and reported
+	 * Valid rows are saved with their new professor's id; bad rows are skipped and reported
 	 */
 	public function test_import_saves_valid_rows_and_skips_bad_ones(): void {
 		$result = taas_import_courses(
 			$this->write_courses(
 				self::row(),
-				self::row( array( 'Year' => 'next year' ) ),
-				self::row( array( 'GLID' => 'someone@ufl.edu' ) )
+				self::row( array( 'Year' => 'next year' ) )
 			)
 		);
 
 		$this->assertSame( 1, $result['courses'] );
-		$this->assertSame( 2, $result['skipped'] );
+		$this->assertSame( 1, $result['skipped'] );
 		$this->assertSame(
 			array(
 				array(
@@ -390,19 +387,93 @@ class CourseImportTest extends TestCase {
 					'header'  => 'Year',
 					'message' => 'Type mismatch, row skipped',
 				),
-				array(
-					'row'     => 4,
-					'header'  => 'Professor Teaching',
-					'message' => 'Professor not found, row skipped',
-				),
 			),
 			$result['messages']
 		);
 
 		$this->assertCount( 1, $this->db->writes );
-		$this->assertSame( '11111111', $this->db->writes[0]['data']['professor_ufid'] );
+		$this->assertSame( 1, $this->db->writes[0]['data']['professor_id'] );
 		$this->assertArrayNotHasKey( 'professor_name', $this->db->writes[0]['data'] );
 		$this->assertArrayNotHasKey( 'professor_email', $this->db->writes[0]['data'] );
+		$this->assertSame(
+			array(
+				array(
+					'professor_ufid'  => null,
+					'professor_name'  => 'Jane Doe',
+					'professor_email' => 'jdoe@ufl.edu',
+				),
+			),
+			$this->db->professor_inserts
+		);
+	}
+
+	/**
+	 * Each professor is created once, by email, with no UFID or id of their own; later rows reuse the database's id
+	 */
+	public function test_import_creates_each_professor_once(): void {
+		$result = taas_import_courses(
+			$this->write_courses(
+				self::row(
+					array(
+						'GLID'               => 'Someone@UFL.edu',
+						'Professor Teaching' => 'Some   One',
+					)
+				),
+				self::row(
+					array(
+						'Title'              => 'Programming 2',
+						'GLID'               => 'someone@ufl.edu',
+						'Professor Teaching' => 'One, Some',
+					)
+				),
+				self::row( array( 'Title' => 'Programming 3' ) )
+			)
+		);
+
+		$this->assertSame( 3, $result['courses'] );
+		$this->assertSame(
+			array(
+				array(
+					'professor_ufid'  => null,
+					'professor_name'  => 'Some One',
+					'professor_email' => 'someone@ufl.edu',
+				),
+				array(
+					'professor_ufid'  => null,
+					'professor_name'  => 'Jane Doe',
+					'professor_email' => 'jdoe@ufl.edu',
+				),
+			),
+			$this->db->professor_inserts
+		);
+		$this->assertSame( 1, $this->db->writes[0]['data']['professor_id'] );
+		$this->assertSame( 1, $this->db->writes[1]['data']['professor_id'] );
+		$this->assertSame( 2, $this->db->writes[2]['data']['professor_id'] );
+	}
+
+	/**
+	 * A professor already in the database is found by email alone and keeps their name
+	 */
+	public function test_import_finds_existing_professor_by_email_alone(): void {
+		$this->db->professors = array(
+			array( 1, '11111111', 'Jane Doe', 'jdoe@ufl.edu' ),
+			array( 2, null, 'Alan Turing', 'aturing@ufl.edu' ),
+		);
+
+		$result = taas_import_courses(
+			$this->write_courses(
+				self::row(
+					array(
+						'GLID'               => 'ATuring@ufl.edu',
+						'Professor Teaching' => 'Turing, Alan',
+					)
+				)
+			)
+		);
+
+		$this->assertSame( 1, $result['courses'] );
+		$this->assertSame( array(), $this->db->professor_inserts );
+		$this->assertSame( 2, $this->db->writes[0]['data']['professor_id'] );
 	}
 
 	/**
@@ -458,5 +529,106 @@ class CourseImportTest extends TestCase {
 		$this->assertSame( 1, $result['replaced'] );
 		$this->assertCount( 1, $this->db->writes );
 		$this->assertSame( array( 'course_id' => 7 ), $this->db->writes[0]['where'] );
+	}
+
+	/**
+	 * Send a file to POST /courses/import as PHP hands over an upload: in a temp file with no extension
+	 *
+	 * @param string $source Spreadsheet to upload.
+	 * @param string $name   File name the browser sent.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private function upload( string $source, string $name = 'courses.xlsx' ) {
+		$tmp_name      = tempnam( sys_get_temp_dir(), 'php' );
+		$this->files[] = $tmp_name;
+		$this->files[] = $tmp_name . '.xlsx';
+
+		copy( $source, $tmp_name );
+
+		$files = array(
+			'file' => array(
+				'name'     => $name,
+				'tmp_name' => $tmp_name,
+				'error'    => UPLOAD_ERR_OK,
+			),
+		);
+
+		return ( new TAAS_REST_Course_Controller() )->import_items( new WP_REST_Request( array(), array(), 'POST', '/taas/v1/courses/import', $files ) );
+	}
+
+	/**
+	 * The route imports the uploaded file, returns the importer's counts and messages, and deletes the file
+	 */
+	public function test_import_route_imports_uploaded_file(): void {
+		$source   = $this->write_courses(
+			self::row(),
+			self::row( array( 'Year' => 'next year' ) )
+		);
+		$response = $this->upload( $source );
+
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 1, $response->get_data()['courses'] );
+		$this->assertSame( 1, $response->get_data()['skipped'] );
+		$this->assertSame( 3, $response->get_data()['messages'][0]['row'] );
+		$this->assertCount( 1, $this->db->writes );
+
+		foreach ( array_diff( $this->files, array( $source ) ) as $file ) {
+			$this->assertFileDoesNotExist( $file );
+		}
+	}
+
+	/**
+	 * A request with no file is refused as a missing parameter
+	 */
+	public function test_import_route_requires_file(): void {
+		$response = ( new TAAS_REST_Course_Controller() )->import_items( new WP_REST_Request( array(), array(), 'POST' ) );
+
+		$this->assertSame( 'rest_missing_callback_param', $response->get_error_code() );
+	}
+
+	/**
+	 * A file not named .xlsx is refused before it is read
+	 */
+	public function test_import_route_refuses_other_file_types(): void {
+		$response = $this->upload( $this->write_courses( self::row() ), 'courses.csv' );
+
+		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
+		$this->assertSame( array(), $this->db->writes );
+	}
+
+	/**
+	 * A file missing required headers is the client's error, with the missing headers named
+	 */
+	public function test_import_route_reports_missing_headers(): void {
+		$spreadsheet = new Spreadsheet();
+		$spreadsheet->getActiveSheet()->fromArray( array( array( 'Prefix', 'Title' ) ) );
+
+		$path          = sys_get_temp_dir() . '/taas-course-import-' . uniqid() . '.xlsx';
+		$this->files[] = $path;
+
+		( new Xlsx( $spreadsheet ) )->save( $path );
+		$spreadsheet->disconnectWorksheets();
+
+		$response = $this->upload( $path );
+
+		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
+		$this->assertSame( 400, $response->get_error_data()['status'] );
+		$this->assertStringStartsWith( 'Missing required headers: Semester', $response->get_error_data()['params']['file'] );
+	}
+
+	/**
+	 * A file named .xlsx that is not a spreadsheet is the client's error, not a server failure
+	 */
+	public function test_import_route_reports_unreadable_file(): void {
+		$path          = sys_get_temp_dir() . '/taas-course-import-' . uniqid() . '.txt';
+		$this->files[] = $path;
+
+		file_put_contents( $path, 'not a spreadsheet' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture.
+
+		$response = $this->upload( $path );
+
+		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
+		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 }

@@ -60,7 +60,7 @@ class RepositoryTest extends TestCase {
 			'course_semester' => '1',
 			'course_year'     => '2026',
 			'is_online'       => '1',
-			'professor_ufid'  => '87654321',
+			'professor_id'    => '3',
 			'enrollment'      => '30',
 		);
 
@@ -136,7 +136,7 @@ class RepositoryTest extends TestCase {
 				'course_name'     => 'Programming 1',
 				'course_semester' => '3',
 				'course_year'     => '2026',
-				'professor_ufid'  => '87654321',
+				'professor_id'    => '3',
 			),
 		);
 
@@ -157,7 +157,7 @@ class RepositoryTest extends TestCase {
 		( new TAAS_Course_Repository() )->find_by_professor_and_term( '87654321', TAAS_Semester::Summer_B, 2026 );
 
 		$this->assertSame(
-			"SELECT * FROM `wp_taas_core_courses` WHERE `professor_ufid` = '87654321' AND `course_semester` = '4' AND `course_year` = '2026' ORDER BY `course_id`",
+			"SELECT c.* FROM `wp_taas_core_courses` c INNER JOIN `wp_taas_core_professors` p ON p.professor_id = c.professor_id WHERE p.professor_ufid = '87654321' AND c.course_semester = 4 AND c.course_year = 2026 ORDER BY c.course_id",
 			$this->db->sql
 		);
 	}
@@ -575,5 +575,18 @@ class RepositoryTest extends TestCase {
 	public function test_insert_rejects_wrong_row_class(): void {
 		$this->expectException( InvalidArgumentException::class );
 		( new TAAS_Student_Repository() )->insert( new TAAS_Application( null, '12345678', 12345 ) );
+	}
+
+	/**
+	 * A professor with no row for their UFID claims the unclaimed row matching one of their emails
+	 */
+	public function test_find_or_claim_links_ufid_by_email(): void {
+		$professor = ( new TAAS_Professor_Repository() )->find_or_claim( '12345678', array( ' JDoe@UFL.edu ', '', 'jdoe@ufl.edu' ) );
+
+		$this->assertNull( $professor );
+		$this->assertSame(
+			array( "UPDATE `wp_taas_core_professors` SET professor_ufid = '12345678' WHERE professor_email = 'jdoe@ufl.edu' AND professor_ufid IS NULL" ),
+			$this->db->queries
+		);
 	}
 }

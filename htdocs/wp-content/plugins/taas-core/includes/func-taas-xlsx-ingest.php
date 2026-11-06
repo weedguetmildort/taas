@@ -16,7 +16,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
  * - Headers must match exactly, including case and spacing
  * - Any other header is ignored
  * - Columns come from the courses table, except professor_name and professor_email, which
- * come from the professors table and are used to look up professor_ufid
+ * come from the professors table and are used to find or add the course's professor
  * - Type, length and default for each column are read from the database, not set here
  * - Order of headers do not matter
  */
@@ -28,7 +28,6 @@ const TAAS_COURSE_HEADERS = array(
 	'Year'               => array( 'course_year', true ),
 	'UFO'                => array( 'is_online', true ),
 	'Description'        => array( 'course_description', false ),
-	'Notes'              => array( 'course_notes', false ),
 	'Lab Hour'           => array( 'lab_hours', true ),
 	'Current Enrollment' => array( 'enrollment', true ),
 	'Maximum Enrollment' => array( 'max_enrollment', true ),
@@ -41,7 +40,7 @@ const TAAS_COURSE_HEADERS = array(
  *
  * @param array $cells Header row cells
  * @return array<int, array{header: string, schema_field: string}> Known headers, keyed by cell index
- * @throws RuntimeException If a required header is missing.
+ * @throws UnexpectedValueException If a required header is missing.
  */
 function taas_map_headers( array $cells ): array {
 	$wanted = array();
@@ -80,7 +79,7 @@ function taas_map_headers( array $cells ): array {
 
 	// If required header(s) missing, throw exception and do not ingest file at all
 	if ( ! empty( $missing ) ) {
-		throw new RuntimeException( 'Missing required headers: ' . esc_html( implode( ', ', $missing ) ) );
+		throw new UnexpectedValueException( 'Missing required headers: ' . esc_html( implode( ', ', $missing ) ) );
 	}
 
 	return $map;
@@ -237,13 +236,17 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
  * imported on its own: a bad row is skipped and reported, and the rest carry on.
  *
  * Notes:
- * - Professors must already exist; each row's professor is found by name and GLID (email).
+ * - Each row's professor is found by GLID (email) alone, and added if new, with the database assigning their id.
+ *   An existing professor keeps their name, however a row spells it. Later rows with the same GLID reuse that id.
+ *   Their UFID is filled in when they first sign in.
  * - A course with the same term, year, code and name, in the database or earlier in the file, is replaced by the later row.
+ * - A missing required header throws UnexpectedValueException, from taas_map_headers(), and a file
+ *   that isn't a readable XLSX throws \PhpOffice\PhpSpreadsheet\Exception.
  *
  * @param string $file_path Path to a .xlsx file
  * @return array{courses: int, replaced: int, skipped: int, messages: array<array{row: int, header: string, message: string}>}
  * @throws InvalidArgumentException If the file is not .xlsx.
- * @throws RuntimeException If the file is unreadable or a required header is missing.
+ * @throws RuntimeException If the file does not exist or cannot be read.
  */
 function taas_import_courses( string $file_path ): array {
 	global $wpdb;
@@ -258,15 +261,19 @@ function taas_import_courses( string $file_path ): array {
 
 	$fields     = taas_table_fields( 'courses' ) + taas_table_fields( 'professors' );
 	$courses    = TAAS_Schema::table( 'courses' );
-	$professors = TAAS_Schema::table( 'professors' );
-	$result     = array(
+	$professors = new TAAS_Professor_Repository();
+
+	// Ids of the professors found or created by this import, keyed by normalized email
+	$professor_ids = array();
+	$result        = array(
 		'courses'  => 0,
 		'replaced' => 0,
 		'skipped'  => 0,
 		'messages' => array(),
 	);
 
-	$spreadsheet = IOFactory::load( $file_path );
+	// Read it only as XLSX, since PhpSpreadsheet would otherwise guess the format from the contents
+	$spreadsheet = IOFactory::load( $file_path, 0, array( IOFactory::READER_XLSX ) );
 
 	try {
 		$sheet       = $spreadsheet->getSheet( 0 );
@@ -287,28 +294,29 @@ function taas_import_courses( string $file_path ): array {
 
 			// If course was successfully parsed
 			if ( null !== $course ) {
-				// Get professor_ufid
-				$course['professor_ufid'] = $wpdb->get_var(
-					$wpdb->prepare(
-						'SELECT professor_ufid FROM %i WHERE professor_name = %s AND professor_email = %s',
-						$professors,
-						$course['professor_name'],
-						$course['professor_email']
-					)
-				);
+				// Find the professor by email, adding them if new, the first time their email appears, then reuse their id
+				$email = TAAS_Professor_Repository::normalize_email( $course['professor_email'] );
+
+				try {
+					$professor_ids[ $email ] ??= $professors->find_or_create( $email, $course['professor_name'] );
+
+					$course['professor_id'] = $professor_ids[ $email ];
+				} catch ( RuntimeException $e ) {
+					$course['professor_id'] = null;
+					$messages[]             = array(
+						'header'  => 'GLID',
+						'message' => 'Could not save professor (' . $e->getMessage() . '), row skipped',
+					);
+				}
 
 				// Unset these professor_name and professor_email since these aren't fields that a course object has in schema
 				unset( $course['professor_name'], $course['professor_email'] );
 
 				$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
 
-				// If professor_ufid is not found, skip row
-				if ( null === $course['professor_ufid'] ) {
-					$messages[] = array(
-						'header'  => 'Professor Teaching',
-						'message' => 'Professor not found, row skipped',
-					);
-					$course     = null;
+				// If the professor could not be saved, skip row
+				if ( null === $course['professor_id'] ) {
+					$course = null;
 				} else {
 					// A course that already exists is replaced by this row, keeping its id so its applications stay linked
 					$existing_id = $wpdb->get_var(

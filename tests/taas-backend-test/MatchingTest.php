@@ -17,7 +17,7 @@ class MatchingTest extends TestCase {
 	/**
 	 * Professor UFID used on every test course
 	 */
-	private const PROFESSOR = '99999999';
+	private const PROFESSOR = 1;
 
 	/**
 	 * Build a course that needs the given number of TA hours
@@ -43,7 +43,7 @@ class MatchingTest extends TestCase {
 			course_id: $course_id,
 			course_code: 'COP1234',
 			course_name: 'TestCourse',
-			professor_ufid: self::PROFESSOR,
+			professor_id: self::PROFESSOR,
 			course_semester: TAAS_Semester::Fall,
 			course_year: 2026,
 			lab_hours: $lab_hours,

@@ -83,11 +83,7 @@ try {
 				--$period['year'];
 			}
 			taas_test_set_period( $period );
-			$professor = '99997000';
-			while ( $repos['professors']->find( $professor ) ) {
-				$professor = (string) ( (int) $professor - 1 );
-			}
-			$repos['professors']->insert( new TAAS_Professor( $professor, 'Edit verification', 'edit-professor@example.invalid' ) );
+			$professor = (int) $repos['professors']->insert( new TAAS_Professor( null, null, 'Edit verification', 'edit-professor@example.invalid' ) );
 			$ids = array();
 			foreach ( array( 'A', 'B', 'C' ) as $code ) {
 				$ids[ $code ] = (string) $repos['courses']->insert( new TAAS_Course( null, 'TEST' . $code, 'Course ' . $code, $professor, TAAS_Semester::Summer_A, $period['year'] ) );

@@ -467,9 +467,10 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 			return null;
 		}
 
-		$course = $this->courses->find( $course_id );
+		$course    = $this->courses->find( $course_id );
+		$professor = null === $course ? null : ( new TAAS_Professor_Repository() )->find( $course->professor_id );
 
-		return null !== $course && $course->professor_ufid === $ufid ? $course : null;
+		return null !== $professor && $professor->professor_ufid === $ufid ? $course : null;
 	}
 
 	/**

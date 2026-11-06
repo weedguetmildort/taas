@@ -172,7 +172,7 @@ global $wpdb;
 $students = new TAAS_Student_Repository();
 $professors = new TAAS_Professor_Repository();
 $owner = '';
-$professor = '';
+$professor = 0;
 $course_ids = array();
 $directory = sys_get_temp_dir() . '/taas-concurrency-' . bin2hex( random_bytes( 8 ) );
 if ( ! mkdir( $directory, 0700 ) ) {
@@ -193,11 +193,8 @@ try {
 	} while ( $students->find( $candidate ) );
 	$students->insert( new TAAS_Student( $candidate, 'Concurrent fixture', 'fixture@ufl.edu' ) );
 	$owner = $candidate;
-	do {
-		$candidate = (string) random_int( 90000000, 99999999 );
-	} while ( $professors->find( $candidate ) );
-	$professors->insert( new TAAS_Professor( $candidate, 'Concurrent fixture', 'fixture@example.invalid' ) );
-	$professor = $candidate;
+	// Workers commit on their own connections, so a unique email keeps a crashed run's leftover row from blocking the next one.
+	$professor = (int) $professors->insert( new TAAS_Professor( null, null, 'Concurrent fixture', 'fixture-' . bin2hex( random_bytes( 6 ) ) . '@example.invalid' ) );
 	foreach ( array( 'A', 'B', 'C' ) as $letter ) {
 		$id = (string) ( new TAAS_Course_Repository() )->insert( new TAAS_Course( null, 'RACE' . $letter, 'Concurrent fixture ' . bin2hex( random_bytes( 6 ) ), $professor, TAAS_Semester::Summer_C, 2155 ) );
 		$course_ids[] = $id;
@@ -324,7 +321,7 @@ try {
 	}
 	foreach ( $course_ids as $id ) {
 		$wpdb->delete( TAAS_Schema::table( 'courses' ), array( 'course_id' => $id ) ); }
-	if ( '' !== $professor ) {
+	if ( 0 !== $professor ) {
 		$professors->delete( $professor ); }
 	foreach ( glob( "$directory/*" ) as $file ) {
 		unlink( $file ); }

@@ -90,7 +90,7 @@ Returns 404 `taas_no_current_cycle` if no cycle has been set.
 | --- | --- |
 | `term`, `year` | Defaults to the current application cycle's term |
 | `course_code` | Exact match. A code can return several courses, because one code such as CIS4930 can cover several topics |
-| `professor_ufid` | Admin and HR only, and ignored for other callers |
+| `professor_id` | Exact match |
 
 **Response body:**
 
@@ -109,7 +109,7 @@ Returns 404 `taas_no_current_cycle` if no cycle has been set.
     "lab_hours": 2,
     "enrollment": 175,
     "max_enrollment": 200,
-    "professor_ufid": "87654321",
+    "professor_id": 3,
     "professor_name": "Dr. Smith",
     "professor_email": "smith@ufl.edu"
   }
@@ -123,7 +123,6 @@ Returns 404 `taas_no_current_cycle` if no cycle has been set.
 | `course_notes` | string, *nullable* | The professor's notes for matching, up to 1000 characters |
 | `weekly_hours` | integer, *nullable* | Total TA hours per week for the whole course, not per TA |
 | `lab_hours` | integer | 0, 1 or 2 |
-| `professor_ufid` | string | Only returned to admin and HR |
 
 The server calculates `weekly_hours` from `enrollment` and `lab_hours`. It is `null` when `enrollment` is under 10.
 

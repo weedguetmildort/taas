@@ -46,7 +46,8 @@ docker compose exec wordpress php /var/www/taas/bin/import-courses.php /var/www/
 ```
 
 `real-data/` is gitignored, for real course files that must never be committed.
-Course import runs locally only; the server has no `vendor/`.
+Course import, by this script or `POST /courses/import`, runs locally only; the server has no `vendor/`.
+The route loads PhpSpreadsheet from `TAAS_COMPOSER_AUTOLOAD`, which `docker-compose.yml` sets.
 
 ### UF theme
 

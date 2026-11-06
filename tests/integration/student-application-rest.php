@@ -85,12 +85,9 @@ try {
 				--$period['year'];
 			}
 			taas_test_set_period( $period );
-			$professor = '99999000';
-			while ( null !== $repos['professors']->find( $professor ) ) {
-				$professor = (string) ( (int) $professor - 1 );
-			}
-			$fixture_professor = new TAAS_Professor( $professor, 'API Test Professor', 'api-professor@example.invalid' );
-			$repos['professors']->insert( $fixture_professor );
+			$professor = (int) $repos['professors']->insert( new TAAS_Professor( null, null, 'API Test Professor', 'api-professor@example.invalid' ) );
+			// Keep the assigned id, so re-inserting after the rollback below still matches the saved courses.
+			$fixture_professor = $repos['professors']->find( $professor );
 			$id = (string) $repos['courses']->insert( new TAAS_Course( null, 'TEST1000', 'Application API verification', $professor, TAAS_Semester::Summer_C, $period['year'] ) );
 			$fixture_courses[] = $repos['courses']->find( $id );
 			$other_id = (string) $repos['courses']->insert( new TAAS_Course( null, 'TEST2000', 'Other term', $professor, TAAS_Semester::Fall, $period['year'] ) );

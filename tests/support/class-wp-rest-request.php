@@ -19,13 +19,19 @@ class WP_REST_Request implements ArrayAccess {
 	 * @param array  $url_params Path parameters.
 	 * @param string $method     HTTP method.
 	 * @param string $route      Request route.
+	 * @param array  $files      Uploaded files, shaped like $_FILES.
 	 */
 	public function __construct(
 		private array $params = array(),
 		private array $url_params = array(),
 		private string $method = 'GET',
-		private string $route = '/taas/v1/test'
+		private string $route = '/taas/v1/test',
+		private array $files = array()
 	) {}
+
+	public function get_file_params() {
+		return $this->files;
+	}
 
 	public function has_param( $key ) {
 		return array_key_exists( $key, $this->params );

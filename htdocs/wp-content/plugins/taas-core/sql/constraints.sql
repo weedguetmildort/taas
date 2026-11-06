@@ -30,7 +30,7 @@ ALTER TABLE {prefix}student_submissions
 -- with live courses should fail loudly rather than delete the courses.
 ALTER TABLE {prefix}courses
 	ADD CONSTRAINT fk_courses_professor
-	FOREIGN KEY (professor_ufid) REFERENCES {prefix}professors(professor_ufid);
+	FOREIGN KEY (professor_id) REFERENCES {prefix}professors(professor_id);
 
 -- Applications follow their student
 ALTER TABLE {prefix}applications

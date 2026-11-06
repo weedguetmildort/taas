@@ -30,6 +30,15 @@ final class TAAS_REST_Professor_Controller extends TAAS_REST_Resource_Controller
 	}
 
 	/**
+	 * Route pattern for a professor_id.
+	 *
+	 * @return string
+	 */
+	protected function id_pattern(): string {
+		return '\d+';
+	}
+
+	/**
 	 * Query parameters for the list route.
 	 *
 	 * @return array<string, array>
