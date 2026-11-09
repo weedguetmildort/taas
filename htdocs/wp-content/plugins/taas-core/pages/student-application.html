@@ -91,6 +91,23 @@
             </datalist>
           </div>
         </div>
+        <section class="form-section" data-fws-section hidden aria-labelledby="fws-heading">
+          <h2 id="fws-heading">Federal Work-Study</h2>
+          <div class="form-grid">
+            <label>Are you eligible for Federal Work-Study? (required)
+              <select name="fwsEligibility" disabled required>
+                <option value="">Select answer</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+                <option value="not_applicable">N/A</option>
+              </select>
+            </label>
+            <label>FWS award letter URL
+              <input name="fwsAwardLetterUrl" type="url" maxlength="255" placeholder="https://…" disabled aria-describedby="fws-award-letter-help">
+              <small id="fws-award-letter-help">Submit link to a PDF of the award letter uploaded in a file sharing site such as google drive, dropbox, etc</small>
+            </label>
+          </div>
+        </section>
         <div class="wp-block-group form-section">
           <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
             <h2 class="wp-block-heading">Eligibility Information</h2>
@@ -190,7 +207,7 @@
   <p class="empty-course-rankings">No active course preferences remain for this term.</p>
 </template>
 <template data-course-template="header">
-<div class="course-table-header"><span></span><span>Course number</span><span>Course name</span><span>Instructor</span><span>Class days</span><span>Class times</span></div>
+<div class="course-table-header"><span></span><span>Course number</span><span>Course name</span><span>Instructor</span></div>
 </template>
 <template data-course-template="row">
 <label class="available-course-option">
@@ -198,8 +215,6 @@
   <span class="course-detail"><span data-course-text="course_code">Not provided</span></span>
   <span class="course-detail"><span data-course-text="course_name">Not provided</span></span>
   <span class="course-detail"><span data-course-text="instructor_name">Not provided</span></span>
-  <span class="course-detail"><span data-course-text="days">Not provided</span></span>
-  <span class="course-detail"><span data-course-text="times">Not provided</span></span>
 </label>
 </template>
 <template data-course-template="ranking">
@@ -207,8 +222,6 @@
   <legend><span data-course-text="course_code"></span> — <span data-course-text="course_name"></span></legend>
   <div class="course-information course-ranking-information">
     <span class="course-detail"><span class="course-detail-label">Instructor</span><span data-course-text="instructor_name">Not provided</span></span>
-    <span class="course-detail"><span class="course-detail-label">Class days</span><span data-course-text="days">Not provided</span></span>
-    <span class="course-detail"><span class="course-detail-label">Class times</span><span data-course-text="times">Not provided</span></span>
   </div>
   <label><span>Preference rank</span>
     <select name="courseRank" required><option value="">Select rank</option></select>

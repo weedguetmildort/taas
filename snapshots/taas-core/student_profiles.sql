@@ -16,7 +16,10 @@ CREATE TABLE `{prefix}student_profiles` (
   `eap5837_status` tinyint unsigned DEFAULT NULL,
   `country_code` varchar(2) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `additional_info` varchar(1000) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `fws_eligibility` varchar(14) COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT 'no',
+  `fws_award_letter_url` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   PRIMARY KEY (`student_ufid`),
   CONSTRAINT `fk_profiles_student` FOREIGN KEY (`student_ufid`) REFERENCES `{prefix}students` (`student_ufid`) ON DELETE CASCADE,
+  CONSTRAINT `chk_profiles_fws_eligibility` CHECK ((`fws_eligibility` in (_utf8mb4'yes',_utf8mb4'no',_utf8mb4'not_applicable'))),
   CONSTRAINT `chk_profiles_gpa` CHECK (((`gpa` is null) or ((`gpa` >= 0) and (`gpa` <= 4.00))))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci

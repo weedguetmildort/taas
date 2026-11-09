@@ -194,6 +194,23 @@ try {
 				'Reordering through the application creates fresh IDs and preserves the new degree order'
 			);
 			taas_profile_check( 'Mathematics' === $profiles->find( $owner )->major && 3.9 === $profiles->find( $owner )->gpa, 'Reordering makes the new first degree supply the shared profile summary' );
+			$body['details']['profile']['enrollment_status'] = 1;
+			$body['details']['profile']['fws_eligibility'] = 'yes';
+			$body['details']['profile']['fws_award_letter_url'] = 'https://example.com/fws-letter';
+			$body['details']['profile']['resume_url'] = 'https://example.com/resume';
+			$save( $body );
+			$stored = $profiles->find( $owner );
+			$fws_details = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 )->submitted_details;
+			taas_profile_check( 'yes' === $stored->fws_eligibility && 'https://example.com/fws-letter' === $stored->fws_award_letter_url && 'https://example.com/resume' === $stored->resume_url, 'FWS eligibility and award letter persist separately from the resume' );
+			taas_profile_check( 'yes' === $fws_details['profile']['fws_eligibility'] && $stored->fws_award_letter_url === $fws_details['profile']['fws_award_letter_url'], 'FWS data is included in the saved application snapshot' );
+			$submissions->save_for_term( $owner, TAAS_Semester::Spring, 2155, $fws_details );
+			$body['details']['profile']['enrollment_status'] = 2;
+			$save( $body );
+			$stored = $profiles->find( $owner );
+			$graduate = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 )->submitted_details['profile'];
+			taas_profile_check( 'no' === $stored->fws_eligibility && null === $stored->fws_award_letter_url && 'no' === $graduate['fws_eligibility'] && null === $graduate['fws_award_letter_url'], 'Saving graduate status sets FWS eligibility to no and clears the award letter in the shared profile and edited term' );
+			taas_profile_check( 'https://example.com/resume' === $stored->resume_url && $fws_details === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Spring, 2155 )->submitted_details, 'Graduate clearing preserves the resume and earlier terms including their FWS data' );
+
 			throw $sentinel;
 		}
 	);

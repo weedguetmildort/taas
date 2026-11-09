@@ -271,3 +271,34 @@ foreach ( array( 'course-A', '0', '-1', '+1', '01', '1.5', '1e2', '9223372036854
 	taas_input_rejects( $request, 'Course IDs must be canonical positive numeric strings within PHP integer range.' );
 }
 echo "PASS: Invalid or ambiguous numeric course IDs are rejected\n";
+
+$request = $body;
+$request['details']['profile']['enrollment_status'] = 1;
+taas_input_rejects( $request, 'Undergraduates must answer FWS eligibility.' );
+foreach ( array( null, '', true, false, 1, 'N/A', 'unknown', array() ) as $invalid ) {
+	$request['details']['profile']['fws_eligibility'] = $invalid;
+	taas_input_rejects( $request, 'FWS eligibility accepted an invalid answer.' );
+}
+foreach ( array( 'no', 'not_applicable' ) as $answer ) {
+	$request['details']['profile']['fws_eligibility'] = $answer;
+	$profile = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
+	taas_input_check( $answer === $profile['fws_eligibility'] && null === $profile['fws_award_letter_url'], 'No and N/A do not require an award letter.' );
+}
+$request['details']['profile']['fws_eligibility'] = 'yes';
+taas_input_rejects( $request, 'Yes requires an FWS award letter URL.' );
+foreach ( array( null, '', '  ', true, array(), 'javascript:alert(1)', 'ftp://example.com/letter', '//example.com/letter', 'example.com', 'https://example.com/' . str_repeat( 'a', 255 ) ) as $url ) {
+	$request['details']['profile']['fws_award_letter_url'] = $url;
+	taas_input_rejects( $request, 'An invalid FWS award letter URL was accepted.' );
+}
+$request['details']['profile']['resume_url'] = 'https://example.com/resume';
+foreach ( array( 'https://example.com/letter', 'http://example.com/letter' ) as $url ) {
+	$request['details']['profile']['fws_award_letter_url'] = ' ' . $url . ' ';
+	$profile = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
+	taas_input_check( $url === $profile['fws_award_letter_url'] && 'https://example.com/resume' === $profile['resume_url'], 'FWS award letters are trimmed and remain separate from resumes.' );
+}
+foreach ( array( 2, 3 ) as $graduate_status ) {
+	$request['details']['profile']['enrollment_status'] = $graduate_status;
+	$profile = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
+	taas_input_check( 'no' === $profile['fws_eligibility'] && null === $profile['fws_award_letter_url'], 'Graduate saves discard hidden FWS data on the server.' );
+}
+echo "PASS: Required FWS answers, conditional award letter validation, and graduate clearing\n";

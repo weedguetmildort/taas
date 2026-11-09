@@ -215,11 +215,15 @@ Submits the student's first application for the period's term. Edits to an exist
 | `enrollment_status` | yes | `1` Undergraduate, `2` Masters, `3` PhD |
 | `eap5836_status`, `eap5837_status` | yes | `1` Taken at UF, `2` Taken elsewhere, `3` Currently taking, `4` Not taken. Required for every student, not only PhD students |
 | `resume_url` | no | An `http` or `https` URL, up to 255 characters. Omitted, `null` and `""` are all saved as `null` |
+| `fws_eligibility` | undergraduates | `yes`, `no`, or `not_applicable`; an explicit answer is required. Graduate saves normalize this to `no`. The profile column is non-nullable and defaults to `no`. |
+| `fws_award_letter_url` | when FWS is `yes` | Separate FWS award letter link: complete HTTP/HTTPS URL, maximum 255 characters. The column is nullable; omitted, `null`, and empty values become `null` unless eligibility is `yes`. Graduate saves always clear it to `null`. |
 | `additional_info` | no | Up to 1000 characters. Saved as `""` when omitted |
 | `toefl_ibt_score` | see below | 0 to 999.9, with at most one decimal place, or `null` |
 | `toefl_ibt_date` | see below | `YYYY-MM-DD`, or `null` |
 | `speak_score` | see below | A whole number, 0 or more, or `null` |
 | `speak_date` | see below | `YYYY-MM-DD`, or `null` |
+
+FWS fields are stored in both the shared student profile and the submitted term snapshot. Saving graduate status sets eligibility to `no` and clears the award letter URL for that profile and term only; earlier terms remain unchanged. Existing snapshots without FWS fields remain readable, but undergraduates must answer eligibility when saving edits. The form preserves FWS entries while toggling college status before saving; a successful graduate save clears those entries.
 
 Send all four exam fields, using `null` for any that are empty. A score doesn't need a date, and a date doesn't need a score. Sending only some of the four returns 400.
 

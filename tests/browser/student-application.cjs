@@ -75,6 +75,35 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     const verifiedEmail = await page.locator('[name="ufEmail"]').inputValue();
     await page.locator('[name="toeflScore"]').fill('5.5');
     await page.locator('[name="additionalInfo"]').fill('Keep my entries after a failure.');
+    const fws = page.locator('[data-fws-section]');
+    const eligibility = page.locator('[name="fwsEligibility"]');
+    const letter = page.locator('[name="fwsAwardLetterUrl"]');
+    assert(await fws.isHidden());
+    await page.locator('[name="collegeStatus"]').selectOption('undergraduate');
+    assert(await fws.isVisible());
+    assert.equal(await eligibility.inputValue(), '');
+    await page.locator('#student-application-form [type="submit"]').click();
+    assert.equal(bodies.length, 0);
+    assert.equal(await eligibility.evaluate(input => input.validity.valueMissing), true);
+    for (const answer of ['no', 'not_applicable']) {
+      await eligibility.selectOption(answer);
+      assert.equal(await page.locator('#student-application-form').evaluate(form => form.checkValidity()), true);
+    }
+    await eligibility.selectOption('yes');
+    await page.locator('#student-application-form [type="submit"]').click();
+    assert.equal(bodies.length, 0);
+    assert.equal(await letter.evaluate(input => input.validity.valueMissing), true);
+    await letter.fill('ftp://example.com/letter');
+    await page.locator('#student-application-form [type="submit"]').click();
+    assert.equal(bodies.length, 0);
+    await letter.fill('https://example.com/fws-letter');
+    await page.locator('[name="collegeStatus"]').selectOption('masters');
+    assert(await fws.isHidden());
+    await page.locator('[name="collegeStatus"]').selectOption('undergraduate');
+    assert.equal(await eligibility.inputValue(), 'yes');
+    assert.equal(await letter.inputValue(), 'https://example.com/fws-letter');
+    await page.locator('[name="collegeStatus"]').selectOption('masters');
+    console.log('PASS: Undergraduate FWS requires an answer and a valid letter for Yes; unsaved toggles retain entries');
     await page.locator('#student-application-form [type="submit"]').click();
     await page.getByText('Temporary test failure. Please retry.', { exact: true }).waitFor();
     assert.equal(await page.locator('[name="lastName"]').inputValue(), "O'Brien");
@@ -85,6 +114,8 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert.equal(bodies[0].details.profile.country_code, 'US');
     assert.equal(bodies[0].details.profile.enrollment_status, 2);
     assert.equal(bodies[0].details.profile.resume_url, null);
+    assert.equal(bodies[0].details.profile.fws_eligibility, 'no');
+    assert.equal(bodies[0].details.profile.fws_award_letter_url, null);
     assert.equal(bodies[0].details.academic_background[1].gpa, null);
     assert.equal(bodies[0].details.academic_background[1].grad_date, '2028-05-01');
     assert.equal(bodies[0].course_preferences.length, 1);

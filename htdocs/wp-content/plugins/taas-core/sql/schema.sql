@@ -36,6 +36,8 @@ CREATE TABLE {prefix}student_profiles (
 	gpa decimal(3,2) DEFAULT NULL,                      -- most current GPA
 	enrollment_status tinyint unsigned DEFAULT NULL,    -- current program, 0 = Not Enrolled, 1 = Undergraduate, 2 = Masters, 3 = PhD (bind to PHP enum)
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
+	fws_eligibility varchar(14) NOT NULL DEFAULT 'no',  -- yes, no, not_applicable; graduates/default profiles use no
+	fws_award_letter_url varchar(255) DEFAULT NULL,     -- separate from the resume; required for eligible undergraduates
 	speak_score int DEFAULT NULL,                       -- international students only
 	speak_date date DEFAULT NULL,
 	toefl_ibt_score decimal(4,1) DEFAULT NULL,          -- international students only

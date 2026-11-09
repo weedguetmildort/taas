@@ -22,7 +22,7 @@
       'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone',
       'eap5836Status', 'eap5837Status', 'taHours', 'firstName', 'lastName'
     ];
-    const optional = ['ufid', 'toeflScore', 'toeflDate', 'speakScore', 'speakDate', 'additionalInfo', 'resumeUrl'];
+    const optional = ['ufid', 'toeflScore', 'toeflDate', 'speakScore', 'speakDate', 'additionalInfo', 'resumeUrl', 'fwsEligibility', 'fwsAwardLetterUrl'];
     const inputs = {};
     for (const name of [...required, ...optional]) {
       const matches = [...form.elements].filter(input => input.name === name);
@@ -105,6 +105,8 @@
         phone: profile.phone || '',
         taHours: profile.available_hours || '',
         resumeUrl: profile.resume_url || '',
+        fwsEligibility: profile.enrollment_status === PROGRAMS.undergraduate ? profile.fws_eligibility || '' : '',
+        fwsAwardLetterUrl: profile.fws_award_letter_url || '',
         additionalInfo: profile.additional_info || ''
       };
       if (editing) {
@@ -121,6 +123,35 @@
       inputs.eap5837Status.value = keyForValue(EAP_STATUSES, profile.eap5837_status);
       prefillAdmissionSemester(profile.admitted_semester);
       prefillExamResults(data, profile);
+      updateFws();
+    }
+
+    function updateFws() {
+      const undergraduate = inputs.collegeStatus.value === 'undergraduate';
+      const notRequired = ['no', 'not_applicable'].includes(inputs.fwsEligibility?.value);
+      const section = form.querySelector('[data-fws-section]');
+      if (section) section.hidden = !undergraduate;
+      if (inputs.fwsEligibility) {
+        inputs.fwsEligibility.disabled = !undergraduate;
+        inputs.fwsEligibility.required = undergraduate;
+      }
+      if (inputs.fwsAwardLetterUrl) {
+        inputs.fwsAwardLetterUrl.disabled = !undergraduate || notRequired;
+        inputs.fwsAwardLetterUrl.toggleAttribute('data-fws-not-required', notRequired);
+        inputs.fwsAwardLetterUrl.required = undergraduate && inputs.fwsEligibility?.value === 'yes';
+        inputs.fwsAwardLetterUrl.setCustomValidity('');
+      }
+      const help = form.querySelector('#fws-award-letter-help');
+      if (help) help.textContent = notRequired
+        ? 'Not required. You do not need to provide an FWS award letter for No or N/A.'
+        : 'Submit link to a PDF of the award letter uploaded in a file sharing site such as google drive, dropbox, etc';
+    }
+
+    function didSave() {
+      if (inputs.collegeStatus.value !== 'undergraduate') {
+        setValue('fwsEligibility', '');
+        setValue('fwsAwardLetterUrl', '');
+      }
     }
 
     function validateIdentity() {
@@ -139,6 +170,15 @@
 
     function collect() {
       const { country, name } = validateIdentity();
+      updateFws();
+      const awardLetter = inputs.fwsAwardLetterUrl;
+      if (inputs.collegeStatus.value === 'undergraduate' && !awardLetter?.disabled && awardLetter?.value.trim()) {
+        try {
+          if (!['http:', 'https:'].includes(new URL(awardLetter.value.trim()).protocol)) throw new Error();
+        } catch {
+          awardLetter.setCustomValidity('Provide a valid HTTP or HTTPS FWS award letter URL.');
+        }
+      }
       if (!form.reportValidity()) return null;
       const values = new FormData(form);
       // FormData omits disabled controls; retain their displayed values too.
@@ -156,6 +196,8 @@
           eap5836_status: EAP_STATUSES[read('eap5836Status')],
           eap5837_status: EAP_STATUSES[read('eap5837Status')],
           resume_url: read('resumeUrl') || null,
+          fws_eligibility: read('collegeStatus') === 'undergraduate' ? read('fwsEligibility') || null : 'no',
+          fws_award_letter_url: read('collegeStatus') === 'undergraduate' && !['no', 'not_applicable'].includes(read('fwsEligibility')) ? read('fwsAwardLetterUrl') || null : null,
           toefl_ibt_score: score('toeflScore'),
           toefl_ibt_date: read('toeflDate') || null,
           speak_score: score('speakScore'),
@@ -173,6 +215,9 @@
         nameErrorInput.setCustomValidity('');
       });
     });
-    return { prefill, collect };
+    inputs.collegeStatus.addEventListener('change', updateFws);
+    inputs.fwsEligibility?.addEventListener('change', updateFws);
+    inputs.fwsAwardLetterUrl?.addEventListener('input', () => inputs.fwsAwardLetterUrl.setCustomValidity(''));
+    return { prefill, collect, updateFws, didSave };
   };
 })();

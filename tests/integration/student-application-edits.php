@@ -256,6 +256,7 @@ try {
 			$edit['details']['profile']['speak_score'] = null;
 			$edit['details']['profile']['speak_date'] = null;
 			$edit['details']['profile']['enrollment_status'] = 1;
+			$edit['details']['profile']['fws_eligibility'] = 'not_applicable';
 			$edit['course_preferences'] = array(
 				array(
 					'course_id'            => $ids['B'],

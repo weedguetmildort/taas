@@ -84,6 +84,7 @@
       try {
         const savedApplication = await applicationApi.save(state.endpoint, submission);
         state.revision = savedApplication.revision;
+        applicationForm.didSave();
         applicationForm.showMessage('Your application changes were saved.', 'success');
         notifyStatusPage('saved');
       } catch (error) {

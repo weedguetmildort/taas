@@ -42,6 +42,7 @@ final class TAAS_Student_Application_Input {
 	 *       available_hours: int, enrollment_status: int,
 	 *       eap5836_status: int, eap5837_status: int,
 	 *       resume_url: string|null, additional_info: string,
+	 *       fws_eligibility: string, fws_award_letter_url?: string|null,
 	 *       toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
 	 *       speak_score?: int|null, speak_date?: string|null,
 	 *       english_test?: array{type: string, score: int|float}|null
@@ -116,6 +117,8 @@ final class TAAS_Student_Application_Input {
 				'eap5836_status',
 				'eap5837_status',
 				'resume_url',
+				'fws_eligibility',
+				'fws_award_letter_url',
 				'english_test',
 				'toefl_ibt_score',
 				'toefl_ibt_date',
@@ -155,7 +158,40 @@ final class TAAS_Student_Application_Input {
 			'eap5837_status'    => self::read_integer( $profile, 'eap5837_status', 1, 4 ),
 			'resume_url'        => '' === $resume_url ? null : $resume_url,
 			'additional_info'   => self::read_text( $profile, 'additional_info', 1000, false ),
-		) + self::parse_exam_results( $profile );
+		) + self::parse_fws( $profile, $enrollment_status ) + self::parse_exam_results( $profile );
+	}
+
+	/**
+	 * Require an undergraduate's FWS answer and clear inapplicable graduate data.
+	 *
+	 * @param array $profile Submitted profile values.
+	 * @param int   $enrollment_status Validated current program.
+	 * @return array Normalized FWS fields for both the profile and term snapshot.
+	 * @throws InvalidArgumentException If the answer or award letter URL is invalid.
+	 */
+	private static function parse_fws( array $profile, int $enrollment_status ): array {
+		if ( TAAS_Enrollment_Status::Undergraduate->value !== $enrollment_status ) {
+			return array(
+				'fws_eligibility'      => 'no',
+				'fws_award_letter_url' => null,
+			);
+		}
+		$eligibility = $profile['fws_eligibility'] ?? null;
+		if ( ! in_array( $eligibility, array( 'yes', 'no', 'not_applicable' ), true ) ) {
+			throw new InvalidArgumentException( 'Select Yes, No, or N/A for FWS eligibility.' );
+		}
+		$url = self::read_text( $profile, 'fws_award_letter_url', 255, false );
+		if ( 'yes' === $eligibility && '' === $url ) {
+			throw new InvalidArgumentException( 'Provide your FWS award letter URL when FWS eligibility is Yes.' );
+		}
+		if ( '' !== $url && ( ! filter_var( $url, FILTER_VALIDATE_URL )
+			|| ! preg_match( '~^https?://~i', $url ) ) ) {
+			throw new InvalidArgumentException( 'Provide a valid HTTP or HTTPS FWS award letter URL.' );
+		}
+		return array(
+			'fws_eligibility'      => $eligibility,
+			'fws_award_letter_url' => '' === $url ? null : $url,
+		);
 	}
 
 	/**

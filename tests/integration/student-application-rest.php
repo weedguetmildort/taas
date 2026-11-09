@@ -100,19 +100,21 @@ try {
 					'student_name'        => "API O'Brien",
 					'student_email'       => TAAS_Auth::current_user()['email'],
 					'profile'             => array(
-						'phone'             => '3525550100',
-						'country_code'      => 'US',
-						'admitted_semester' => 'Fall 2025',
-						'available_hours'   => 10,
-						'enrollment_status' => 1,
-						'eap5836_status'    => 1,
-						'eap5837_status'    => 4,
-						'resume_url'        => null,
-						'english_test'      => array(
+						'phone'                => '3525550100',
+						'country_code'         => 'US',
+						'admitted_semester'    => 'Fall 2025',
+						'available_hours'      => 10,
+						'enrollment_status'    => 1,
+						'fws_eligibility'      => 'yes',
+						'fws_award_letter_url' => 'https://example.com/fws-letter',
+						'eap5836_status'       => 1,
+						'eap5837_status'       => 4,
+						'resume_url'           => null,
+						'english_test'         => array(
 							'type'  => 'TOEFL',
 							'score' => 5.5,
 						),
-						'additional_info'   => '001',
+						'additional_info'      => '001',
 					),
 					'academic_background' => array(
 						array(
@@ -223,6 +225,9 @@ try {
 			taas_test_set_period( array( 'closes_at' => time() - 1 ) + $period );
 			taas_application_check( 403 === taas_application_request( 'POST', '/student/application', $body )->get_status(), 'Passed deadline blocks submission without grace' );
 			taas_test_set_period( $period );
+			$missing_fws = $body;
+			unset( $missing_fws['details']['profile']['fws_eligibility'] );
+			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $missing_fws )->get_status(), 'The REST API rejects unanswered undergraduate FWS eligibility' );
 			$created = taas_application_request( 'POST', '/student/application', $body );
 			taas_application_check( 201 === $created->get_status(), 'Valid application is saved' );
 			taas_application_check( TAAS_Enrollment_Status::Undergraduate === $repos['profiles']->find( $owner )->enrollment_status, 'Undergraduate application saves the shared enrollment status' );
@@ -236,6 +241,7 @@ try {
 				),
 				'Prefill preserves English test type from the latest snapshot'
 			);
+			taas_application_check( 'yes' === $prefilled['profile']['fws_eligibility'] && 'https://example.com/fws-letter' === $prefilled['profile']['fws_award_letter_url'], 'REST prefill returns FWS eligibility and its separate award letter URL' );
 			$read = taas_application_request( 'GET', '/student/application/5/' . $period['year'] );
 			taas_application_check( 1 === $read->get_data()['details']['profile']['enrollment_status'], 'Undergraduate enrollment is preserved in the term snapshot' );
 			taas_application_check( 200 === $read->get_status() && 2 === count( $read->get_data()['details']['academic_background'] ), 'Snapshot read preserves both degrees' );

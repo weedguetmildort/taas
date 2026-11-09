@@ -43,6 +43,7 @@ final class TAAS_Student_Submission {
 	 *     available_hours: int, enrollment_status: int,
 	 *     eap5836_status: int, eap5837_status: int,
 	 *     resume_url: string|null, additional_info: string,
+	 *     fws_eligibility?: string|null, fws_award_letter_url?: string|null,
 	 *     toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
 	 *     speak_score?: int|null, speak_date?: string|null,
 	 *     english_test?: array{type: string, score: int|float}|null
