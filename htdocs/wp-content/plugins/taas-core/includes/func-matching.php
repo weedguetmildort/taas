@@ -10,6 +10,9 @@
  * - Every PhD student has applied to every course, so tier 6 is the catch-all for
  *   unassigned PhD students and no separate pass over all PhD students is needed
  * - Courses are processed in the order given, so earlier courses get first pick in each pass
+ * - Matches can be partial: a student's hours can be split across several courses, and a
+ *   course can be filled by several students. Each match takes the smaller of the student's
+ *   hours left and the course's hours left, in strict priority order
  * - Admin has final say in the matches and can edit, change, and finalize matches as needed
  *
  * Notes: Arrays keyed by UFID are documented as array<string, ...>, but PHP
@@ -77,44 +80,47 @@ function taas_calc_course_ta_hours( TAAS_Course $course ): int {
 /**
  * Match students to a course from a list of candidates, in order
  *
- * @param TAAS_Course                         $course   Course to staff
- * @param string[]                            $ufids    Candidate student UFIDs, in priority order
- * @param string                              $reason   Reason recorded on each match
- * @param array<string, TAAS_Student_Profile> $profiles Profiles keyed by student_ufid
- * @param array<string, int>                  $assigned Student UFID => course_id, updated in place
- * @param int                                 $cth      Course hours left to fill, updated in place
+ * Matches can be partial. Each student gets the smaller of their hours left and the
+ * course's hours left. A student with hours left over stays available to other
+ * courses, and a course that is only partly filled keeps looking.
+ *
+ * @param TAAS_Course                         $course     Course to staff
+ * @param string[]                            $ufids      Candidate student UFIDs, in priority order
+ * @param string                              $reason     Reason recorded on each match
+ * @param array<string, TAAS_Student_Profile> $profiles   Profiles keyed by student_ufid
+ * @param array<string, int>                  $hours_left Student UFID => hours not yet assigned, updated in place.
+ *                                                        A student missing from it has their full available_hours.
+ * @param int                                 $cth        Course hours left to fill, updated in place
  * @return array<string, array{student_ufid: string, hours: int, reason: string}> Matches keyed by student UFID
  */
-function taas_match_candidates( TAAS_Course $course, array $ufids, string $reason, array $profiles, array &$assigned, int &$cth ): array {
+function taas_match_candidates( TAAS_Course $course, array $ufids, string $reason, array $profiles, array &$hours_left, int &$cth ): array {
 	$matches = array();
 
 	foreach ( $ufids as $student_ufid ) {
 		// Stop once there are no course hours left to assign
-		if ( $cth < 10 ) {
+		if ( $cth <= 0 ) {
 			break;
 		}
 
-		// Ensure the student has not already been assigned/is available
-		if ( isset( $assigned[ $student_ufid ] ) ) {
+		// Hours the student can still give, from their profile if they have not been matched yet
+		$available = $hours_left[ $student_ufid ] ?? $profiles[ $student_ufid ]->available_hours ?? null;
+
+		// Skip students with no stated availability or no hours left
+		if ( null === $available || $available <= 0 ) {
 			continue;
 		}
 
-		$hours = $profiles[ $student_ufid ]->available_hours ?? null;
+		// Give the course as many of the student's hours as it still needs
+		$hours = min( $available, $cth );
 
-		// Skip students with no stated availability, or more hours than the course has left
-		if ( null === $hours || $hours <= 0 || $hours > $cth ) {
-			continue;
-		}
-
-		// If student is "available," add student to matches
 		$matches[ $student_ufid ] = array(
 			'student_ufid' => $student_ufid,
 			'hours'        => $hours,
 			'reason'       => $reason,
 		);
 
-		$assigned[ $student_ufid ] = $course->course_id;
-		$cth -= $hours;
+		$hours_left[ $student_ufid ] = $available - $hours;
+		$cth                        -= $hours;
 	}
 
 	return $matches;
@@ -131,34 +137,42 @@ function taas_match_candidates( TAAS_Course $course, array $ufids, string $reaso
  * 5. Applicants with previous TA experience
  * 6. Any remaining applicant
  *
- * Matches are keyed by student UFID, in the order they were made.
+ * Matches are keyed by student UFID, in the order they were made. Within this
+ * course, a student is matched at most once, under the first tier that reaches
+ * them while they still have hours. The same student may also be matched to
+ * other courses with their leftover hours.
  *
  * @param TAAS_Course                         $course      Course to staff
  * @param TAAS_Application[]                  $course_apps Applications for this course
  * @param array<string, TAAS_Student_Profile> $profiles    Profiles keyed by student_ufid
- * @param array<string, int>                  $assigned    Student UFID => course_id, updated in place
+ * @param array<string, int>                  $hours_left  Student UFID => hours not yet assigned, updated in place
  * @param int                                 $cth         Course hours left to fill, updated in place
  * @return array<string, array{student_ufid: string, hours: int, reason: string}> Matches keyed by student UFID
  */
-function taas_match_course( TAAS_Course $course, array $course_apps, array $profiles, array &$assigned, int &$cth ): array {
+function taas_match_course( TAAS_Course $course, array $course_apps, array $profiles, array &$hours_left, int &$cth ): array {
 	$matches = array();
 
 	// Go through each tier's applicants in order, adding each eligible student as a match
 	// If rank_field is given, that rank is added to the end of the reason (e.g. professor_preference_1)
-	$run_tier = function ( array $apps, string $reason, ?string $rank_field = null ) use ( &$cth, &$matches, &$assigned, $profiles, $course ): void {
+	$run_tier = function ( array $apps, string $reason, ?string $rank_field = null ) use ( &$cth, &$matches, &$hours_left, $profiles, $course ): void {
 		// Skip building the tier once the course is full
-		if ( $cth < 10 ) {
+		if ( $cth <= 0 ) {
 			return;
 		}
 
 		foreach ( $apps as $app ) {
+			// Already matched to this course in an earlier tier
+			if ( isset( $matches[ $app->student_ufid ] ) ) {
+				continue;
+			}
+
 			if ( null === $rank_field ) {
 				$app_reason = $reason; // tiers 3–6: no rank given, use the reason as is
 			} else {
 				$app_reason = $reason . '_' . $app->$rank_field; // tiers 1–2: add the rank to the end
 			}
 
-			$matches   += taas_match_candidates( $course, array( $app->student_ufid ), $app_reason, $profiles, $assigned, $cth );
+			$matches += taas_match_candidates( $course, array( $app->student_ufid ), $app_reason, $profiles, $hours_left, $cth );
 		}
 	};
 
@@ -219,7 +233,9 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
  * @param TAAS_Course[]          $courses  Courses to staff, which is ordered by admin's choice
  * @param TAAS_Application[]     $apps     Applications across all courses
  * @param TAAS_Student_Profile[] $profiles Profiles of the applicants
- * @return array{matches: array<int, array>, unfilled_hours: array<int, int>} Both keyed by course_id
+ * @return array{matches: array<int, array>, unfilled_hours: array<int, int>, students_with_hours_left: array<string, int>}
+ *         matches and unfilled_hours are keyed by course_id; students_with_hours_left maps the UFID of each
+ *         PhD student with hours not given to any course to those hours, in profile order
  * @throws InvalidArgumentException If any course's TA hours cannot be calculated.
  */
 function taas_run_matching( array $courses, array $apps, array $profiles ): array {
@@ -241,7 +257,7 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 		}
 	}
 
-	$assigned           = array();
+	$hours_left         = array(); // Student UFID => hours not yet assigned, shared across courses
 	$all_matches        = array();
 	$all_unfilled_hours = array();
 
@@ -257,13 +273,25 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 			$course,
 			$phd_apps_by_course[ $course->course_id ] ?? array(), // If a course has no apps, use an empty array
 			$profiles_by_ufid,
-			$assigned,
+			$hours_left,
 			$all_unfilled_hours[ $course->course_id ]
 		);
 	}
 
+	// PhD students with hours not given to any course, including students never matched
+	$students_with_hours_left = array();
+
+	foreach ( $profiles as $profile ) {
+		$left = $hours_left[ $profile->student_ufid ] ?? $profile->available_hours;
+
+		if ( null !== $left && $left > 0 ) {
+			$students_with_hours_left[ $profile->student_ufid ] = $left;
+		}
+	}
+
 	return array(
-		'matches'        => $all_matches,
-		'unfilled_hours' => $all_unfilled_hours,
+		'matches'                  => $all_matches,
+		'unfilled_hours'           => $all_unfilled_hours,
+		'students_with_hours_left' => $students_with_hours_left,
 	);
 }
