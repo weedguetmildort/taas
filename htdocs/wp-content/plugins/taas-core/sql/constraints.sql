@@ -53,7 +53,17 @@ ALTER TABLE {prefix}student_profiles
 	ADD CONSTRAINT chk_profiles_gpa
 	CHECK (gpa IS NULL OR (gpa >= 0 AND gpa <= 4.00));
 
+-- FWS eligibility accepts only the three supported answers
+ALTER TABLE {prefix}student_profiles
+	ADD CONSTRAINT chk_profiles_fws_eligibility
+	CHECK (fws_eligibility IN ('yes', 'no', 'not_applicable'));
+
 -- Lab hours capped at 2 per the staffing formula
 ALTER TABLE {prefix}courses
 	ADD CONSTRAINT chk_courses_lab_hours
 	CHECK (lab_hours >= 0 AND lab_hours <= 2);
+
+-- English score category; null represents an unanswered existing profile
+ALTER TABLE {prefix}student_profiles
+	ADD CONSTRAINT chk_profiles_english_test_score
+	CHECK (english_test_score IS NULL OR english_test_score IN (1, 2, 3, 4));

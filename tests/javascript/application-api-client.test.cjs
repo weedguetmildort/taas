@@ -93,7 +93,7 @@ for (const method of ['GET', 'POST']) {
 const initialResponse = () => ({
   period: { semester: 1, year: 2026, label: 'Fall 2026', is_open: false, closes_at: null },
   identity: { ufid: '12345678', email: 'student@ufl.edu' }, already_applied: false,
-  profile: null, english_test: null,
+  profile: null, english_test_score: null,
   courses: [{ course_id: 'course-1', course_code: 'CS101', course_name: 'Example', instructor_name: null }],
   academic_background: [{ university: 'Example', major: null, minor: null, degree_type: 2, grad_date: '2025-05-01', gpa: null }]
 });
@@ -131,11 +131,9 @@ for (const [name, corrupt] of Object.entries({
   'invalid GPA': data => { data.academic_background[0].gpa = '3.5'; },
   'invalid profile': data => { data.profile = []; },
   'invalid country code': data => { data.profile = { country_code: 123 }; },
-  'invalid English test': data => { data.english_test = { type: 'TOEFL', score: '100' }; },
-  'invalid exam result object': data => { data.english_tests = []; },
-  'invalid separate TOEFL score': data => { data.english_tests = { toefl_ibt_score: '5.5' }; },
-  'invalid separate exam date': data => { data.english_tests = { speak_date: 20260101 }; },
-  'invalid saved profile date': data => { data.profile = { toefl_ibt_date: {} }; }
+  'invalid English category': data => { data.english_test_score = 5; },
+  'string English category': data => { data.english_test_score = '2'; },
+  'invalid saved category': data => { data.profile = { english_test_score: 0 }; }
 })) {
   test(`initial loading rejects ${name}`, async () => {
     const fixture = initialResponse();

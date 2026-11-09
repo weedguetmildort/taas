@@ -208,13 +208,14 @@ try {
 			'student_name'        => 'Concurrent fixture',
 			'student_email'       => 'fixture@ufl.edu',
 			'profile'             => array(
-				'phone'             => '3525550100',
-				'country_code'      => 'US',
-				'admitted_semester' => 'Fall 2025',
-				'available_hours'   => 10,
-				'enrollment_status' => 2,
-				'eap5836_status'    => 1,
-				'eap5837_status'    => 4,
+				'phone'              => '3525550100',
+				'country_code'       => 'US',
+				'admitted_semester'  => 'Fall 2025',
+				'available_hours'    => 10,
+				'enrollment_status'  => 2,
+				'english_test_score' => 2,
+				'eap5836_status'     => 1,
+				'eap5837_status'     => 4,
 			),
 			'academic_background' => array(
 				array(

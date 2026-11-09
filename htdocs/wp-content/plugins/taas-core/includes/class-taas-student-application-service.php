@@ -68,9 +68,8 @@ final class TAAS_Student_Application_Service {
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
 	 *             resume_url: ?string, additional_info: string,
-	 *             toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
-	 *             speak_score?: int|null, speak_date?: string|null,
-	 *             english_test?: array{type: string, score: int|float}|null
+	 *             fws_eligibility: string, fws_award_letter_url?: string|null,
+	 *             english_test_score: int
 	 *         },
 	 *         academic_background: list<array{
 	 *             university: string, major: string, minor: string,
@@ -101,9 +100,8 @@ final class TAAS_Student_Application_Service {
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
 	 *             resume_url: ?string, additional_info: string,
-	 *             toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
-	 *             speak_score?: int|null, speak_date?: string|null,
-	 *             english_test?: array{type: string, score: int|float}|null
+	 *             fws_eligibility: string, fws_award_letter_url?: string|null,
+	 *             english_test_score: int
 	 *         },
 	 *         academic_background: list<array{
 	 *             university: string, major: string, minor: string,
@@ -374,20 +372,6 @@ final class TAAS_Student_Application_Service {
 		$previous_profile = $this->profiles->find( $ufid );
 		$profile_data = $details['profile'];
 		$current_degree = $details['academic_background'][0];
-		$exam_fields = $profile_data;
-		// Legacy requests update one test and preserve the other; new forms send both.
-		if ( array_key_exists( 'english_test', $profile_data ) ) {
-			$test = $profile_data['english_test'];
-			$exam_fields = null === $test ? array() : array( 'TOEFL' === $test['type'] ? 'toefl_ibt_score' : 'speak_score' => $test['score'] );
-		}
-		$toefl_score = array_key_exists( 'toefl_ibt_score', $exam_fields ) ? $exam_fields['toefl_ibt_score'] : $previous_profile?->toefl_ibt_score;
-		$speak_score = array_key_exists( 'speak_score', $exam_fields ) ? $exam_fields['speak_score'] : $previous_profile?->speak_score;
-		$toefl_date = array_key_exists( 'toefl_ibt_date', $exam_fields )
-			? TAAS_Cast::date_or_null( $exam_fields['toefl_ibt_date'] )
-			: ( null !== $toefl_score && $previous_profile?->toefl_ibt_score === $toefl_score ? $previous_profile?->toefl_ibt_date : null );
-		$speak_date = array_key_exists( 'speak_date', $exam_fields )
-			? TAAS_Cast::date_or_null( $exam_fields['speak_date'] )
-			: ( null !== $speak_score && $previous_profile?->speak_score === $speak_score ? $previous_profile?->speak_date : null );
 		$profile = new TAAS_Student_Profile(
 			student_ufid: $ufid,
 			phone: $profile_data['phone'],
@@ -398,10 +382,9 @@ final class TAAS_Student_Application_Service {
 			gpa: $current_degree['gpa'],
 			enrollment_status: TAAS_Enrollment_Status::from( $profile_data['enrollment_status'] ),
 			resume_url: $profile_data['resume_url'],
-			speak_score: $speak_score,
-			speak_date: $speak_date,
-			toefl_ibt_score: $toefl_score,
-			toefl_ibt_date: $toefl_date,
+			fws_eligibility: $profile_data['fws_eligibility'],
+			fws_award_letter_url: $profile_data['fws_award_letter_url'],
+			english_test_score: TAAS_English_Test_Score::from( $profile_data['english_test_score'] ),
 			has_ta_experience: $previous_profile?->has_ta_experience ?? false,
 			eap5836_status: TAAS_Course_Taken_Status::from( $profile_data['eap5836_status'] ),
 			eap5837_status: TAAS_Course_Taken_Status::from( $profile_data['eap5837_status'] ),

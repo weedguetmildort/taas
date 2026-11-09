@@ -221,11 +221,8 @@ WordPress's own validation usually catches the last three first, and returns `re
   "eap5836_status": "Taken at UF",
   "eap5837_status": "Currently taking",
   "resume_url": null,
-  "speak_score": null,
-  "speak_date": null,
   "student_statement": null,
-  "toefl_ibt_score": 108,
-  "toefl_ibt_date": "2025-09-13"
+  "english_test_score": 2
 }
 ```
 
@@ -240,11 +237,8 @@ WordPress's own validation usually catches the last three first, and returns `re
 | `country_code` | string, *nullable* | ISO 3166-1 alpha-2 |
 | `eap5836_status`, `eap5837_status` | string, *nullable* | PhD students only |
 | `resume_url` | string, *nullable* | An external link. Open it in a new tab |
-| `speak_score` | integer, *nullable* | International students only |
-| `speak_date` | string, *nullable* | `YYYY-MM-DD` |
+| `english_test_score` | integer, *nullable* | Category 1–4 as defined in the [student API](student.md); null means unanswered |
 | `student_statement` | string, *nullable* | Up to 500 characters |
-| `toefl_ibt_score` | number, *nullable* | International students only |
-| `toefl_ibt_date` | string, *nullable* | `YYYY-MM-DD` |
 
 ## Changelog
 

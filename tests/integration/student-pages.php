@@ -84,10 +84,12 @@ foreach ( array(
 	'application' => $html,
 	'status'      => $status_html,
 ) as $name => $markup ) {
-	foreach ( array( 'toeflScore', 'toeflDate', 'speakScore', 'speakDate' ) as $field ) {
-		preg_match( '/<input\b[^>]*name="' . $field . '"[^>]*>/', $markup, $exam_input );
-		taas_page_check( ! empty( $exam_input ) && ! preg_match( '/\brequired\b/', $exam_input[0] ), $name . ' page includes optional ' . $field );
+	foreach ( array( 'englishTestScore' ) as $field ) {
+		preg_match( '/<select\b[^>]*name="' . $field . '"[^>]*>/', $markup, $exam_input );
+		$required = true;
+		taas_page_check( ! empty( $exam_input ) && $required === (bool) preg_match( '/\brequired\b/', $exam_input[0] ), $name . ' page includes ' . ( $required ? 'required ' : 'optional ' ) . $field );
 	}
+	taas_page_check( ! str_contains( $markup, 'name="toeflDate"' ) && ! str_contains( $markup, 'name="speakDate"' ), $name . ' page omits exam dates' );
 	taas_page_check( ! str_contains( $markup, 'name="englishScore"' ), $name . ' page replaces the single-test dropdown' );
 }
 taas_page_check( str_contains( $status_html, 'assets/student-application-edit.js' ) && ! str_contains( $status_html, 'assets/student-application.js' ), 'Status page loads only the edit coordinator' );

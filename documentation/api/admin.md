@@ -298,10 +298,7 @@ These routes are read-only views of student records.
     "gpa": 3.85,
     "enrollment_status": "PhD",
     "resume_url": null,
-    "speak_score": null,
-    "speak_date": null,
-    "toefl_ibt_score": 108,
-    "toefl_ibt_date": "2025-09-13",
+    "english_test_score": "45–54 SPEAK / 23–27 TOEFL iBT",
     "has_ta_experience": false,
     "eap5836_status": "Taken at UF",
     "eap5837_status": "Currently taking",
@@ -320,7 +317,6 @@ Every field except `student_ufid` and `has_ta_experience` is *nullable*.
 | `gpa` | 0.00 to 4.00 |
 | `enrollment_status` | The student's current program |
 | `resume_url` | A link to an external document |
-| `speak_score`, `toefl_ibt_score` | International students only |
 | `has_ta_experience` | Has TA'd any course before |
 | `eap5836_status`, `eap5837_status` | PhD students only |
 | `country_code` | ISO 3166-1 alpha-2 |

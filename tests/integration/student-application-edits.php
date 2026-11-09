@@ -97,17 +97,14 @@ try {
 					'student_name'        => 'Edit verification',
 					'student_email'       => TAAS_Auth::current_user()['email'],
 					'profile'             => array(
-						'phone'             => '3525550100',
-						'country_code'      => 'US',
-						'admitted_semester' => 'Fall 2025',
-						'available_hours'   => 10,
-						'enrollment_status' => 2,
-						'eap5836_status'    => 1,
-						'eap5837_status'    => 4,
-						'toefl_ibt_score'   => 5.5,
-						'toefl_ibt_date'    => '2026-02-10',
-						'speak_score'       => 45,
-						'speak_date'        => '2026-03-11',
+						'phone'              => '3525550100',
+						'country_code'       => 'US',
+						'admitted_semester'  => 'Fall 2025',
+						'available_hours'    => 10,
+						'enrollment_status'  => 2,
+						'eap5836_status'     => 1,
+						'eap5837_status'     => 4,
+						'english_test_score' => 2,
 					),
 					'academic_background' => array(
 						array(
@@ -135,8 +132,8 @@ try {
 				),
 			);
 			taas_edit_check( 201 === taas_edit_request( 'POST', '/student/application', $body )->get_status(), 'Fixture initial application created' );
-			$exam_prefill = taas_edit_request( 'GET', '/student/application' )->get_data()['english_tests'];
-			taas_edit_check( 5.5 === $exam_prefill['toefl_ibt_score'] && 45 === $exam_prefill['speak_score'] && '2026-02-10' === $exam_prefill['toefl_ibt_date'] && '2026-03-11' === $exam_prefill['speak_date'], 'Initial REST submission preserves both exams and dates for prefilling' );
+			$exam_prefill = taas_edit_request( 'GET', '/student/application' )->get_data()['english_test_score'];
+			taas_edit_check( 2 === $exam_prefill, 'Initial REST submission preserves the score category for prefilling' );
 			$old_term = array(
 				'student_name' => 'Prior term',
 				'profile'      => array( 'available_hours' => 5 ),
@@ -251,11 +248,16 @@ try {
 				taas_edit_check( 400 === $rejected->get_status() && 'taas_student_email_mismatch' === $rejected->get_data()['code'], $method . ' edit rejects another university email' );
 			}
 			taas_edit_check( $read['revision'] === taas_edit_request( 'GET', $route )->get_data()['revision'], 'Rejected email edits preserve the saved application' );
+			foreach ( array( 'english_test_score' ) as $score_key ) {
+				$invalid = $edit;
+				$invalid['details']['profile'][ $score_key ] = null;
+				taas_edit_check( 400 === taas_edit_request( 'POST', $route, $invalid )->get_status(), 'REST edits cannot clear ' . $score_key );
+			}
+			taas_edit_check( $read['revision'] === taas_edit_request( 'GET', $route )->get_data()['revision'], 'Rejected score edits preserve the saved application' );
 			$edit['details']['profile']['available_hours'] = 20;
-			$edit['details']['profile']['toefl_ibt_date'] = null;
-			$edit['details']['profile']['speak_score'] = null;
-			$edit['details']['profile']['speak_date'] = null;
+			$edit['details']['profile']['english_test_score'] = 3;
 			$edit['details']['profile']['enrollment_status'] = 1;
+			$edit['details']['profile']['fws_eligibility'] = 'not_applicable';
 			$edit['course_preferences'] = array(
 				array(
 					'course_id'            => $ids['B'],
@@ -292,7 +294,7 @@ try {
 			taas_edit_check( TAAS_Enrollment_Status::Undergraduate === $repos['profiles']->find( $owner )->enrollment_status && 1 === taas_edit_request( 'GET', $route )->get_data()['details']['profile']['enrollment_status'], 'Undergraduate edits update both the shared profile and term snapshot' );
 			$exam_profile = $repos['profiles']->find( $owner );
 			$exam_snapshot = taas_edit_request( 'GET', $route )->get_data()['details']['profile'];
-			taas_edit_check( null === $exam_profile->toefl_ibt_date && null === $exam_profile->speak_score && null === $exam_profile->speak_date && 5.5 === $exam_profile->toefl_ibt_score && null === $exam_snapshot['speak_score'], 'REST edits clear exam fields from both shared profile and snapshot' );
+			taas_edit_check( TAAS_English_Test_Score::Upper_Range === $exam_profile->english_test_score && 3 === $exam_snapshot['english_test_score'], 'REST edits update the required category in the shared profile and snapshot' );
 			taas_edit_check( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Spring, $period['year'] )->submitted_details == $old_term, 'Other term snapshot is preserved' );
 			taas_edit_check( 409 === taas_edit_request( 'POST', $route, $edit )->get_status(), 'Stale loaded version cannot overwrite newer saved edits' );
 			$withdraw = $edit;

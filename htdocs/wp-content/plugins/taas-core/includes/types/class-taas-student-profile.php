@@ -27,15 +27,14 @@ final class TAAS_Student_Profile {
 	 * @param float|null                    $gpa               Most current GPA, 0.00-4.00.
 	 * @param TAAS_Enrollment_Status|null   $enrollment_status Program the student is in now; null means not yet provided.
 	 * @param string|null                   $resume_url        Link to the resume.
-	 * @param int|null                      $speak_score       SPEAK score, if taken.
-	 * @param DateTimeImmutable|null        $speak_date        Date the SPEAK was taken.
-	 * @param float|null                    $toefl_ibt_score   TOEFL iBT score, if taken.
-	 * @param DateTimeImmutable|null        $toefl_ibt_date    Date the TOEFL iBT was taken.
+	 * @param TAAS_English_Test_Score|null  $english_test_score Selected English score category (1–4), or unanswered.
 	 * @param bool                          $has_ta_experience Whether the student has been a TA before.
 	 * @param TAAS_Course_Taken_Status|null $eap5836_status    EAP 5836 status.
 	 * @param TAAS_Course_Taken_Status|null $eap5837_status    EAP 5837 status.
 	 * @param string|null                   $country_code      ISO 3166-1 alpha-2 code.
 	 * @param string|null                   $additional_info   Notes from the student for professors and HR.
+	 * @param string                        $fws_eligibility   Yes, no, or not_applicable; defaults to no.
+	 * @param string|null                   $fws_award_letter_url Link to the FWS award letter, separate from the resume.
 	 * @throws InvalidArgumentException If the UFID, GPA or country code is invalid.
 	 */
 	public function __construct(
@@ -47,19 +46,21 @@ final class TAAS_Student_Profile {
 		public readonly ?float $gpa = null,
 		public readonly ?TAAS_Enrollment_Status $enrollment_status = null,
 		public readonly ?string $resume_url = null,
-		public readonly ?int $speak_score = null,
-		public readonly ?DateTimeImmutable $speak_date = null,
-		public readonly ?float $toefl_ibt_score = null,
-		public readonly ?DateTimeImmutable $toefl_ibt_date = null,
+		public readonly ?TAAS_English_Test_Score $english_test_score = null,
 		public readonly bool $has_ta_experience = false,
 		public readonly ?TAAS_Course_Taken_Status $eap5836_status = null,
 		public readonly ?TAAS_Course_Taken_Status $eap5837_status = null,
 		public readonly ?string $country_code = null,
 		public readonly ?string $additional_info = null,
+		public readonly string $fws_eligibility = 'no',
+		public readonly ?string $fws_award_letter_url = null,
 	) {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
 		TAAS_Guard::gpa( $gpa );
 		TAAS_Guard::country_code( $country_code );
+		if ( ! in_array( $fws_eligibility, array( 'yes', 'no', 'not_applicable' ), true ) ) {
+			throw new InvalidArgumentException( 'Select Yes, No, or N/A for FWS eligibility.' );
+		}
 	}
 
 	/**
@@ -79,15 +80,14 @@ final class TAAS_Student_Profile {
 			gpa: TAAS_Cast::float_or_null( $r['gpa'] ?? null ),
 			enrollment_status: TAAS_Cast::enum_or_null( TAAS_Enrollment_Status::class, $r['enrollment_status'] ?? null ),
 			resume_url: TAAS_Cast::string_or_null( $r['resume_url'] ?? null ),
-			speak_score: TAAS_Cast::int_or_null( $r['speak_score'] ?? null ),
-			speak_date: TAAS_Cast::date_or_null( $r['speak_date'] ?? null ),
-			toefl_ibt_score: TAAS_Cast::float_or_null( $r['toefl_ibt_score'] ?? null ),
-			toefl_ibt_date: TAAS_Cast::date_or_null( $r['toefl_ibt_date'] ?? null ),
+			english_test_score: TAAS_Cast::enum_or_null( TAAS_English_Test_Score::class, $r['english_test_score'] ?? null ),
 			has_ta_experience: TAAS_Cast::bool( $r['has_ta_experience'] ?? 0 ),
 			eap5836_status: TAAS_Cast::enum_or_null( TAAS_Course_Taken_Status::class, $r['eap5836_status'] ?? null ),
 			eap5837_status: TAAS_Cast::enum_or_null( TAAS_Course_Taken_Status::class, $r['eap5837_status'] ?? null ),
 			country_code: TAAS_Cast::string_or_null( $r['country_code'] ?? null ),
 			additional_info: TAAS_Cast::string_or_null( $r['additional_info'] ?? null ),
+			fws_eligibility: TAAS_Cast::string_or_null( $r['fws_eligibility'] ?? null ) ?? 'no',
+			fws_award_letter_url: TAAS_Cast::string_or_null( $r['fws_award_letter_url'] ?? null ),
 		);
 	}
 
@@ -98,23 +98,22 @@ final class TAAS_Student_Profile {
 	 */
 	public function to_row(): array {
 		return array(
-			'student_ufid'      => $this->student_ufid,
-			'phone'             => $this->phone,
-			'admitted_semester' => $this->admitted_semester,
-			'available_hours'   => $this->available_hours,
-			'major'             => $this->major,
-			'gpa'               => $this->gpa,
-			'enrollment_status' => $this->enrollment_status?->value,
-			'resume_url'        => $this->resume_url,
-			'speak_score'       => $this->speak_score,
-			'speak_date'        => $this->speak_date?->format( 'Y-m-d' ),
-			'toefl_ibt_score'   => $this->toefl_ibt_score,
-			'toefl_ibt_date'    => $this->toefl_ibt_date?->format( 'Y-m-d' ),
-			'has_ta_experience' => $this->has_ta_experience ? 1 : 0,
-			'eap5836_status'    => $this->eap5836_status?->value,
-			'eap5837_status'    => $this->eap5837_status?->value,
-			'country_code'      => $this->country_code,
-			'additional_info'   => $this->additional_info,
+			'student_ufid'         => $this->student_ufid,
+			'phone'                => $this->phone,
+			'admitted_semester'    => $this->admitted_semester,
+			'available_hours'      => $this->available_hours,
+			'major'                => $this->major,
+			'gpa'                  => $this->gpa,
+			'enrollment_status'    => $this->enrollment_status?->value,
+			'resume_url'           => $this->resume_url,
+			'english_test_score'   => $this->english_test_score?->value,
+			'has_ta_experience'    => $this->has_ta_experience ? 1 : 0,
+			'eap5836_status'       => $this->eap5836_status?->value,
+			'eap5837_status'       => $this->eap5837_status?->value,
+			'country_code'         => $this->country_code,
+			'additional_info'      => $this->additional_info,
+			'fws_eligibility'      => $this->fws_eligibility,
+			'fws_award_letter_url' => $this->fws_award_letter_url,
 		);
 	}
 }

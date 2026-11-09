@@ -42,9 +42,8 @@ final class TAAS_Student_Application_Input {
 	 *       available_hours: int, enrollment_status: int,
 	 *       eap5836_status: int, eap5837_status: int,
 	 *       resume_url: string|null, additional_info: string,
-	 *       toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
-	 *       speak_score?: int|null, speak_date?: string|null,
-	 *       english_test?: array{type: string, score: int|float}|null
+	 *       fws_eligibility: string, fws_award_letter_url?: string|null,
+	 *       english_test_score: int
 	 *     },
 	 *     academic_background: list<array{
 	 *       university: string, degree_type: int, major: string, minor: string,
@@ -116,11 +115,9 @@ final class TAAS_Student_Application_Input {
 				'eap5836_status',
 				'eap5837_status',
 				'resume_url',
-				'english_test',
-				'toefl_ibt_score',
-				'toefl_ibt_date',
-				'speak_score',
-				'speak_date',
+				'fws_eligibility',
+				'fws_award_letter_url',
+				'english_test_score',
 				'additional_info',
 			)
 		);
@@ -138,6 +135,10 @@ final class TAAS_Student_Application_Input {
 			throw new InvalidArgumentException( 'Planned TA hours must be 10 or 20.' );
 		}
 		$enrollment_status = self::read_integer( $profile, 'enrollment_status', TAAS_Enrollment_Status::Undergraduate->value, TAAS_Enrollment_Status::Phd->value );
+		$english_test_score = $profile['english_test_score'] ?? null;
+		if ( ! is_int( $english_test_score ) || null === TAAS_English_Test_Score::tryFrom( $english_test_score ) ) {
+			throw new InvalidArgumentException( 'english_test_score has an invalid value.' );
+		}
 		$resume_url     = self::read_text( $profile, 'resume_url', 255, false );
 		if ( '' !== $resume_url ) {
 			$scheme = strtolower( (string) wp_parse_url( $resume_url, PHP_URL_SCHEME ) );
@@ -146,90 +147,52 @@ final class TAAS_Student_Application_Input {
 			}
 		}
 		return array(
-			'phone'             => self::read_text( $profile, 'phone', 15 ),
-			'country_code'      => $country_code,
-			'admitted_semester' => $admitted_semester,
-			'available_hours'   => $available_hours,
-			'enrollment_status' => $enrollment_status,
-			'eap5836_status'    => self::read_integer( $profile, 'eap5836_status', 1, 4 ),
-			'eap5837_status'    => self::read_integer( $profile, 'eap5837_status', 1, 4 ),
-			'resume_url'        => '' === $resume_url ? null : $resume_url,
-			'additional_info'   => self::read_text( $profile, 'additional_info', 1000, false ),
-		) + self::parse_exam_results( $profile );
+			'phone'              => self::read_text( $profile, 'phone', 15 ),
+			'country_code'       => $country_code,
+			'admitted_semester'  => $admitted_semester,
+			'available_hours'    => $available_hours,
+			'enrollment_status'  => $enrollment_status,
+			'eap5836_status'     => self::read_integer( $profile, 'eap5836_status', 1, 4 ),
+			'eap5837_status'     => self::read_integer( $profile, 'eap5837_status', 1, 4 ),
+			'resume_url'         => '' === $resume_url ? null : $resume_url,
+			'english_test_score' => $english_test_score,
+			'additional_info'    => self::read_text( $profile, 'additional_info', 1000, false ),
+		) + self::parse_fws( $profile, $enrollment_status );
 	}
 
 	/**
-	 * Validate independent, optional scores and exam dates; retain the old request format.
+	 * Require an undergraduate's FWS answer and clear inapplicable graduate data.
 	 *
 	 * @param array $profile Submitted profile values.
-	 * @return array Validated exam fields; explicit null represents an empty field.
-	 * @throws InvalidArgumentException If scores or dates are invalid or formats are mixed.
+	 * @param int   $enrollment_status Validated current program.
+	 * @return array Normalized FWS fields for both the profile and term snapshot.
+	 * @throws InvalidArgumentException If the answer or award letter URL is invalid.
 	 */
-	private static function parse_exam_results( array $profile ): array {
-		$fields = array_intersect_key( $profile, array_flip( array( 'toefl_ibt_score', 'toefl_ibt_date', 'speak_score', 'speak_date' ) ) );
-		if ( ! $fields ) {
-			return array( 'english_test' => self::parse_english_test( $profile ) );
+	private static function parse_fws( array $profile, int $enrollment_status ): array {
+		if ( TAAS_Enrollment_Status::Undergraduate->value !== $enrollment_status ) {
+			return array(
+				'fws_eligibility'      => 'no',
+				'fws_award_letter_url' => null,
+			);
 		}
-		if ( array_key_exists( 'english_test', $profile ) ) {
-			throw new InvalidArgumentException( 'Send separate exam fields or the legacy English test, not both.' );
+		$eligibility = $profile['fws_eligibility'] ?? null;
+		if ( ! in_array( $eligibility, array( 'yes', 'no', 'not_applicable' ), true ) ) {
+			throw new InvalidArgumentException( 'Select Yes, No, or N/A for FWS eligibility.' );
 		}
-		if ( 4 !== count( $fields ) ) {
-			throw new InvalidArgumentException( 'Send all four exam fields, using null for empty scores and dates.' );
+		$url = self::read_text( $profile, 'fws_award_letter_url', 255, false );
+		if ( 'yes' === $eligibility && '' === $url ) {
+			throw new InvalidArgumentException( 'Provide your FWS award letter URL when FWS eligibility is Yes.' );
 		}
-		foreach ( $fields as $key => $value ) {
-			if ( null === $value ) {
-				continue;
-			}
-			if ( str_ends_with( $key, '_score' ) ) {
-				$type = 'speak_score' === $key ? 'SPEAK' : 'TOEFL';
-				$fields[ $key ] = self::parse_english_test(
-					array(
-						'english_test' => array(
-							'type'  => $type,
-							'score' => $value,
-						),
-					)
-				)['score'];
-				continue;
-			}
-			$date = self::read_text( $profile, $key, 10 );
-			$parsed = DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
-			if ( ! $parsed || $parsed->format( 'Y-m-d' ) !== $date || (int) $parsed->format( 'Y' ) < 1000 ) {
-				throw new InvalidArgumentException( 'Exam dates must be valid calendar dates in YYYY-MM-DD format.' );
-			}
-			$fields[ $key ] = $date;
-		}
-		return $fields;
-	}
-
-	/**
-	 * Match main's SPEAK integer and TOEFL decimal(4,1) storage without rounding.
-	 *
-	 * @param array $profile Submitted profile values.
-	 * @throws InvalidArgumentException If input validation fails.
-	 */
-	private static function parse_english_test( array $profile ): ?array {
-		if ( null === ( $profile['english_test'] ?? null ) ) {
-			return null;
-		}
-		$test = self::require_object( $profile, 'english_test' );
-		self::allow_only_fields( $test, array( 'type', 'score' ) );
-		$test_type  = self::read_text( $test, 'type', 6 );
-		$test_score = $test['score'] ?? null;
-		if ( ! in_array( $test_type, array( 'TOEFL', 'SPEAK' ), true ) || ! self::is_number_in_range( $test_score, 0, 2147483647 ) ) {
-			throw new InvalidArgumentException( 'Provide a supported English test and numeric score.' );
-		}
-		if ( 'SPEAK' === $test_type && floor( (float) $test_score ) !== (float) $test_score ) {
-			throw new InvalidArgumentException( 'SPEAK scores must be whole numbers.' );
-		}
-		if ( 'TOEFL' === $test_type && ( $test_score > 999.9 || round( (float) $test_score, 1 ) !== (float) $test_score ) ) {
-			throw new InvalidArgumentException( 'TOEFL scores must fit 0–999.9 with at most one decimal place.' );
+		if ( '' !== $url && ( ! filter_var( $url, FILTER_VALIDATE_URL )
+			|| ! preg_match( '~^https?://~i', $url ) ) ) {
+			throw new InvalidArgumentException( 'Provide a valid HTTP or HTTPS FWS award letter URL.' );
 		}
 		return array(
-			'type'  => $test_type,
-			'score' => 'TOEFL' === $test_type ? (float) $test_score : (int) $test_score,
+			'fws_eligibility'      => $eligibility,
+			'fws_award_letter_url' => '' === $url ? null : $url,
 		);
 	}
+
 
 	/**
 	 * Validate each degree without dropping or truncating entries.

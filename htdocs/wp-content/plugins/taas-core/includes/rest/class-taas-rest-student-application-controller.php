@@ -102,22 +102,6 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				$profile    = ( new TAAS_Student_Profile_Repository() )->find( $ufid );
 				$latest     = ( new TAAS_Student_Submission_Repository() )->latest_for_student( $ufid );
 				$exam_source = null !== $latest ? ( $latest->submitted_details['profile'] ?? array() ) : ( $profile?->to_row() ?? array() );
-				$exam_fields = array( 'toefl_ibt_score', 'toefl_ibt_date', 'speak_score', 'speak_date', 'english_test' );
-				$exam_results = array_intersect_key( $exam_source, array_flip( $exam_fields ) );
-				if ( ! $exam_results ) {
-					$exam_results = array_fill_keys( array_slice( $exam_fields, 0, 4 ), null );
-				}
-				$english_test = $latest?->submitted_details['profile']['english_test'] ?? null;
-				if ( null === $latest && null !== $profile ) {
-					$english_test = null !== $profile->toefl_ibt_score ? array(
-						'type'  => 'TOEFL',
-						'score' => $profile->toefl_ibt_score,
-					)
-						: ( null !== $profile->speak_score ? array(
-							'type'  => 'SPEAK',
-							'score' => $profile->speak_score,
-						) : null );
-				}
 				return $this->student_response(
 					array(
 						'period'              => $period,
@@ -127,8 +111,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 						),
 						'already_applied'     => null !== $submission || ! empty( $choices ),
 						'profile'             => $profile?->to_row(),
-						'english_test'        => $english_test,
-						'english_tests'       => $exam_results,
+						'english_test_score'  => $exam_source['english_test_score'] ?? null,
 						'academic_background' => array_map(
 							static fn( TAAS_Academic_Background $entry ) => $entry->to_row(),
 							( new TAAS_Academic_Background_Repository() )->find_by_student( $ufid )

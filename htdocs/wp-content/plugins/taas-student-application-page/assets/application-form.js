@@ -121,6 +121,7 @@
         // Only explicitly marked startup locks are released, and only once.
         loadingLocks.forEach(control => { control.disabled = false; });
         loadingLocks.clear();
+        fields.updateFws();
       } else {
         // Remember each control's state once, including intentionally disabled fields.
         for (const control of form.elements) {
@@ -172,6 +173,7 @@
     return {
       prefill, collect, showMessage, showInitial, showSaved,
       setAvailability, setTerm, showExisting, showSuccess,
+      didSave: fields.didSave,
       hasCourses: courses.hasCourses,
       hasMissingChoices: courses.hasMissingChoices,
       show() { form.hidden = false; },

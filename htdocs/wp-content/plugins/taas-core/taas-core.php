@@ -34,6 +34,7 @@ require_once TAAS_CORE_PATH . 'includes/class-taas-snapshots.php';
  */
 require_once TAAS_CORE_PATH . 'includes/types/enums/trait-taas-label-lookup.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-enrollment-status.php';
+require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-english-test-score.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-degree-type.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-course-taken-status.php';
 require_once TAAS_CORE_PATH . 'includes/types/enums/class-taas-match-status.php';

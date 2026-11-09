@@ -20,12 +20,7 @@
   const isText = value => typeof value === 'string';
   const optionalText = value => value == null || isText(value);
   const optionalNumber = value => value == null || (typeof value === 'number' && Number.isFinite(value));
-  const validEnglishTest = value => value == null || (isRecord(value) && isText(value.type)
-    && typeof value.score === 'number' && Number.isFinite(value.score));
-  const validExamResults = value => value == null || (isRecord(value)
-    && ['toefl_ibt_score', 'speak_score'].every(key => optionalNumber(value[key]))
-    && ['toefl_ibt_date', 'speak_date'].every(key => value[key] == null || (isText(value[key]) && /^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}$/.test(value[key])))
-    && validEnglishTest(value.english_test));
+  const validEnglishScore = value => value == null || (Number.isInteger(value) && value >= 1 && value <= 4);
 
   function validInitialResponse(data) {
     if (!isRecord(data) || !isRecord(data.period) || !isRecord(data.identity)) return false;
@@ -39,8 +34,8 @@
     const validProfile = profile == null || (isRecord(profile)
       && ['phone', 'admitted_semester', 'resume_url', 'additional_info'].every(key => optionalText(profile[key]))
       && (profile.country_code == null || (isText(profile.country_code) && /^[a-z]{2}$/i.test(profile.country_code)))
-      && ['available_hours', 'enrollment_status', 'eap5836_status', 'eap5837_status', 'toefl_ibt_score', 'speak_score'].every(key => optionalNumber(profile[key]))
-      && validExamResults(profile));
+      && ['available_hours', 'enrollment_status', 'eap5836_status', 'eap5837_status'].every(key => optionalNumber(profile[key]))
+      && validEnglishScore(profile.english_test_score));
     const validCourses = Array.isArray(data.courses) && data.courses.every(course => isRecord(course)
       && isText(course.course_id) && course.course_id.length > 0
       && isText(course.course_code) && isText(course.course_name) && optionalText(course.instructor_name));
@@ -50,7 +45,7 @@
       && isText(degree.grad_date) && /^[1-9][0-9]{3}-(0[1-9]|1[0-2])-01$/.test(degree.grad_date)
       && optionalNumber(degree.gpa) && (degree.gpa == null || (degree.gpa >= 0 && degree.gpa <= 4)));
     return validPeriod && validIdentity && validProfile && validCourses && validDegrees
-      && typeof data.already_applied === 'boolean' && validEnglishTest(data.english_test) && validExamResults(data.english_tests);
+      && typeof data.already_applied === 'boolean' && validEnglishScore(data.english_test_score);
   }
 
   student.createApplicationApi = ({ nonce, timeoutMs = 30000, messages = {} } = {}) => {

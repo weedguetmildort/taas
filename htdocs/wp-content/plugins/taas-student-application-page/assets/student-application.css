@@ -70,7 +70,7 @@
 .taas-application-form-root .course-chooser h3, .taas-application-form-root .course-ranking-panel h3 { margin: 0 0 5px; font-size: 1.05rem; font-family: inherit; font-weight: 700; line-height: 1.5; color: inherit; }
 .taas-application-form-root .course-subhelp { margin: 0 0 12px; color: var(--muted); font-size: .87rem; }
 .taas-application-form-root .available-course-list { display: block; max-height: 440px; overflow: auto; padding: 0; border: 1px solid #dcdcdc; border-radius: 6px; background: #fff; }
-.taas-application-form-root .course-table-header, .taas-application-form-root .available-course-option { display: grid; grid-template-columns: 18px minmax(64px, .8fr) minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(44px, .55fr) minmax(0, 1fr); align-items: center; gap: 0; min-width: 0; }
+.taas-application-form-root .course-table-header, .taas-application-form-root .available-course-option { display: grid; grid-template-columns: 18px minmax(64px, .8fr) minmax(0, 1.5fr) minmax(0, 1.15fr); align-items: center; gap: 0; min-width: 0; }
 .taas-application-form-root .course-table-header { position: sticky; top: 0; z-index: 1; padding: 6px 5px; border-bottom: 2px solid #d4d4d4; background: #f0f1f2; color: #444; font-size: .65rem; font-weight: 700; text-transform: uppercase; }
 .taas-application-form-root .course-table-header > span { min-width: 0; overflow-wrap: anywhere; }
 .taas-application-form-root .available-course-option { padding: 5px; background: #fff; border-bottom: 1px solid #e8e8e8; font-weight: 400; cursor: pointer; }
@@ -85,13 +85,14 @@
 .taas-application-form-root .student-app-preference legend { max-width: 100%; overflow-wrap: anywhere; }
 .taas-application-form-root .empty-course-rankings { margin: 0; padding: 16px; border: 1px dashed #ccc; border-radius: 8px; color: var(--muted); font-size: .9rem; }
 .taas-application-form-root .course-section { width: 100%; }
-.taas-application-form-root .course-information { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; width: 100%; }
+.taas-application-form-root .course-information { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; width: 100%; }
 .taas-application-form-root .available-course-option .course-information { display: contents; }
 .taas-application-form-root .course-detail { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 1px 5px; overflow-wrap: anywhere; border-right: 1px solid #ededed; line-height: 1.2; }
 .taas-application-form-root .course-detail:last-child { border-right: 0; }
 .taas-application-form-root .course-detail-label { color: var(--muted); font-size: .66rem; font-weight: 700; }
 .taas-application-form-root .course-detail > span:last-child { font-size: .76rem; }
-.taas-application-form-root .course-ranking-information { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 4px; }@media (max-width: 720px) {
+.taas-application-form-root .course-ranking-information { margin: 0 0 4px; }
+@media (max-width: 720px) {
 .taas-application-form-root .course-selection-layout { grid-template-columns: 1fr; }
 .taas-application-form-root .available-course-list { max-height: 300px; }
 .taas-application-form-root .course-table-header { padding: 5px 3px; font-size: .58rem; }
@@ -109,6 +110,7 @@
 .taas-application-form-root .check-line { display: flex; flex-direction: row; align-items: center; margin-top: 8px; font-weight: 400; }
 .taas-application-form-root .check-line input { width: 18px; min-height: 18px; height: 18px; margin: 0; }
 .taas-application-form-root input[readonly] { background: #f5f6f7; }
+.taas-application-form-root input[data-fws-not-required] { background: #f0f1f2; color: #62666b; border-color: #c9cdd2; cursor: not-allowed; }
 .taas-application-form-root .application-dialog { width: min(90vw, 500px); border: 1px solid var(--border); border-radius: 10px; padding: 24px; color: var(--text); }
 .taas-application-form-root .application-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .taas-application-form-root .dialog-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
