@@ -108,10 +108,14 @@ class TypesTest extends TestCase {
 				'eap5837_status',
 				'country_code',
 				'additional_info',
+				'fws_eligibility',
+				'fws_award_letter_url',
 			),
 			array_keys( $row )
 		);
 		$this->assertSame( '2025-09-13', $row['toefl_ibt_date'] );
+		$this->assertSame( 'no', $row['fws_eligibility'] );
+		$this->assertNull( $row['fws_award_letter_url'] );
 	}
 
 	/**
