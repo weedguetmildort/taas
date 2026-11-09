@@ -1,579 +1,135 @@
-<!-- wp:heading {"style":{"typography":{"textAlign":"right"}}} -->
-<h2 class="wp-block-heading has-text-align-right"></h2>
-<!-- /wp:heading -->
-
-<!-- wp:html -->
-<style data-wp-block-html="css">
-/* MAIN ADMIN CARD */
-
-.admin-portal-container {
-    width: 95%;
-    max-width: 1100px;
-    margin: 30px auto;
-    padding: 45px;
-
-    background: #ffffff;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-
-    font-family: Arial, sans-serif;
-    color: #222;
-    box-sizing: border-box;
-}
-
-/* HEADER */
-
-.admin-header {
-    display: block;
-    margin-bottom: 30px;
-}
-
-.admin-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 25px;
-    margin-bottom: 30px;
-}
-
-.admin-header-top h2 {
-    font-size: 27px;
-    font-weight: 600;
-    color: #222;
-    margin: 0;
-    line-height: 1.3;
-}
-
-/* PROFESSOR VIEW BUTTON */
-
-.professor-switch-button {
-    display: inline-block;
-    max-width: 290px;
-    padding: 13px 18px;
-    flex-shrink: 0;
-
-    background: #0021a5;
-    color: white !important;
-
-    border-radius: 4px;
-    text-decoration: none !important;
-    text-align: center;
-
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.5;
-}
-
-.professor-switch-button:hover {
-    background: #00166e;
-    color: white !important;
-}
-
-/* NAVIGATION */
-
-.admin-navigation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-bottom: 25px;
-}
-
-/* ORANGE NAVIGATION BUTTONS */
-
-.admin-nav-button {
-    display: inline-block;
-    padding: 14px 20px;
-
-    background: #ff7f11;
-    color: white !important;
-
-    border: 1px solid #ff7f11;
-    border-radius: 4px;
-    text-decoration: none !important;
-
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.4;
-    cursor: pointer;
-}
-
-.admin-nav-button:hover {
-    background: #e66f08;
-    color: white !important;
-}
-
-/* STOP APPLICATIONS BUTTON */
-
-.stop-applications-button {
-    padding: 14px 20px;
-
-    background: #b42318;
-    color: white;
-
-    border: none;
-    border-radius: 4px;
-
-    font-family: Arial, sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.4;
-
-    cursor: pointer;
-}
-
-.stop-applications-button:hover {
-    background: #8f1d14;
-}
-
-/* DESCRIPTION */
-
-.admin-header p {
-    font-size: 16px;
-    line-height: 1.7;
-    color: #444;
-    margin: 0;
-}
-
-/* CSV UPLOAD */
-
-.csv-upload-section {
-    padding-top: 25px;
-    border-top: 1px solid #eeeeee;
-}
-
-.csv-label {
-    display: block;
-    margin-bottom: 12px;
-
-    font-size: 17px;
-    font-weight: 600;
-}
-
-.csv-upload-section input[type="file"] {
-    display: block;
-    width: 100%;
-    margin-bottom: 20px;
-    padding: 12px;
-
-    border: 1px solid #ccc;
-    border-radius: 4px;
-
-    font-size: 15px;
-    box-sizing: border-box;
-}
-
-/* UPLOAD BUTTON */
-
-.admin-button {
-    padding: 13px 25px;
-
-    background: #ff7f11;
-    color: white;
-
-    border: none;
-    border-radius: 4px;
-
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.admin-button:hover {
-    background: #e66f08;
-}
-
-/* KEYBOARD ACCESSIBILITY */
-
-.admin-portal-container a:focus-visible,
-.admin-portal-container button:focus-visible {
-    outline: 3px solid #0021a5;
-    outline-offset: 3px;
-}
-
-/* MOBILE */
-
-@media (max-width: 768px) {
-
-    .admin-portal-container {
-        width: 95%;
-        padding: 25px;
-    }
-
-    .admin-header-top {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .admin-header-top h2 {
-        font-size: 24px;
-    }
-
-    .professor-switch-button {
-        max-width: 100%;
-    }
-
-    .admin-navigation {
-        flex-direction: column;
-    }
-
-    .admin-nav-button,
-    .stop-applications-button {
-        width: 100%;
-        box-sizing: border-box;
-        text-align: center;
-    }
-}
-
-/* MAIN ADMIN CARD */
-
-.admin-portal-container {
-    width: 95%;
-    max-width: 1100px;
-    margin: 30px auto;
-    padding: 45px;
-    background: #ffffff;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-    box-sizing: border-box;
-}
-
-/* HEADER - KEEP BLUE BUTTON ON RIGHT */
-
-.admin-portal-container .admin-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 25px;
-    width: 100%;
-    margin-bottom: 35px;
-}
-
-/* LARGER HEADER TEXT */
-
-.admin-portal-container .admin-header-top h2 {
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1.3;
-    color: #222;
-    margin: 0;
-    flex: 1;
-}
-
-/* BLUE PROFESSOR VIEW BUTTON */
-
-.admin-portal-container .professor-switch-button {
-    display: inline-block;
-    flex-shrink: 0;
-    max-width: 300px;
-    padding: 16px 20px;
-
-    background-color: #0021a5;
-    color: #ffffff !important;
-
-    border-radius: 4px;
-    text-decoration: none !important;
-    text-align: center;
-
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.5;
-}
-
-.admin-portal-container .professor-switch-button:hover {
-    background-color: #00166e;
-    color: #ffffff !important;
-}
-
-/* STACK ADMIN BUTTONS VERTICALLY */
-
-.admin-portal-container .admin-navigation {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-    margin: 25px 0;
-}
-
-/* ORANGE NAVIGATION BUTTONS */
-
-.admin-portal-container .admin-nav-button {
-    display: block;
-    width: 350px;
-    max-width: 100%;
-    padding: 18px 22px;
-
-    background-color: #ff7f11;
-    color: #ffffff !important;
-
-    border: none;
-    border-radius: 4px;
-    box-sizing: border-box;
-
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.4;
-    text-align: left;
-    text-decoration: none !important;
-
-    cursor: pointer;
-}
-
-.admin-portal-container .admin-nav-button:hover {
-    background-color: #e66f08;
-}
-
-/* RED STOP ACCEPTING APPLICATIONS BUTTON */
-
-.admin-portal-container .stop-applications-button {
-    display: block;
-    width: 350px;
-    max-width: 100%;
-    padding: 18px 22px;
-
-    background-color: #b42318;
-    color: #ffffff;
-
-    border: none;
-    border-radius: 4px;
-    box-sizing: border-box;
-
-    font-family: Arial, sans-serif;
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.4;
-    text-align: left;
-
-    cursor: pointer;
-}
-
-.admin-portal-container .stop-applications-button:hover {
-    background-color: #8f1d14;
-}
-
-/* MOBILE */
-
-@media (max-width: 768px) {
-
-    .admin-portal-container {
-        padding: 25px;
-    }
-
-    .admin-portal-container .admin-header-top {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .admin-portal-container .admin-header-top h2 {
-        font-size: 26px;
-    }
-
-    .admin-portal-container .professor-switch-button {
-        max-width: 100%;
-        font-size: 15px;
-    }
-
-    .admin-portal-container .admin-nav-button,
-    .admin-portal-container .stop-applications-button {
-        width: 100%;
-        font-size: 17px;
-    }
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TA Application Administrator Portal</title>
+<style>
+* { box-sizing: border-box; }
+body { margin:0; background:#fff; color:#222; font-family:Arial,Helvetica,sans-serif; }
+.admin-portal-container { width:95%; max-width:1100px; margin:30px auto; padding:40px 45px 55px; background:#fff; box-shadow:0 3px 8px rgba(0,0,0,.15); }
+.admin-header-top { display:flex; align-items:center; justify-content:space-between; gap:25px; margin-bottom:30px; }
+.admin-header-top h1 { font-size:30px; line-height:1.25; margin:0; font-weight:700; }
+.professor-switch-button { display:inline-block; flex:0 0 310px; max-width:100%; padding:17px 18px; border-radius:4px; background:#0021a5; color:white!important; font-size:15px; font-weight:700; line-height:1.45; text-align:center; text-decoration:none!important; }
+.professor-switch-button:hover { background:#00177d; }
+.admin-navigation { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px 24px; align-items:stretch; max-width:760px; }
+.admin-nav-button, .stop-applications-button { display:flex; align-items:center; width:100%; min-height:56px; padding:13px 20px; border:0; border-radius:4px; font-family:inherit; font-size:16px; font-weight:700; line-height:1.35; text-align:left; text-decoration:none!important; cursor:pointer; background:#ff7f11; color:#fff!important; }
+.admin-nav-button:hover { background:#e66f08; }
+.stop-applications-button { background:#b91f17; }
+.stop-applications-button:hover { background:#941a13; }
+.admin-nav-button:focus-visible, .stop-applications-button:focus-visible, .professor-switch-button:focus-visible { outline:3px solid #0021a5; outline-offset:3px; }
+.demo-note { color:#777; font-size:12px; line-height:1.5; margin:20px 0 0; }
+@media(max-width:750px) { .admin-portal-container { padding:25px 20px; } .admin-header-top { flex-direction:column; align-items:flex-start; } .admin-header-top h1 { font-size:25px; } .professor-switch-button { flex:initial; } .admin-navigation { grid-template-columns:1fr; max-width:400px; } .admin-nav-button, .stop-applications-button { width:100%; } }
 </style>
-
-<div class="admin-portal-container">
-
-    <!-- HEADER -->
-    <div class="admin-header">
-
-        <div class="admin-header-top">
-
-            <h2>TA Application Administrator Portal</h2>
-
-            <a href="/professor-page/" class="professor-switch-button">
-                Also a Professor? Click here to Switch to Professor View
-            </a>
-
-        </div>
-
-
-        <!-- NAVIGATION BUTTONS -->
-        <div class="admin-navigation">
-
-            <!-- MANAGE COURSES -->
-            <a href="/manage-course-listings-admin/" class="admin-nav-button active">
-                Manage Course Listings
-            </a>
-
-            <!-- VIEW APPLICATIONS -->
-            <a href="/view-student-application-admin/" class="admin-nav-button active">
-                View Student Applications
-            </a>
-
-            <!-- STOP APPLICATIONS -->
-            <button type="button" class="stop-applications-button" onclick="showStopApplicationsMessage()">
-                Stop Accepting Applications
-            </button>
-
-            <!-- DOWNLOAD STUDENT DATA -->
-            <button type="button" id="download-student-data" class="admin-nav-button download-student-button" onclick="downloadStudentCSV()">
-                Download Student Data
-            </button>
-
-        </div> <!-- END NAVIGATION -->
-
-    </div> <!-- END HEADER -->
-
-</div> <!-- END ADMIN PORTAL CONTAINER -->
-
+</head>
+<body>
+<main class="admin-portal-container">
+  <div class="admin-header-top">
+    <h1>TA Application Administrator Portal</h1>
+    <a href="https://taas.cise.ufl.edu/professor-page/" class="professor-switch-button">Also a Professor? Click here to Switch to Professor View</a>
+  </div>
+  <nav class="admin-navigation" aria-label="Administrator actions">
+    <a href="https://taas.cise.ufl.edu/manage-course-listings-admin/" class="admin-nav-button">Manage Course Listings</a>
+    <button type="button" class="admin-nav-button" id="download-student-data">Download all Student Applicants csv</button>
+    <a href="https://taas.cise.ufl.edu/view-student-application-admin/" class="admin-nav-button">View Student Applications</a>
+    <button type="button" class="admin-nav-button" id="download-professor-preferences">Download Professor Preferences</button>
+    <button type="button" class="stop-applications-button" id="stop-applications">Stop Accepting Applications</button>
+    <button type="button" class="admin-nav-button" id="download-student-preferences">Download Student Preferences</button>
+  </nav>
+  <p class="demo-note">Demo mode: CSV exports contain fictional sample records. Live database exports and application controls will be connected later.</p>
+</main>
 <script>
 (function () {
+  "use strict";
 
-    function initializeStudentDownload() {
+  // Fictional demonstration data. Replace with authenticated backend data later.
+  const applicants = [
+    { name:"Jane Doe", email:"jane@example.edu", type:"PhD", course:"COP3502C", gpa:"3.9", hours:"15", status:"Submitted", hr:"Approved" },
+    { name:"John Smith", email:"john@example.edu", type:"Masters", course:"COP3530", gpa:"3.8", hours:"10", status:"Submitted", hr:"Not Approved" },
+    { name:"Leonardo Rey", email:"leonardo@example.edu", type:"Undergraduate", course:"CIS4301", gpa:"3.7", hours:"12", status:"Submitted", hr:"Approved" },
+    { name:"Emily Davis", email:"emily@example.edu", type:"PhD", course:"COP4600", gpa:"3.8", hours:"20", status:"Submitted", hr:"Approved" }
+  ];
 
-        const downloadButton =
-            document.getElementById("download-student-data");
+  // Keep these column names and their order identical to the requested export schema.
+  const professorHeaders = [
+    "Course ID", "UFO", "Lab", "Course Name", "Course enrollment", "Prof Name", "Prof Email",
+    ...Array.from({length:9}, (_,i) => ["Pref " + (i+1) + " email", "Pref " + (i+1) + " UFID"]).flat()
+  ];
 
-        if (!downloadButton) return;
-
-        downloadButton.addEventListener("click", function () {
-
-            // SAMPLE STUDENT DATA
-            // Replace with database results later.
-
-            const students = [
-                {
-                    name: "Jane Doe",
-                    email: "jane@example.edu",
-                    studentType: "PhD",
-                    course: "COP3502C",
-                    gpa: "3.9",
-                    hours: "15",
-                    status: "Submitted",
-                    hr: "Approved"
-                },
-                {
-                    name: "John Smith",
-                    email: "john@example.edu",
-                    studentType: "Masters",
-                    course: "COP3530",
-                    gpa: "3.8",
-                    hours: "10",
-                    status: "Submitted",
-                    hr: "Not Approved"
-                },
-                {
-                    name: "Leonardo Rey",
-                    email: "leonardo@example.edu",
-                    studentType: "Undergraduate",
-                    course: "CIS4301",
-                    gpa: "3.7",
-                    hours: "12",
-                    status: "Submitted",
-                    hr: "Approved"
-                },
-                {
-                    name: "Emily Davis",
-                    email: "emily@example.edu",
-                    studentType: "PhD",
-                    course: "COP4600",
-                    gpa: "3.8",
-                    hours: "20",
-                    status: "Submitted",
-                    hr: "Approved"
-                }
-            ];
-
-            // CSV COLUMN HEADERS
-            const headers = [
-                "Student Name",
-                "Email",
-                "Student Type",
-                "Course Number",
-                "GPA",
-                "Available Hours",
-                "Application Status",
-                "HR Approval Status"
-            ];
-
-            // ESCAPE CSV VALUES SAFELY
-            function escapeCSV(value) {
-                const text = String(value ?? "");
-
-                return '"' +
-                    text.replace(/"/g, '""') +
-                    '"';
-            }
-
-            // BUILD CSV CONTENT
-           
-const rows = students.map(function (student) {
-
-    // Remove spaces and standardize course numbers
-    const formattedCourse = String(student.course)
-        .replace(/\s+/g, "")
-        .toUpperCase();
-
-    return [
-        student.name,
-        student.email,
-        student.studentType,
-        formattedCourse,
-        student.gpa,
-        student.hours,
-        student.status,
-        student.hr
-    ].map(escapeCSV).join(",");
-
-});
-
-
-            const csvContent =
-                [headers.map(escapeCSV).join(","), ...rows]
-                    .join("\r\n");
-
-            // CREATE CSV FILE
-            const blob = new Blob(
-                ["\uFEFF" + csvContent],
-                { type: "text/csv;charset=utf-8;" }
-            );
-
-            const url = URL.createObjectURL(blob);
-
-            const link = document.createElement("a");
-
-            link.href = url;
-            link.download = "TA_Student_Applications_SAMPLE.csv";
-
-            document.body.appendChild(link);
-
-            link.click();
-
-            document.body.removeChild(link);
-
-            // CLEAN UP
-            setTimeout(function () {
-                URL.revokeObjectURL(url);
-            }, 1000);
-
-        });
-
+  // Blank preference cells mean no ranked student was supplied in the sample.
+  const professorRecords = [
+    {
+      courseId:"COP3502C", ufo:"", lab:"2 Hour Lab", courseName:"Programming Fundamentals 1", enrollment:"175",
+      professor:"Dr. Smith", professorEmail:"smith@example.edu",
+      preferences:[["jane@example.edu","00000001"],["emily@example.edu","00000004"],["john@example.edu","00000002"]]
+    },
+    {
+      courseId:"COP3530", ufo:"", lab:"1 Hour Lab", courseName:"Data Structures and Algorithms", enrollment:"120",
+      professor:"Dr. Johnson", professorEmail:"johnson@example.edu",
+      preferences:[["leonardo@example.edu","00000003"],["john@example.edu","00000002"]]
+    },
+    {
+      courseId:"CIS4301", ufo:"", lab:"No Lab", courseName:"Database Management Systems", enrollment:"85",
+      professor:"Dr. Williams", professorEmail:"williams@example.edu", preferences:[]
     }
+  ];
 
-    if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeStudentDownload
-        );
-    } else {
-        initializeStudentDownload();
-    }
+  const studentHeaders = [
+    "UFID", "UFemail", "Given name", "Last name", "Semster admitted", "GPA",
+    "SPEAK andor TOEFLiBT", "countryOfOrigin", "HR Decision", "TA hours",
+    "CoursePref 1", "CoursePref 2", "CoursePref 3", "CoursePref 4", "CoursePref 5"
+  ];
 
+  const studentPreferenceRecords = [
+    ["00000001","jane@example.edu","Jane","Doe","Fall 2025","3.9","SPEAK: 55","United States","Approved","15","COP3502C","COP3530","CIS4301","",""],
+    ["00000002","john@example.edu","John","Smith","Fall 2025","3.8","TOEFL iBT: 26","India","Not Approved","10","COP3530","COP3502C","","",""],
+    ["00000003","leonardo@example.edu","Leonardo","Rey","Fall 2024","3.7","Not Applicable","United States","Approved","12","CIS4301","COP4600","","",""],
+    ["00000004","emily@example.edu","Emily","Davis","Spring 2025","3.8","SPEAK: 60","United States","Approved","20","COP4600","COP3502C","","",""]
+  ];
+
+  // Quote all fields to preserve spaces, commas, and leading zeros in spreadsheet programs.
+  function csvCell(value) {
+    let s = String(value == null ? "" : value);
+    // Prevent CSV formula injection when real user-entered data is introduced.
+    if (/^[\s]*[=+@\-]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  function downloadCSV(filename, headers, rows) {
+    const csv = [headers, ...rows].map(row => row.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  document.getElementById("stop-applications").addEventListener("click", function () {
+    alert("Demo only: stopping applications requires a backend connection. No settings have been changed.");
+  });
+
+  document.getElementById("download-student-data").addEventListener("click", function () {
+    downloadCSV("TA_All_Student_Applicants_SAMPLE.csv",
+      ["Student Name","Email","Student Type","Course Number","GPA","Available Hours","Application Status","HR Approval Status"],
+      applicants.map(s => [s.name,s.email,s.type,s.course,s.gpa,s.hours,s.status,s.hr]));
+  });
+
+  document.getElementById("download-professor-preferences").addEventListener("click", function () {
+    const rows = professorRecords.map(record => {
+      const ranked = Array.from({length:9}, (_,i) => record.preferences[i] || ["",""]).flat();
+      return [record.courseId,record.ufo,record.lab,record.courseName,record.enrollment,record.professor,record.professorEmail,...ranked];
+    });
+    downloadCSV("TA_Professor_Preferences_SAMPLE.csv", professorHeaders, rows);
+  });
+
+  document.getElementById("download-student-preferences").addEventListener("click", function () {
+    downloadCSV("TA_Student_Preferences_SAMPLE.csv", studentHeaders, studentPreferenceRecords);
+  });
 })();
 </script>
-<!-- /wp:html -->
-
-<!-- wp:paragraph -->
-<p></p>
-<!-- /wp:paragraph -->
-
-<!-- wp:heading -->
-<h2 class="wp-block-heading"></h2>
-<!-- /wp:heading -->
+</body>
+</html>

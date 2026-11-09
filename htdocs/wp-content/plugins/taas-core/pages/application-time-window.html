@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Application Time Window | TA Administrator</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#222;background:#f7f7f7}*{box-sizing:border-box}body{margin:0;padding:44px 18px}.portal{max-width:1050px;margin:auto;background:white;padding:42px;box-shadow:0 3px 12px #00000016}.top{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}h1{font-size:30px;margin:0}h2{font-size:21px;margin:0 0 18px}p{color:#60646b;line-height:1.6}.back{color:#092aa8;font-weight:bold;text-decoration:none}.panel{background:#f5f6f9;border:1px solid #e2e5eb;border-radius:6px;padding:25px;margin-top:25px}.status{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.pill{font-size:15px;font-weight:700;border-radius:25px;padding:9px 16px;background:#e8edf5;color:#24314c}.pill.open{background:#d9f3e3;color:#116637}.pill.closed{background:#fce1df;color:#99211b}.pill.scheduled{background:#e3ecff;color:#123ea4}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.field label{display:block;font-size:15px;font-weight:700;margin-bottom:8px}.field input,.field select{display:block;width:100%;padding:13px;font:inherit;border:1px solid #c7ccd5;border-radius:4px;background:white}.help{font-size:13px;color:#626875;margin:8px 0 0}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:25px}button{border:0;border-radius:4px;padding:15px 22px;font-size:15px;font-weight:700;cursor:pointer;background:#ff7f11;color:white}button.secondary{background:#092aa8}button.danger{background:#b7211b}button:disabled{opacity:.45;cursor:not-allowed}.notice{margin-top:17px;padding:14px;border-radius:4px;background:#edf3ff;color:#173267;display:none}.notice.error{background:#fff0ed;color:#a0201a}.summary{margin-top:12px;font-size:16px;line-height:1.8}.warning{background:#fff7e7;border-left:4px solid #e58c13;padding:15px;margin-top:24px;color:#59431e;font-size:14px;line-height:1.6}@media(max-width:650px){.portal{padding:24px 18px}.grid{grid-template-columns:1fr}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<main class="portal">
+<div class="top"><h1>Application Time Window</h1><a class="back" href="admin-page.html">← Back to Admin Portal</a></div>
+<p>Set when students can submit TA applications for each semester. The application window closes at the selected end date unless an administrator closes it earlier.</p>
+<section class="panel" aria-live="polite"><div class="status"><h2>Current Window Status</h2><span id="statusBadge" class="pill">Not configured</span></div><div class="summary" id="summary">Choose a semester and year to configure its application period.</div></section>
+<section class="panel"><h2>Configure Application Period</h2><div class="grid">
+<div class="field"><label for="semester">Semester</label><select id="semester"><option value="Spring">Spring</option><option value="Summer">Summer</option><option value="Fall">Fall</option></select></div>
+<div class="field"><label for="year">Academic Year</label><select id="year"></select></div>
+<div class="field"><label for="start">Application Start Date</label><input type="date" id="start"><p class="help">Applications open at 12:00 AM on this date (local time).</p></div>
+<div class="field"><label for="end">Application End Date</label><input type="date" id="end"><p class="help">Applications close at 11:59 PM on this date (local time).</p></div>
+</div>
+<div class="actions"><button id="save" type="button">Save Application Window</button><button id="close" class="danger" type="button">Close Window Early</button><button id="reopen" class="secondary" type="button">Remove Manual Closure</button></div><div id="notice" class="notice" role="status"></div></section>
+<div class="warning"><strong>Frontend demonstration:</strong> Settings are stored only in this browser using localStorage. Dates are evaluated automatically whenever the page is open or revisited, but they do not yet block submissions on the WordPress site. The PHP backend must enforce the active semester's schedule and manual-closure status before accepting an application.</div>
+</main>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const storeKey='taas-application-window-demo-v1';
+const currentYear=new Date().getFullYear();
+for(let y=currentYear-1;y<=currentYear+5;y++){let opt=document.createElement('option');opt.value=y;opt.textContent=y;$('year').appendChild(opt)}
+$('year').value=String(currentYear);
+function getAll(){try{return JSON.parse(localStorage.getItem(storeKey))||{}}catch(e){return {}}}
+function putAll(data){localStorage.setItem(storeKey,JSON.stringify(data))}
+function key(){return $('semester').value+'-'+$('year').value}
+function get(){return getAll()[key()]||null}
+function today(){let d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function status(rec){if(!rec)return ['Not configured',''];if(rec.manualClosed)return ['Closed manually','closed'];if(today()<rec.start)return ['Scheduled','scheduled'];if(today()>rec.end)return ['Closed automatically','closed'];return ['Open','open']}
+function notice(msg,error){$('notice').textContent=msg;$('notice').className='notice'+(error?' error':'');$('notice').style.display='block'}
+function render(loadFields){const rec=get();if(loadFields){$('start').value=rec?.start||'';$('end').value=rec?.end||'';$('notice').style.display='none'}const [label,css]=status(rec);$('statusBadge').textContent=label;$('statusBadge').className='pill '+css;$('summary').textContent=rec?`${key()}: ${rec.start} through ${rec.end}. ${rec.manualClosed?'Manually closed by an administrator.':'The scheduled dates determine availability.'}`:`No application period has been saved for ${key()}.`;$('close').disabled=!rec||rec.manualClosed;$('reopen').disabled=!rec||!rec.manualClosed}
+$('semester').addEventListener('change',()=>render(true));$('year').addEventListener('change',()=>render(true));
+$('save').addEventListener('click',()=>{const start=$('start').value,end=$('end').value;if(!start||!end){notice('Please select both a start and end date.',true);return}if(end<start){notice('The end date must be on or after the start date.',true);return}const data=getAll();const old=data[key()];data[key()]={start,end,manualClosed:old?.manualClosed||false};putAll(data);render(false);notice('Application window saved locally for '+key()+'.',false)});
+$('close').addEventListener('click',()=>{const rec=get();if(!rec)return;if(!confirm('Close the '+key()+' application window early?'))return;const data=getAll();data[key()].manualClosed=true;putAll(data);render(false);notice('This semester has been manually closed in the demo.',false)});
+$('reopen').addEventListener('click',()=>{const rec=get();if(!rec)return;if(!confirm('Remove the manual closure? The scheduled start and end dates will still apply.'))return;const data=getAll();data[key()].manualClosed=false;putAll(data);render(false);notice('Manual closure removed. The scheduled dates now determine the status.',false)});
+render(true);setInterval(()=>render(false),60000);
+})();
+</script>
+</body></html>
