@@ -19,7 +19,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       identity: { ufid: '12345678', email: 'saved@ufl.edu' }, can_edit: false, revision: 'a'.repeat(64),
       details: {
         student_name: 'Saved student', student_email: 'saved@ufl.edu',
-        profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, english_test: null },
+        profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, english_test_score: null },
         academic_background: [{ university: 'Example University', major: 'CS', degree_type: 2, grad_date: '2025-05-01', gpa: 3.5 }]
       },
       courses: ['A', 'B', 'C', 'D'].map(code => ({ course_id: `fixture-${code}`, course_code: `TEST-${code}`, course_name: `Course ${code}`, instructor_name: 'Example Professor' })),
@@ -76,14 +76,14 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert(await page.locator('#application-fields').evaluate(node => node.disabled));
     console.log('PASS: Read-only applications with all preferences withdrawn show a neutral empty state');
 
-    fixture.details.profile.english_test = { type: 'SPEAK', score: 42 };
+    fixture.details.profile.english_test_score = 3;
     await page.evaluate(data => window.TAASStudentApplicationForm.open(data, '/fixture-only'), fixture);
-    assert.equal(await page.locator('[name="speakScore"]').inputValue(), '42');
-    fixture.details.profile.english_test = null;
+    assert.equal(await page.locator('[name="englishTestScore"]').inputValue(), '3');
+    fixture.details.profile.english_test_score = null;
     await page.evaluate(data => window.TAASStudentApplicationForm.open(data, '/fixture-only'), fixture);
-    assert.equal(await page.locator('[name="speakScore"]').inputValue(), '');
-    console.log('PASS: Legacy SPEAK scores prefill into the separate field and clear on the next snapshot');
-
+    assert.equal(await page.locator('[name="englishTestScore"]').inputValue(), '');
+    console.log('PASS: Saved category prefills and migrated unanswered category stays blank');
+    fixture.details.profile.english_test_score = 2;
     fixture.can_edit = true;
     fixture.course_preferences = [
       { course_id: 'fixture-A', rank: 1, match_status: 1, status_label: 'Pending', has_completed_course: true },

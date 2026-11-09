@@ -73,7 +73,12 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     await page.locator('[name="lastName"]').fill("O'Brien");
     assert.equal(await page.locator('[name="ufEmail"]').evaluate(input => input.readOnly), true);
     const verifiedEmail = await page.locator('[name="ufEmail"]').inputValue();
-    await page.locator('[name="toeflScore"]').fill('5.5');
+    const submit = page.locator('#student-application-form [type="submit"]');
+    await submit.click();
+    assert.equal(bodies.length, 0);
+    assert(await page.locator('[name="englishTestScore"]').evaluate(input => input.validity.valueMissing));
+    await page.locator('[name="englishTestScore"]').selectOption('2');
+    console.log('PASS: Initial submission requires an English score category');
     await page.locator('[name="additionalInfo"]').fill('Keep my entries after a failure.');
     const fws = page.locator('[data-fws-section]');
     const eligibility = page.locator('[name="fwsEligibility"]');

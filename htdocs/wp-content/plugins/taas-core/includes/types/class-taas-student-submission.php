@@ -22,9 +22,8 @@ final class TAAS_Student_Submission {
 	 * Optional request fields are present after normalization: absent resume/test
 	 * values become null, and absent minor/additional_info values become empty strings.
 	 *
-	 * New snapshots store separate optional TOEFL/SPEAK scores and YYYY-MM-DD dates.
-	 * Older snapshots may contain english_test instead; never fill historical values
-	 * from the current shared profile.
+	 * Snapshots store the selected english_test_score category; null means unanswered
+	 * on applications cleared by the score-category migration.
 	 *
 	 * Pass details validated by TAAS_Student_Application_Input::parse(), never an
 	 * unfiltered request body. This model validates UFID/year and named top-level
@@ -44,9 +43,7 @@ final class TAAS_Student_Submission {
 	 *     eap5836_status: int, eap5837_status: int,
 	 *     resume_url: string|null, additional_info: string,
 	 *     fws_eligibility?: string|null, fws_award_letter_url?: string|null,
-	 *     toefl_ibt_score?: float|null, toefl_ibt_date?: string|null,
-	 *     speak_score?: int|null, speak_date?: string|null,
-	 *     english_test?: array{type: string, score: int|float}|null
+	 *     english_test_score?: int|null
 	 *   },
 	 *   academic_background: list<array{
 	 *     university: string, degree_type: int, major: string, minor: string,

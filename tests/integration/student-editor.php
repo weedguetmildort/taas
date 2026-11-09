@@ -35,7 +35,7 @@ foreach ( array( 'student-application', 'check-application-status' ) as $slug ) 
 	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- DOMDocument uses an HTML4 parser; HTML5 template elements produce expected parser warnings.
 	@$dom->loadHTML( $html );
 	$xpath = new DOMXPath( $dom );
-	foreach ( array( 'ufid', 'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone', 'eap5836Status', 'eap5837Status', 'taHours', 'toeflScore', 'toeflDate', 'speakScore', 'speakDate', 'additionalInfo', 'resumeUrl' ) as $name ) {
+	foreach ( array( 'ufid', 'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone', 'eap5836Status', 'eap5837Status', 'taHours', 'englishTestScore', 'additionalInfo', 'resumeUrl' ) as $name ) {
 		taas_editor_check( 1 === $xpath->query( '//form//*[@name="' . $name . '"]' )->length, $slug . ' retains ' . $name . ' inside the form' );
 	}
 }

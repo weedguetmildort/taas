@@ -42,13 +42,14 @@ $body = array(
 		'student_name'        => ' Test Student ',
 		'student_email'       => 'student@ufl.edu',
 		'profile'             => array(
-			'phone'             => '3525550100',
-			'country_code'      => 'us',
-			'admitted_semester' => 'Fall 2025',
-			'available_hours'   => 10,
-			'enrollment_status' => 2,
-			'eap5836_status'    => 1,
-			'eap5837_status'    => 4,
+			'phone'              => '3525550100',
+			'country_code'       => 'us',
+			'admitted_semester'  => 'Fall 2025',
+			'available_hours'    => 10,
+			'enrollment_status'  => 2,
+			'english_test_score' => 2,
+			'eap5836_status'     => 1,
+			'eap5837_status'     => 4,
 		),
 		'academic_background' => array(
 			array(
@@ -71,7 +72,7 @@ $body = array(
 $parsed = TAAS_Student_Application_Input::parse( $body );
 taas_input_check( 'Test Student' === $parsed['details']['student_name'], 'Names are trimmed.' );
 taas_input_check( 'US' === $parsed['details']['profile']['country_code'], 'Country codes are normalized.' );
-taas_input_check( null === $parsed['details']['profile']['resume_url'] && null === $parsed['details']['profile']['english_test'], 'Missing optional values become null.' );
+taas_input_check( null === $parsed['details']['profile']['resume_url'], 'Missing optional values become null.' );
 taas_input_check( '' === $parsed['details']['profile']['additional_info'] && '' === $parsed['details']['academic_background'][0]['minor'], 'Missing optional text becomes empty text.' );
 echo "PASS: Normalized output and optional defaults\n";
 
@@ -115,75 +116,27 @@ unset( $request['details']['academic_background'][0]['gpa'] );
 taas_input_rejects( $request, 'Missing GPA must not silently mean unavailable.' );
 echo "PASS: GPA boundaries, rounding and explicit unavailability\n";
 
-foreach ( array(
-	'TOEFL' => array( 0, 5.5, 6.0, 999.9 ),
-	'SPEAK' => array( 0, 42, 2147483647 ),
-) as $type => $scores ) {
-	foreach ( $scores as $score ) {
+foreach ( array( 1, 2, 3 ) as $program ) {
+	foreach ( array( 1, 2, 3, 4 ) as $category ) {
 		$request = $body;
-		$request['details']['profile']['english_test'] = array(
-			'type'  => $type,
-			'score' => $score,
-		);
-		$test = TAAS_Student_Application_Input::parse( $request )['details']['profile']['english_test'];
-		taas_input_check( $type === $test['type'] && ( 'TOEFL' === $type ? (float) $score : (int) $score ) === $test['score'], 'English score must be stored without rounding.' );
+		$request['details']['profile']['enrollment_status'] = $program;
+		$request['details']['profile']['fws_eligibility'] = 'no';
+		$request['details']['profile']['english_test_score'] = $category;
+		taas_input_check( $category === TAAS_Student_Application_Input::parse( $request )['details']['profile']['english_test_score'], 'Every program accepts each category, including N/A.' );
 	}
-}
-foreach ( array(
-	'TOEFL' => array( -1, 1000, 6.49, '6', true, null, INF, NAN ),
-	'SPEAK' => array( -1, 2147483648, 42.5, '42', true, null, INF, NAN ),
-) as $type => $scores ) {
-	foreach ( $scores as $score ) {
-		$request = $body;
-		$request['details']['profile']['english_test'] = array(
-			'type'  => $type,
-			'score' => $score,
-		);
-		taas_input_rejects( $request, 'An invalid English score was accepted.' );
+	foreach ( array( null, '', 0, 5, -1, 1.5, '2', true, INF, NAN ) as $invalid_score ) {
+		$request['details']['profile']['english_test_score'] = $invalid_score;
+		taas_input_rejects( $request, 'Invalid category accepted.' );
 	}
+	unset( $request['details']['profile']['english_test_score'] );
+	taas_input_rejects( $request, 'An unanswered category must not mean N/A.' );
 }
-echo "PASS: English score types, decimal precision and storage boundaries\n";
-
-$exam_fields = array(
-	'toefl_ibt_score' => 5.5,
-	'toefl_ibt_date'  => '2026-02-10',
-	'speak_score'     => 45,
-	'speak_date'      => '2026-03-11',
-);
-$request = $body;
-unset( $request['details']['profile']['english_test'] );
-$request['details']['profile'] += $exam_fields;
-$parsed_exams = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
-foreach ( $exam_fields as $key => $value ) {
-	taas_input_check( $parsed_exams[ $key ] === $value, 'Both exam scores and dates must survive validation.' );
+foreach ( array( 'toefl_ibt_score', 'speak_score', 'english_test', 'toefl_ibt_date', 'speak_date' ) as $retired ) {
+	$request = $body;
+	$request['details']['profile'][ $retired ] = null;
+	taas_input_rejects( $request, 'Retired exam fields must not be accepted.' );
 }
-foreach ( array( null, '2024-02-29' ) as $date ) {
-	$request['details']['profile']['speak_date'] = $date;
-	$request['details']['profile']['speak_score'] = null;
-	taas_input_check( $date === TAAS_Student_Application_Input::parse( $request )['details']['profile']['speak_date'], 'Exam dates are optional independently of scores.' );
-}
-foreach ( array( '2026-02-30', '2025-02-29', '0000-01-01', '0999-12-31', '2026-1-01', '2026-01-01T00:00:00Z', '', 20260101, true ) as $date ) {
-	$invalid = $request;
-	$invalid['details']['profile']['speak_date'] = $date;
-	taas_input_rejects( $invalid, 'Invalid exam date was accepted.' );
-}
-foreach ( array(
-	'toefl_ibt_score' => array( 6.49, '5.5', true ),
-	'speak_score'     => array( 42.5, '45', true ),
-) as $key => $invalid_scores ) {
-	foreach ( $invalid_scores as $score ) {
-		$invalid = $request;
-		$invalid['details']['profile'][ $key ] = $score;
-		taas_input_rejects( $invalid, 'Separate exam fields bypassed score validation.' );
-	}
-}
-$invalid = $request;
-$invalid['details']['profile']['english_test'] = null;
-taas_input_rejects( $invalid, 'Mixed legacy and separate exam fields were accepted.' );
-$invalid = $request;
-unset( $invalid['details']['profile']['speak_date'] );
-taas_input_rejects( $invalid, 'Incomplete exam field contract was accepted.' );
-echo "PASS: Independent optional TOEFL/SPEAK scores and exam dates\n";
+echo "PASS: Required English score category accepts 1–4 for all programs and rejects retired fields\n";
 
 foreach ( array( '2025-02-29', '2024-02-29', '2025-13-01', '2025-00-01', '2025-05-02', '0999-01-01', '2025-5-01', "2025-05-01\0" ) as $date ) {
 	$request = $body;

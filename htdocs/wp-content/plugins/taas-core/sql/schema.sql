@@ -38,10 +38,7 @@ CREATE TABLE {prefix}student_profiles (
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
 	fws_eligibility varchar(14) NOT NULL DEFAULT 'no',  -- yes, no, not_applicable; graduates/default profiles use no
 	fws_award_letter_url varchar(255) DEFAULT NULL,     -- separate from the resume; required for eligible undergraduates
-	speak_score int DEFAULT NULL,                       -- international students only
-	speak_date date DEFAULT NULL,
-	toefl_ibt_score decimal(4,1) DEFAULT NULL,          -- international students only
-	toefl_ibt_date date DEFAULT NULL,
+	english_test_score tinyint unsigned DEFAULT NULL, -- selected range 1–4; null until answered
 	has_ta_experience tinyint(1) NOT NULL DEFAULT 0,
 	eap5836_status tinyint unsigned DEFAULT NULL,       -- (PhD) 1 = taken at uf, 2 = taken not at uf, 3 = taking, 4 = not taken
 	eap5837_status tinyint unsigned DEFAULT NULL,       -- (PhD) same php enum values as above

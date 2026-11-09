@@ -128,12 +128,14 @@ class UfidVisibilityTest extends TestCase {
 					enrollment_status: TAAS_Enrollment_Status::Phd,
 					has_ta_experience: true,
 					eap5836_status: TAAS_Course_Taken_Status::Taken_At_UF,
+					english_test_score: TAAS_English_Test_Score::Middle_Range,
 				),
 				array(
-					'enrollment_status' => 'PhD',
-					'has_ta_experience' => true,
-					'eap5836_status'    => 'Taken at UF',
-					'eap5837_status'    => null,
+					'enrollment_status'  => 'PhD',
+					'has_ta_experience'  => true,
+					'eap5836_status'     => 'Taken at UF',
+					'eap5837_status'     => null,
+					'english_test_score' => '45–54 SPEAK / 23–27 TOEFL iBT',
 				),
 			),
 			'academic background' => array(

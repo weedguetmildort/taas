@@ -21,45 +21,34 @@ class TypesTest extends TestCase {
 	public function test_student_profile_hydrates_new_columns(): void {
 		$profile = TAAS_Student_Profile::from_row(
 			array(
-				'student_ufid'      => '12345678',
-				'major'             => 'Computer Science, Business',
-				'gpa'               => '3.50',
-				'enrollment_status' => '3',
-				'speak_score'       => '55',
-				'speak_date'        => '2025-03-01',
-				'toefl_ibt_score'   => '5.5',
-				'toefl_ibt_date'    => '2025-09-13',
-				'has_ta_experience' => '0',
+				'student_ufid'       => '12345678',
+				'major'              => 'Computer Science, Business',
+				'gpa'                => '3.50',
+				'enrollment_status'  => '3',
+				'english_test_score' => '3',
+				'has_ta_experience'  => '0',
 			)
 		);
 
 		$this->assertSame( 'Computer Science, Business', $profile->major );
 		$this->assertSame( 3.5, $profile->gpa );
 		$this->assertSame( TAAS_Enrollment_Status::Phd, $profile->enrollment_status );
-		$this->assertSame( 55, $profile->speak_score );
-		$this->assertSame( '2025-03-01', $profile->speak_date->format( 'Y-m-d' ) );
-		$this->assertSame( 5.5, $profile->toefl_ibt_score );
-		$this->assertSame( '2025-09-13', $profile->toefl_ibt_date->format( 'Y-m-d' ) );
+		$this->assertSame( TAAS_English_Test_Score::Upper_Range, $profile->english_test_score );
 	}
 
 	/**
-	 * Both English tests are optional and independent of each other
+	 * Unanswered profiles remain distinct from an explicit N/A selection.
 	 */
-	public function test_english_tests_are_nullable_and_independent(): void {
-		$speak_only = TAAS_Student_Profile::from_row(
+	public function test_english_score_category(): void {
+		$this->assertNull( ( new TAAS_Student_Profile( '12345678' ) )->english_test_score );
+		$this->assertSame( 4, ( new TAAS_Student_Profile( '12345678', english_test_score: TAAS_English_Test_Score::Not_Applicable ) )->to_row()['english_test_score'] );
+		$this->expectException( UnexpectedValueException::class );
+		TAAS_Student_Profile::from_row(
 			array(
-				'student_ufid' => '12345678',
-				'speak_score'  => '55',
+				'student_ufid'       => '12345678',
+				'english_test_score' => '5',
 			)
 		);
-		$no_test    = TAAS_Student_Profile::from_row( array( 'student_ufid' => '12345678' ) );
-
-		$this->assertSame( 55, $speak_only->to_row()['speak_score'] );
-		$this->assertNull( $speak_only->toefl_ibt_score );
-		$this->assertNull( $no_test->speak_score );
-		$this->assertNull( $no_test->speak_date );
-		$this->assertNull( $no_test->toefl_ibt_score );
-		$this->assertNull( $no_test->toefl_ibt_date );
 	}
 
 	/**
@@ -86,7 +75,6 @@ class TypesTest extends TestCase {
 	public function test_student_profile_to_row_matches_schema_columns(): void {
 		$row = ( new TAAS_Student_Profile(
 			student_ufid: '12345678',
-			toefl_ibt_date: new DateTimeImmutable( '2025-09-13' ),
 		) )->to_row();
 
 		$this->assertSame(
@@ -99,10 +87,7 @@ class TypesTest extends TestCase {
 				'gpa',
 				'enrollment_status',
 				'resume_url',
-				'speak_score',
-				'speak_date',
-				'toefl_ibt_score',
-				'toefl_ibt_date',
+				'english_test_score',
 				'has_ta_experience',
 				'eap5836_status',
 				'eap5837_status',
@@ -113,7 +98,6 @@ class TypesTest extends TestCase {
 			),
 			array_keys( $row )
 		);
-		$this->assertSame( '2025-09-13', $row['toefl_ibt_date'] );
 		$this->assertSame( 'no', $row['fws_eligibility'] );
 		$this->assertNull( $row['fws_award_letter_url'] );
 	}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Regression checks for TOEFL metadata during application edits; all fixtures roll back.
+ * Regression checks for required language scores and optional dates during application edits; all fixtures roll back.
  *
  * @package TAAS_Tests
  */
@@ -43,17 +43,14 @@ $body = array(
 		'student_name'        => 'Profile verification',
 		'student_email'       => 'profile@ufl.edu',
 		'profile'             => array(
-			'phone'             => '3525550100',
-			'country_code'      => 'US',
-			'admitted_semester' => 'Fall 2025',
-			'available_hours'   => 10,
-			'enrollment_status' => 2,
-			'eap5836_status'    => 1,
-			'eap5837_status'    => 4,
-			'english_test'      => array(
-				'type'  => 'TOEFL',
-				'score' => 6,
-			),
+			'phone'              => '3525550100',
+			'country_code'       => 'US',
+			'admitted_semester'  => 'Fall 2025',
+			'available_hours'    => 10,
+			'enrollment_status'  => 2,
+			'eap5836_status'     => 1,
+			'eap5837_status'     => 4,
+			'english_test_score' => 2,
 		),
 		'academic_background' => array(
 			array(
@@ -74,7 +71,7 @@ try {
 			global $wpdb;
 			taas_test_set_period( $period );
 			$students->insert( new TAAS_Student( $owner, 'Profile verification', 'profile@ufl.edu' ) );
-			$profiles->insert( new TAAS_Student_Profile( student_ufid: $owner, speak_score: 45, speak_date: new DateTimeImmutable( '2026-01-10' ), toefl_ibt_score: 6, toefl_ibt_date: new DateTimeImmutable( '2026-02-10' ) ) );
+			$profiles->insert( new TAAS_Student_Profile( student_ufid: $owner, english_test_score: TAAS_English_Test_Score::Middle_Range ) );
 			$submissions->save_for_term( $owner, TAAS_Semester::Fall, 2155, TAAS_Student_Application_Input::parse( $body, true )['details'] );
 			$save = static function ( array $request ) use ( $owner, $submissions ): void {
 				$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
@@ -92,55 +89,12 @@ try {
 			taas_profile_check( 'CS' === $profiles->find( $owner )->major && 3.5 === $profiles->find( $owner )->gpa, 'The first degree supplies the shared major and GPA, rather than a previous degree' );
 			$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
 			taas_profile_check( 2 === count( $snapshot->submitted_details['academic_background'] ), 'The snapshot preserves both current and previous degrees' );
-			taas_profile_check( '2026-02-10' === $profiles->find( $owner )->toefl_ibt_date?->format( 'Y-m-d' ), 'An unrelated phone edit preserves the unchanged TOEFL test date' );
-			taas_profile_check( 45 === $profiles->find( $owner )->speak_score && '2026-01-10' === $profiles->find( $owner )->speak_date?->format( 'Y-m-d' ), 'Saving TOEFL preserves the separate SPEAK result and date' );
+			taas_profile_check( TAAS_English_Test_Score::Middle_Range === $profiles->find( $owner )->english_test_score, 'An unrelated edit preserves the English score category' );
 			taas_profile_check( '3525550199' === $profiles->find( $owner )->phone, 'The requested profile edit still saves' );
-			$body['details']['profile']['english_test']['score'] = 5;
-			$save( $body );
-			taas_profile_check( null === $profiles->find( $owner )->toefl_ibt_date && 5.0 === $profiles->find( $owner )->toefl_ibt_score, 'Changing the score does not reuse the previous test date' );
-			$wpdb->update( $profiles->table(), array( 'toefl_ibt_date' => '2026-03-10' ), array( 'student_ufid' => $owner ) );
-			$body['details']['profile']['english_test']['type'] = 'SPEAK';
-			$save( $body );
-			taas_profile_check(
-				5 === $profiles->find( $owner )->speak_score && null === $profiles->find( $owner )->speak_date
-				&& 5.0 === $profiles->find( $owner )->toefl_ibt_score && '2026-03-10' === $profiles->find( $owner )->toefl_ibt_date?->format( 'Y-m-d' ),
-				'Selecting SPEAK saves it separately and preserves the existing TOEFL result/date'
-			);
-			$wpdb->update( $profiles->table(), array( 'speak_date' => '2026-03-15' ), array( 'student_ufid' => $owner ) );
-			$body['details']['profile']['english_test'] = array(
-				'type'  => 'TOEFL',
-				'score' => 5.5,
-			);
-			$save( $body );
-			taas_profile_check(
-				5.5 === $profiles->find( $owner )->toefl_ibt_score && null === $profiles->find( $owner )->toefl_ibt_date
-				&& 5 === $profiles->find( $owner )->speak_score && '2026-03-15' === $profiles->find( $owner )->speak_date?->format( 'Y-m-d' ),
-				'Fractional TOEFL survives storage while SPEAK and its date remain unchanged'
-			);
-			$wpdb->update(
-				$profiles->table(),
-				array(
-					'toefl_ibt_score' => 6,
-					'toefl_ibt_date'  => '2026-04-10',
-				),
-				array( 'student_ufid' => $owner )
-			);
-			$body['details']['profile']['english_test'] = null;
-			$save( $body );
-			taas_profile_check(
-				6.0 === $profiles->find( $owner )->toefl_ibt_score && '2026-04-10' === $profiles->find( $owner )->toefl_ibt_date?->format( 'Y-m-d' )
-				&& 5 === $profiles->find( $owner )->speak_score && '2026-03-15' === $profiles->find( $owner )->speak_date?->format( 'Y-m-d' ),
-				'Not applicable preserves both shared English results and dates'
-			);
-			taas_profile_check( null === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 )->submitted_details['profile']['english_test'], 'Not applicable is stored explicitly as null in the term snapshot' );
-			unset( $body['details']['profile']['english_test'] );
 			$exam_fields = array(
-				'toefl_ibt_score' => 5.5,
-				'toefl_ibt_date'  => '2026-02-10',
-				'speak_score'     => 45,
-				'speak_date'      => '2026-03-11',
+				'english_test_score' => 2,
 			);
-			$body['details']['profile'] += $exam_fields;
+			$body['details']['profile'] = array_replace( $body['details']['profile'], $exam_fields );
 			$save( $body );
 			$stored = $profiles->find( $owner )->to_row();
 			$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
@@ -149,21 +103,23 @@ try {
 			}
 			$other_details = $snapshot->submitted_details;
 			$submissions->save_for_term( $owner, TAAS_Semester::Spring, 2155, $other_details );
-			$body['details']['profile']['toefl_ibt_score'] = 0;
-			$body['details']['profile']['toefl_ibt_date'] = null;
-			$body['details']['profile']['speak_score'] = null;
-			$save( $body );
-			taas_profile_check( 0.0 === $profiles->find( $owner )->toefl_ibt_score && null === $profiles->find( $owner )->toefl_ibt_date && null === $profiles->find( $owner )->speak_score && '2026-03-11' === $profiles->find( $owner )->speak_date?->format( 'Y-m-d' ), 'Score-only and date-only results are supported; zero remains a real score' );
-			foreach ( array_keys( $exam_fields ) as $key ) {
-				$body['details']['profile'][ $key ] = null;
-			}
+			$body['details']['profile']['english_test_score'] = 4;
 			$save( $body );
 			$stored = $profiles->find( $owner )->to_row();
 			$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
-			foreach ( array_keys( $exam_fields ) as $key ) {
-				taas_profile_check( null === $stored[ $key ] && null === $snapshot->submitted_details['profile'][ $key ], 'Clearing removes the current profile and snapshot value: ' . $key );
+			taas_profile_check( 4 === $stored['english_test_score'] && 4 === $snapshot->submitted_details['profile']['english_test_score'] && ! array_key_exists( 'toefl_ibt_date', $stored ) && ! array_key_exists( 'speak_date', $snapshot->submitted_details['profile'] ), 'N/A is preserved as category 4 without storing exam dates' );
+			$before_details = $snapshot->submitted_details;
+			foreach ( array( 'english_test_score' ) as $score_key ) {
+				$invalid = $body;
+				$invalid['details']['profile'][ $score_key ] = null;
+				try {
+					$save( $invalid );
+					throw new LogicException( 'An edit cleared a required score.' );
+				} catch ( InvalidArgumentException $error ) {
+					taas_profile_check( $stored === $profiles->find( $owner )->to_row() && $before_details === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 )->submitted_details, 'Rejecting an empty score preserves the shared profile and snapshot: ' . $score_key );
+				}
 			}
-			taas_profile_check( $other_details === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Spring, 2155 )->submitted_details, 'Clearing scores and dates preserves other terms completely' );
+			taas_profile_check( $other_details === $submissions->find_by_student_and_term( $owner, TAAS_Semester::Spring, 2155 )->submitted_details, 'Editing language scores preserves other terms completely' );
 			$body['details']['academic_background'][0]['major'] = 'Computer Engineering';
 			$body['details']['academic_background'][0]['gpa'] = null;
 			$save( $body );

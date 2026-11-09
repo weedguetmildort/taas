@@ -7,10 +7,7 @@ CREATE TABLE `{prefix}student_profiles` (
   `gpa` decimal(3,2) DEFAULT NULL,
   `enrollment_status` tinyint unsigned DEFAULT NULL,
   `resume_url` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
-  `speak_score` int DEFAULT NULL,
-  `speak_date` date DEFAULT NULL,
-  `toefl_ibt_score` decimal(4,1) DEFAULT NULL,
-  `toefl_ibt_date` date DEFAULT NULL,
+  `english_test_score` tinyint unsigned DEFAULT NULL,
   `has_ta_experience` tinyint(1) NOT NULL DEFAULT '0',
   `eap5836_status` tinyint unsigned DEFAULT NULL,
   `eap5837_status` tinyint unsigned DEFAULT NULL,
@@ -20,6 +17,7 @@ CREATE TABLE `{prefix}student_profiles` (
   `fws_award_letter_url` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   PRIMARY KEY (`student_ufid`),
   CONSTRAINT `fk_profiles_student` FOREIGN KEY (`student_ufid`) REFERENCES `{prefix}students` (`student_ufid`) ON DELETE CASCADE,
+  CONSTRAINT `chk_profiles_english_test_score` CHECK (((`english_test_score` is null) or (`english_test_score` in (1,2,3,4)))),
   CONSTRAINT `chk_profiles_fws_eligibility` CHECK ((`fws_eligibility` in (_utf8mb4'yes',_utf8mb4'no',_utf8mb4'not_applicable'))),
   CONSTRAINT `chk_profiles_gpa` CHECK (((`gpa` is null) or ((`gpa` >= 0) and (`gpa` <= 4.00))))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci

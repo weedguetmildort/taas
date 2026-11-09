@@ -79,23 +79,14 @@ Everything the application page needs: the period, the student's identity, their
     "gpa": 3.5,
     "enrollment_status": 2,
     "resume_url": null,
-    "speak_score": null,
-    "speak_date": null,
-    "toefl_ibt_score": 105.5,
-    "toefl_ibt_date": "2026-02-10",
+    "english_test_score": 2,
     "has_ta_experience": 0,
     "eap5836_status": 1,
     "eap5837_status": 4,
     "country_code": "US",
     "additional_info": ""
   },
-  "english_test": null,
-  "english_tests": {
-    "toefl_ibt_score": 105.5,
-    "toefl_ibt_date": "2026-02-10",
-    "speak_score": null,
-    "speak_date": null
-  },
+  "english_test_score": 2,
   "academic_background": [
     {
       "background_id": 37,
@@ -131,12 +122,11 @@ Everything the application page needs: the period, the student's identity, their
 | `identity` | object | The UFID and email from the session. The submitted `student_email` must match `email` |
 | `already_applied` | boolean | The student already has an application for the period's term, including one whose choices were all withdrawn. A second POST will return 409, so send them to their status page instead |
 | `profile` | object, *nullable* | The student's shared profile as stored, which every submission or edit replaces. `null` if they have no profile yet. `has_ta_experience` is `0` or `1` here, not a boolean |
-| `english_test` | object, *nullable* | Older format, only filled for applications saved before the four separate exam fields. Use `english_tests` |
-| `english_tests` | object | Exam results for prefilling. See below |
+| `english_test_score` | integer, *nullable* | Latest application category (1–4), or null if unanswered |
 | `academic_background` | array | The student's shared degrees, in the order they last submitted them. `[]` if they have none. `minor` is *nullable* |
 | `courses` | array | Every course in the period's term, ordered by `course_code`, then `course_id` |
 
-`english_tests` comes from the student's most recently created application, in any term, so a score they cleared doesn't come back. If they have no application yet, it comes from their shared profile. It normally has the four fields `toefl_ibt_score`, `toefl_ibt_date`, `speak_score` and `speak_date`, each *nullable*. If the most recent application was saved in the older format, it has only `english_test` instead.
+`english_test_score` prefills the latest application category, falling back to the shared profile when there is no application. A cleared or unanswered category is `null`.
 
 | Status | `code` | When |
 | --- | --- | --- |
@@ -165,10 +155,7 @@ Submits the student's first application for the period's term. Edits to an exist
       "eap5836_status": 1,
       "eap5837_status": 4,
       "resume_url": null,
-      "toefl_ibt_score": 105.5,
-      "toefl_ibt_date": "2026-02-10",
-      "speak_score": null,
-      "speak_date": null,
+      "english_test_score": 2,
       "additional_info": ""
     },
     "academic_background": [
@@ -218,16 +205,20 @@ Submits the student's first application for the period's term. Edits to an exist
 | `fws_eligibility` | undergraduates | `yes`, `no`, or `not_applicable`; an explicit answer is required. Graduate saves normalize this to `no`. The profile column is non-nullable and defaults to `no`. |
 | `fws_award_letter_url` | when FWS is `yes` | Separate FWS award letter link: complete HTTP/HTTPS URL, maximum 255 characters. The column is nullable; omitted, `null`, and empty values become `null` unless eligibility is `yes`. Graduate saves always clear it to `null`. |
 | `additional_info` | no | Up to 1000 characters. Saved as `""` when omitted |
-| `toefl_ibt_score` | see below | 0 to 999.9, with at most one decimal place, or `null` |
-| `toefl_ibt_date` | see below | `YYYY-MM-DD`, or `null` |
-| `speak_score` | see below | A whole number, 0 or more, or `null` |
-| `speak_date` | see below | `YYYY-MM-DD`, or `null` |
+| `english_test_score` | yes | Integer category 1–4; see the labels below |
 
 FWS fields are stored in both the shared student profile and the submitted term snapshot. Saving graduate status sets eligibility to `no` and clears the award letter URL for that profile and term only; earlier terms remain unchanged. Existing snapshots without FWS fields remain readable, but undergraduates must answer eligibility when saving edits. The form preserves FWS entries while toggling college status before saving; a successful graduate save clears those entries.
 
-Send all four exam fields, using `null` for any that are empty. A score doesn't need a date, and a date doesn't need a score. Sending only some of the four returns 400.
+One `english_test_score` category is required for every submission and edit, regardless of college status. Send an integer, not the label:
 
-The older `english_test` field is still accepted in place of the four: `{ "type": "TOEFL", "score": 105.5 }`, `{ "type": "SPEAK", "score": 45 }` or `null`. It can't be sent together with any of the four. It only changes the score of the test it names, and leaves the other test's score in the shared profile as it was.
+| Value | Display label |
+| --- | --- |
+| 1 | Under 45 SPEAK / Under 23 TOEFL iBT |
+| 2 | 45–54 SPEAK / 23–27 TOEFL iBT |
+| 3 | 55–60 SPEAK / 28–30 TOEFL iBT |
+| 4 | N/A |
+
+Missing, null, string, or out-of-range values return 400. `4` is an explicit N/A answer; `null` means an existing application has not answered yet. The migration clears retired raw scores from profiles and snapshots without choosing a category. Students must choose one before saving. Raw scores, legacy `english_test`, and exam dates are no longer accepted.
 
 **`details.academic_background`:** at least one degree, with no maximum. Put the current or most recent degree first: its `major` and `gpa` become the student's shared `major` and `gpa`.
 
@@ -340,10 +331,7 @@ The student's saved application for one term, with each course's status. Use it 
       "eap5837_status": 4,
       "resume_url": null,
       "additional_info": "",
-      "toefl_ibt_score": 105.5,
-      "toefl_ibt_date": "2026-02-10",
-      "speak_score": null,
-      "speak_date": null
+      "english_test_score": 2
     },
     "academic_background": [
       {
@@ -405,7 +393,7 @@ The student's saved application for one term, with each course's status. Use it 
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `details` | object | The details as submitted for this term, in the shape of the POST body's `details`. Editing the shared profile in another term doesn't change it. Key order isn't preserved. An application saved in the older format has `profile.english_test` instead of the four exam fields |
+| `details` | object | The details as submitted for this term, in the shape of the POST body's `details`. Editing the shared profile in another term doesn't change it. Key order isn't preserved. Migrated applications have an unanswered `profile.english_test_score` |
 | `identity` | object | Same as GET: application form |
 | `can_edit` | boolean | Whether PATCH: edit an application will be accepted. See below |
 | `revision` | string | 64 hex characters. Send it back with an edit |

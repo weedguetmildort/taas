@@ -20,9 +20,9 @@
   function findInputs(form) {
     const required = [
       'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone',
-      'eap5836Status', 'eap5837Status', 'taHours', 'firstName', 'lastName'
+      'eap5836Status', 'eap5837Status', 'taHours', 'firstName', 'lastName', 'englishTestScore'
     ];
-    const optional = ['ufid', 'toeflScore', 'toeflDate', 'speakScore', 'speakDate', 'additionalInfo', 'resumeUrl', 'fwsEligibility', 'fwsAwardLetterUrl'];
+    const optional = ['ufid', 'additionalInfo', 'resumeUrl', 'fwsEligibility', 'fwsAwardLetterUrl'];
     const inputs = {};
     for (const name of [...required, ...optional]) {
       const matches = [...form.elements].filter(input => input.name === name);
@@ -51,6 +51,7 @@
 
   student.createApplicationFields = (form, { editing }) => {
     const inputs = findInputs(form);
+    inputs.englishTestScore.required = true;
     const nameInputs = [inputs.firstName, inputs.lastName];
     const nameErrorInput = nameInputs[nameInputs.length - 1];
     // Optional controls can be omitted. Preserve their saved values when editing.
@@ -80,18 +81,8 @@
     }
 
     function prefillExamResults(data, profile) {
-      const source = data.english_tests || (Object.hasOwn(data, 'english_test') ? { english_test: data.english_test } : profile);
-      const legacy = source.english_test;
-      const fields = ['toefl_ibt_score', 'toefl_ibt_date', 'speak_score', 'speak_date'];
-      const separate = fields.some(key => Object.hasOwn(source, key));
-      const values = separate ? source : {
-        toefl_ibt_score: legacy?.type === 'TOEFL' ? legacy.score : null,
-        speak_score: legacy?.type === 'SPEAK' ? legacy.score : null
-      };
-      setValue('toeflScore', values.toefl_ibt_score ?? '');
-      setValue('toeflDate', values.toefl_ibt_date ?? '');
-      setValue('speakScore', values.speak_score ?? '');
-      setValue('speakDate', values.speak_date ?? '');
+      const value = Object.hasOwn(data, 'english_test_score') ? data.english_test_score : profile.english_test_score;
+      setValue('englishTestScore', value ?? '');
     }
 
     function prefill(data) {
@@ -198,10 +189,7 @@
           resume_url: read('resumeUrl') || null,
           fws_eligibility: read('collegeStatus') === 'undergraduate' ? read('fwsEligibility') || null : 'no',
           fws_award_letter_url: read('collegeStatus') === 'undergraduate' && !['no', 'not_applicable'].includes(read('fwsEligibility')) ? read('fwsAwardLetterUrl') || null : null,
-          toefl_ibt_score: score('toeflScore'),
-          toefl_ibt_date: read('toeflDate') || null,
-          speak_score: score('speakScore'),
-          speak_date: read('speakDate') || null,
+          english_test_score: score('englishTestScore'),
           additional_info: read('additionalInfo')
         }
       };

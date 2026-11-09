@@ -350,8 +350,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	 * GET /professor/applications/{application_id}: one applicant in full.
 	 *
 	 * TODO: Read submitted fields from the course-term snapshot, matching the
-	 * applicant list. First agree how to handle TA experience and TOEFL dates,
-	 * which the current snapshot contract does not capture.
+	 * applicant list. First agree how to handle TA experience, which the current
+	 * snapshot contract does not capture as a profile field.
 	 *
 	 * @param WP_REST_Request $request Current request.
 	 * @return WP_REST_Response|WP_Error
@@ -408,11 +408,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 					'eap5836_status'      => $profile?->eap5836_status?->label(),
 					'eap5837_status'      => $profile?->eap5837_status?->label(),
 					'resume_url'          => $profile?->resume_url,
-					'speak_score'         => $profile?->speak_score,
-					'speak_date'          => $profile?->speak_date?->format( 'Y-m-d' ),
+					'english_test_score'  => $profile?->english_test_score?->value,
 					'student_statement'   => $application->student_statement,
-					'toefl_ibt_score'     => $profile?->toefl_ibt_score,
-					'toefl_ibt_date'      => $profile?->toefl_ibt_date?->format( 'Y-m-d' ),
 				);
 			}
 		);
