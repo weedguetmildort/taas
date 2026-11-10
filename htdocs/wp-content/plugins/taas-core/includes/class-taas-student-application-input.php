@@ -150,7 +150,7 @@ final class TAAS_Student_Application_Input {
 			}
 		}
 		return array(
-			'phone'              => self::read_text( $profile, 'phone', 15 ),
+			'phone'              => self::read_text( $profile, 'phone', 16 ),
 			'country_code'       => $country_code,
 			'admitted_semester'  => $admitted_semester,
 			'available_hours'    => $available_hours,

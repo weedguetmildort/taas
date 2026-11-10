@@ -76,6 +76,13 @@ taas_input_check( null === $parsed['details']['profile']['resume_url'], 'Missing
 taas_input_check( '' === $parsed['details']['profile']['additional_info'] && '' === $parsed['details']['academic_background'][0]['minor'], 'Missing optional text becomes empty text.' );
 echo "PASS: Normalized output and optional defaults\n";
 
+$request = $body;
+$request['details']['profile']['phone'] = '+123456789012345';
+taas_input_check( '+123456789012345' === TAAS_Student_Application_Input::parse( $request )['details']['profile']['phone'], 'The plus sign and 15 digits fit in the phone field.' );
+$request['details']['profile']['phone'] .= '6';
+taas_input_rejects( $request, 'An oversized phone number was accepted.' );
+echo "PASS: Phone input accepts a calling code and up to 15 digits\n";
+
 // Exercise the same strict integer rule at each nesting level.
 $integer_paths = array(
 	array( 'term', 'semester' ),

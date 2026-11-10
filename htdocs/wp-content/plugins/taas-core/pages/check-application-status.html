@@ -114,8 +114,15 @@
                           </select>
                         </label>
                       </div>
-                      <div class="wp-block-taas-application-field">
-                        <label>Phone number <input name="phone" type="tel" required maxlength="15" autocomplete="tel"></label>
+                      <div class="wp-block-taas-application-field phone-fields">
+                        <label for="student-phone">Phone number</label>
+                        <div class="phone-code">
+                          <span data-phone-code-display aria-hidden="true">+1</span>
+                          <select name="phoneCallingCode" aria-label="Phone country code" autocomplete="tel-country-code">
+                            <option value="">No calling code</option>
+                          </select>
+                        </div>
+                        <input id="student-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" required>
                       </div>
                     </div>
                   </div>

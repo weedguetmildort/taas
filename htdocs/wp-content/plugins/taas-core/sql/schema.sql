@@ -29,7 +29,7 @@ CREATE TABLE {prefix}students (
 -- in every applicant-list query (availability, contact info, etc.).
 CREATE TABLE {prefix}student_profiles (
 	student_ufid varchar(8) NOT NULL,
-	phone varchar(15) DEFAULT NULL,
+	phone varchar(16) DEFAULT NULL,
 	admitted_semester varchar(20) DEFAULT NULL,
 	available_hours int DEFAULT NULL,                   -- NULL = not yet provided, distinct from 0
 	major varchar(255) DEFAULT NULL,                    -- most recent/applicable major; string for multiple majors

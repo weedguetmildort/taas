@@ -106,7 +106,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
       const payload = savedPayloads.at(-1);
       assert.equal(payload.revision, loadedRevision);
-      assert.equal(payload.details.profile.phone, phone);
+      assert.equal(payload.details.profile.phone, '+1' + phone);
       assert.deepEqual(payload.term, { semester: 1, year: 2155 });
       assert.equal(await page.locator('[name="phone"]').inputValue(), phone);
     }
@@ -171,7 +171,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert.equal(savedPayloads.at(-1).details.profile.fws_eligibility, 'yes');
     assert.equal(savedPayloads.at(-1).details.profile.fws_award_letter_url, 'https://example.com/updated-fws-letter');
     assert.equal(savedPayloads.at(-1).details.profile.resume_url, 'https://example.com/resume');
-    await page.locator('[name="collegeStatus"]').selectOption('phd');
+    await page.locator('[name="collegeStatus"]').selectOption('masters');
     await page.locator('#student-application-form [type="submit"]').click();
     await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
     assert.equal(savedPayloads.at(-1).details.profile.fws_eligibility, 'no');

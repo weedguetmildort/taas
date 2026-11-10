@@ -42,6 +42,14 @@
 .taas-application-form-root p { font-family: inherit; line-height: 1.5; }
 .taas-application-form-root .section-help { margin: -8px 0 18px; font-size: .94rem; }
 .taas-application-form-root .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; }
+.taas-application-form-root .phone-fields { display: grid; grid-template-columns: 5.25rem minmax(0, 1fr); gap: 6px 8px; }
+.taas-application-form-root .phone-fields > label { grid-column: 1 / -1; }
+.taas-application-form-root .phone-code { position: relative; }
+.taas-application-form-root .phone-code span { display: flex; align-items: center; justify-content: space-between; height: 100%; min-height: 42px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+.taas-application-form-root .phone-code span::after { content: "▾"; }
+.taas-application-form-root .phone-code select { position: absolute; inset: 0; height: 100%; opacity: 0; cursor: pointer; }
+.taas-application-form-root .phone-code:focus-within span { outline: 3px solid rgb(245 128 29 / 22%); border-color: var(--accent); }
+.taas-application-form-root .phone-code:has(select:disabled) span { opacity: .65; }
 .taas-application-form-root label { display: flex; min-width: 0; flex-direction: column; gap: 6px; font-size: .92rem; font-weight: 600; }
 .taas-application-form-root input, .taas-application-form-root select, .taas-application-form-root textarea { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); font: inherit; font-weight: 400; }
 .taas-application-form-root textarea { resize: vertical; }

@@ -1,6 +1,6 @@
 CREATE TABLE `{prefix}student_profiles` (
   `student_ufid` varchar(8) COLLATE utf8mb4_unicode_520_ci NOT NULL,
-  `phone` varchar(15) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `phone` varchar(16) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `admitted_semester` varchar(20) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `available_hours` int DEFAULT NULL,
   `major` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,

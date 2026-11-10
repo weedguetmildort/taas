@@ -13,7 +13,16 @@
           <label>Country of origin <input name="countryOfOrigin" list="country-options" autocomplete="country-name" required><datalist id="country-options"></datalist></label>
           <label>Semester you started at UF <select name="startSemester" id="start-semester" required><option value="">Select semester</option></select></label>
           <label>Current college status <select name="collegeStatus" required><option value="">Select status</option><option value="undergraduate">Undergraduate</option><option value="masters">Master's</option><option value="phd">PhD</option></select></label>
-          <label>Phone number <input name="phone" maxlength="15" type="tel" autocomplete="tel" inputmode="tel" required></label>
+          <div class="phone-fields">
+            <label for="student-phone">Phone number</label>
+            <div class="phone-code">
+              <span data-phone-code-display aria-hidden="true">+1</span>
+              <select name="phoneCallingCode" aria-label="Phone country code" autocomplete="tel-country-code">
+                <option value="">No calling code</option>
+              </select>
+            </div>
+            <input id="student-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" required>
+          </div>
         </div>
       </section>
 

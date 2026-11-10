@@ -197,7 +197,7 @@ Submits the student's first application for the period's term. Edits to an exist
 
 | Field | Required | Rules |
 | --- | --- | --- |
-| `phone` | yes | Up to 15 characters. The format isn't checked |
+| `phone` | yes | Up to 16 characters. The form sends international numbers as `+` followed by the calling code and national number |
 | `country_code` | yes | A two-letter ISO 3166-1 code from the form's country list, any case. Saved in upper case |
 | `admitted_semester` | yes | `Spring`, `Summer`, `Summer A`, `Summer B`, `Summer C` or `Fall`, then a space and a 4-digit year, such as `Fall 2025` |
 | `available_hours` | yes | `10` or `20` |

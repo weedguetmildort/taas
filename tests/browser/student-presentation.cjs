@@ -224,6 +224,33 @@ function html(editing, redesigned) {
       assert.match(result.error, /Enter your phone number/);
     }
     console.log('PASS: Whitespace-only phone numbers are rejected in both modes and recover after correction');
+    assert(await open());
+    const phone = page.locator('[name="phone"]');
+    const callingCode = page.locator('[name="phoneCallingCode"]');
+    const displayedCode = page.locator('[data-phone-code-display]');
+    assert.equal(await callingCode.inputValue(), '+1');
+    assert.equal(await displayedCode.textContent(), '+1');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+1' + fixture.profile.phone);
+    await page.addStyleTag({ path: path.join(assets, 'student-application.css') });
+    const codeBox = await displayedCode.boundingBox();
+    const phoneBox = await phone.boundingBox();
+    assert(codeBox.x + codeBox.width < phoneBox.x && codeBox.width < phoneBox.width);
+    assert.equal(codeBox.y, phoneBox.y);
+    await callingCode.selectOption('+44');
+    assert.equal(await displayedCode.textContent(), '+44');
+    await phone.fill('20 7946 0958');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+442079460958');
+    await phone.fill('+44 20 7946 0958');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+442079460958');
+    await phone.fill('+1 352 555 0100');
+    assert.equal(await page.evaluate(() => window.adapter.collect()), null);
+    const international = { ...saved, details: { ...saved.details, profile: { ...saved.details.profile, phone: '+442079460958' } } };
+    assert(await open(true, true, international));
+    assert.equal(await callingCode.inputValue(), '+44');
+    assert.equal(await displayedCode.textContent(), '+44');
+    assert.equal(await phone.inputValue(), '2079460958');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+442079460958');
+    console.log('PASS: The compact calling-code selector defaults to +1 and reloads international numbers');
     assert(await open(true, true, saved));
 
     const degrees = await page.evaluate(() => {
