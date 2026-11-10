@@ -239,8 +239,14 @@ try {
 			$original_ids = array_column( $rows, 'application_id', 'applied_course_id' );
 			$wpdb->update( $repos['applications']->table(), array( 'professor_preference_rank' => 2 ), array( 'application_id' => $original_ids[ $ids['B'] ] ) );
 			$read = taas_edit_request( 'GET', $route )->get_data();
+			$replacement = taas_edit_request( 'GET', '/student/application' )->get_data()['replacement'];
+			taas_edit_check(
+				$read['revision'] === $replacement['revision']
+				&& add_query_arg( 'taas_role', 'student', rest_url( 'taas/v1' . $route ) ) === $replacement['endpoint'],
+				'An editable same-term application offers replacement with the current revision'
+			);
 			$edit = $body;
-			$edit['revision'] = $read['revision'];
+			$edit['revision'] = $replacement['revision'];
 			$forged_email = $edit;
 			$forged_email['details']['student_email'] = 'professor@ufl.edu';
 			foreach ( array( 'POST', 'PATCH', 'PUT' ) as $method ) {
@@ -279,18 +285,25 @@ try {
 			$_GET['taas_role'] = 'instructor';
 			taas_edit_check( 403 === taas_edit_request( 'POST', $route, $edit )->get_status(), 'Non-student cannot edit' );
 			$_GET['taas_role'] = 'student';
-			$updated = taas_edit_request( 'POST', $route, $edit );
-			taas_edit_check( 200 === $updated->get_status(), 'Reorder, removal, addition and detail changes save together' );
+			$replacement_edit = $edit + array( 'replace_existing' => true );
+			$updated = taas_edit_request( 'POST', $route, $replacement_edit );
+			taas_edit_check( 200 === $updated->get_status(), 'Replacement saves reorder, removal, addition and details together' );
 			$headers = array_change_key_case( $updated->get_headers(), CASE_LOWER );
 			taas_edit_check( 'no-store' === ( $headers['cache-control'] ?? null ), 'Successful edit response prevents caching' );
 			$rows = $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] );
 			$by_id = array_column( $rows, null, 'applied_course_id' );
-			taas_edit_check( (int) $by_id[ $ids['A'] ]['match_status'] === 4 && $by_id[ $ids['A'] ]['application_id'] === $original_ids[ $ids['A'] ], 'Removed pending course is retained as withdrawn' );
+			taas_edit_check( 2 === count( $by_id ) && ! isset( $by_id[ $ids['A'] ] ), 'Replacement deletes the omitted course application' );
+			$retained_id = $by_id[ $ids['C'] ]['application_id'];
 			taas_edit_check( (int) $by_id[ $ids['B'] ]['student_preference_rank'] === 1 && (int) $by_id[ $ids['B'] ]['professor_preference_rank'] === 2, 'Student ranking update preserves professor ranking' );
 			taas_edit_check( (int) $by_id[ $ids['C'] ]['match_status'] === 1, 'Added course starts pending' );
-			taas_edit_check( (int) $by_id[ $ids['A'] ]['has_ta_for_course'] === 1 && (int) $by_id[ $ids['B'] ]['has_ta_for_course'] === 0 && (int) $by_id[ $ids['C'] ]['has_ta_for_course'] === 1, 'Edits clear or set TA declarations per course and preserve withdrawn declarations' );
-			$completion = array_column( taas_edit_request( 'GET', $route )->get_data()['course_preferences'], 'course_completion', 'course_id' );
-			taas_edit_check( 0 === $completion[ $ids['B'] ] && 2 === $completion[ $ids['C'] ] && 1 === (int) $by_id[ $ids['A'] ]['has_taken_course'], 'Edits save No and Equivalent and preserve withdrawn declarations' );
+			taas_edit_check( (int) $by_id[ $ids['B'] ]['has_ta_for_course'] === 0 && (int) $by_id[ $ids['C'] ]['has_ta_for_course'] === 1, 'Replacement stores TA declarations on the selected courses' );
+			$replaced = taas_edit_request( 'GET', $route )->get_data();
+			taas_edit_check(
+				array( $ids['B'], $ids['C'] ) === array_column( $replaced['course_preferences'], 'course_id' ),
+				'Replacement status shows only selected courses'
+			);
+			$completion = array_column( $replaced['course_preferences'], 'course_completion', 'course_id' );
+			taas_edit_check( 0 === $completion[ $ids['B'] ] && 2 === $completion[ $ids['C'] ], 'Replacement saves No and Equivalent' );
 			$returned = array_column( taas_edit_request( 'GET', $route )->get_data()['course_preferences'], 'has_ta_for_course', 'course_id' );
 			taas_edit_check( false === $returned[ $ids['B'] ] && true === $returned[ $ids['C'] ], 'Saved course TA declarations are returned for editing' );
 			taas_edit_check( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] )->submitted_details['profile']['available_hours'] === 20, 'Same-term snapshot is replaced' );
@@ -299,28 +312,39 @@ try {
 			$exam_snapshot = taas_edit_request( 'GET', $route )->get_data()['details']['profile'];
 			taas_edit_check( TAAS_English_Test_Score::Upper_Range === $exam_profile->english_test_score && 3 === $exam_snapshot['english_test_score'], 'REST edits update the required category in the shared profile and snapshot' );
 			taas_edit_check( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Spring, $period['year'] )->submitted_details == $old_term, 'Other term snapshot is preserved' );
-			taas_edit_check( 409 === taas_edit_request( 'POST', $route, $edit )->get_status(), 'Stale loaded version cannot overwrite newer saved edits' );
+			taas_edit_check( 409 === taas_edit_request( 'POST', $route, $replacement_edit )->get_status(), 'Stale replacement cannot overwrite newer saved edits' );
 			$withdraw = $edit;
 			$withdraw['revision'] = taas_edit_request( 'GET', $route )->get_data()['revision'];
 			$withdraw['course_preferences'] = array();
 			taas_edit_check( 200 === taas_edit_request( 'POST', $route, $withdraw )->get_status(), 'Empty selection withdraws every course' );
+			$withdrawn = taas_edit_request( 'GET', $route )->get_data()['course_preferences'];
+			taas_edit_check(
+				array( $ids['B'], $ids['C'] ) === array_column( $withdrawn, 'course_id' ) && array( 4, 4 ) === array_column( $withdrawn, 'match_status' ),
+				'Ordinary edits still show withdrawn courses'
+			);
 			$rows = $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] );
-			taas_edit_check( count( $rows ) === 3 && count( array_filter( $rows, static fn( array $row ) => (int) $row['match_status'] === 4 ) ) === 3, 'Withdrawing all keeps all original records' );
-			taas_edit_check( 2 === count( array_filter( $rows, static fn( array $row ) => (bool) $row['has_ta_for_course'] ) ), 'Withdrawing all preserves existing per-course TA declarations' );
+			taas_edit_check( 2 === count( $rows ) && 2 === count( array_filter( $rows, static fn( array $row ) => (int) $row['match_status'] === 4 ) ), 'Withdrawing all keeps both selected course records' );
+			taas_edit_check( 1 === count( array_filter( $rows, static fn( array $row ) => (bool) $row['has_ta_for_course'] ) ), 'Withdrawing all preserves existing per-course TA declarations' );
 			$reactivate = $edit;
 			$reactivate['revision'] = taas_edit_request( 'GET', $route )->get_data()['revision'];
 			$reactivate['course_preferences'] = array(
 				array(
-					'course_id'            => $ids['A'],
+					'course_id'            => $ids['C'],
 					'rank'                 => 1,
 					'has_completed_course' => true,
 				),
+				array(
+					'course_id'            => $ids['A'],
+					'rank'                 => 2,
+					'has_completed_course' => true,
+				),
 			);
-			taas_edit_check( 200 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Withdrawn course without professor rank can be reactivated' );
+			taas_edit_check( 200 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'An edit can reactivate a withdrawn course and re-add a deleted course' );
 			$rows = $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] );
 			$by_id = array_column( $rows, null, 'applied_course_id' );
-			taas_edit_check( $by_id[ $ids['A'] ]['application_id'] === $original_ids[ $ids['A'] ] && (int) $by_id[ $ids['A'] ]['match_status'] === 1, 'Reactivation reuses the same course application ID' );
-			taas_edit_check( 0 === (int) $by_id[ $ids['A'] ]['has_ta_for_course'], 'Reactivation stores the newly submitted TA declaration' );
+			taas_edit_check( $by_id[ $ids['C'] ]['application_id'] === $retained_id && (int) $by_id[ $ids['C'] ]['match_status'] === 1, 'Ordinary reactivation reuses the same course application ID' );
+			taas_edit_check( $by_id[ $ids['A'] ]['application_id'] !== $original_ids[ $ids['A'] ], 'Re-adding a course deleted by replacement creates a new row' );
+			taas_edit_check( 0 === (int) $by_id[ $ids['C'] ]['has_ta_for_course'], 'Reactivation stores the newly submitted TA declaration' );
 			$reactivate['revision'] = taas_edit_request( 'GET', $route )->get_data()['revision'];
 			$blocked = $reactivate;
 			$blocked['course_preferences'][0]['course_id'] = $ids['B'];
@@ -346,13 +370,15 @@ try {
 			);
 			taas_test_set_period( array( 'is_open' => false ) + $period );
 			taas_edit_check( 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Administrator closure blocks edits on the server' );
+			taas_edit_check( null === taas_edit_request( 'GET', '/student/application' )->get_data()['replacement'], 'Closed applications do not offer replacement' );
 			$closed_read = taas_edit_request( 'GET', $route );
 			taas_edit_check( 200 === $closed_read->get_status() && false === $closed_read->get_data()['can_edit'], 'Saved application stays readable, not editable, after closure' );
 			taas_edit_check( 200 === taas_edit_request( 'GET', '/student/application/terms' )->get_status(), 'Term list stays readable after closure' );
 			taas_test_set_period( array( 'closes_at' => time() - 1 ) + $period );
 			taas_edit_check( 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Passed deadline blocks edits without grace' );
 			taas_test_set_period( $period );
-			$wpdb->update( $repos['applications']->table(), array( 'match_status' => 2 ), array( 'application_id' => $original_ids[ $ids['A'] ] ) );
+			$wpdb->update( $repos['applications']->table(), array( 'match_status' => 2 ), array( 'application_id' => $retained_id ) );
+			taas_edit_check( null === taas_edit_request( 'GET', '/student/application' )->get_data()['replacement'], 'Matched applications do not offer replacement' );
 			taas_edit_check( ! taas_edit_request( 'GET', $route )->get_data()['can_edit'] && 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Deferred matched-application policy is not bypassed' );
 			throw $sentinel;
 		}

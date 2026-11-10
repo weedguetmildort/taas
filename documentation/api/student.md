@@ -70,6 +70,7 @@ Everything the application page needs: the period, the student's identity, their
     "email": "test.student@ufl.edu"
   },
   "already_applied": true,
+  "replacement": null,
   "profile": {
     "student_ufid": "12345678",
     "phone": "3525550100",
@@ -120,7 +121,8 @@ Everything the application page needs: the period, the student's identity, their
 | --- | --- | --- |
 | `period` | object | See [Application period](#application-period) |
 | `identity` | object | The UFID and email from the session. The submitted `student_email` must match `email` |
-| `already_applied` | boolean | The student already has an application for the period's term, including one whose choices were all withdrawn. A second POST will return 409, so send them to their status page instead |
+| `already_applied` | boolean | The student already has an application for the period's term, including one whose choices were all withdrawn. A conflicting POST to the creation endpoint returns 409 |
+| `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint` and current `revision`. Use these to submit with `replace_existing: true` after the student chooses Start a new form. Omitted course applications are deleted for that term. |
 | `profile` | object, *nullable* | The student's shared profile as stored, which every submission or edit replaces. `null` if they have no profile yet. `has_ta_experience` is `0` or `1` here, not a boolean |
 | `english_test_score` | integer, *nullable* | Latest application category (1–4), or null if unanswered |
 | `academic_background` | array | The student's shared degrees, in the order they last submitted them. `[]` if they have none. `minor` is *nullable* |
@@ -401,7 +403,7 @@ The student's saved application for one term, with each course's status. Use it 
 | `can_edit` | boolean | Whether PATCH: edit an application will be accepted. See below |
 | `revision` | string | 64 hex characters. Send it back with an edit |
 | `courses` | array | Every course in this term, in the same shape and order as GET: application form |
-| `course_preferences` | array | Every application for this term, withdrawn ones included, ordered by `rank`, then `application_id`. `[]` if every application was removed |
+| `course_preferences` | array | All remaining course applications for the term, including rows withdrawn through ordinary edits, ordered by `rank` then `application_id` |
 | `course_preferences[].rank` | integer, *nullable* | The student's preference. A withdrawn application keeps its last rank, so ranks are only unique among the ones that aren't withdrawn |
 | `course_preferences[].match_status` | integer | `1` Pending, `2` Matched, `3` Rejected, `4` Withdrawn. `status_label` has the label |
 
@@ -420,7 +422,7 @@ The student's saved application for one term, with each course's status. Use it 
 
 `PATCH /student/application/{semester}/{year}`
 
-`POST` and `PUT` do the same thing. Replaces the student's application for one term. Only works when GET: one application returns `can_edit: true`.
+`POST` and `PUT` do the same thing. Saves an edit or an explicit replacement for one term. Only works when GET: one application returns `can_edit: true`.
 
 **Request body:** the same body as POST: submit an application, plus the `revision` from GET: one application:
 
@@ -438,16 +440,17 @@ The student's saved application for one term, with each course's status. Use it 
 The rules are the same as POST, except:
 
 - `term` must match `{semester}` and `{year}` in the path.
-- `course_preferences` may have 0 to 5 courses, so `[]` withdraws every application.
+- Ordinary edits accept 0 to 5 courses. An empty list withdraws every course application. A replacement (`replace_existing: true`) requires 1 to 5 courses and deletes omitted course applications for that term.
 - `revision` is required. If the application has changed since it was read, for example in another tab, the edit returns 409. Read it again before retrying.
 
-**What changes:** the full list replaces the old one, in one transaction:
+**What changes:** all course and application details are saved in one transaction.
 
 | Course | Result |
 | --- | --- |
-| In the list, and the student already had an application for it | Set to `Pending` with the new `rank` and `has_ta_for_course`. A withdrawn application comes back this way |
+| In the list, and the student already had an application for it | Set to `Pending` with the submitted rank, completion answer, and prior TA declaration. An eligible withdrawn application can be reactivated this way |
 | In the list, and new | A new `Pending` application |
-| Not in the list, and `Pending` | Set to `Withdrawn`. Its `rank` and `has_ta_for_course` are kept |
+| Omitted from an ordinary edit | A `Pending` application becomes `Withdrawn`. Its last rank and declarations are kept |
+| Omitted from a replacement | The course application row for this term is deleted |
 
 `details` replaces this term's saved details and the shared profile and degrees, in the same way as POST. Other terms' saved details don't change.
 

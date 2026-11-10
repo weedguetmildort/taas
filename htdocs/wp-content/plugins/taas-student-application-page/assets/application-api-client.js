@@ -45,7 +45,10 @@
       && isText(degree.grad_date) && /^[1-9][0-9]{3}-(0[1-9]|1[0-2])-01$/.test(degree.grad_date)
       && optionalNumber(degree.gpa) && (degree.gpa == null || (degree.gpa >= 0 && degree.gpa <= 4)));
     return validPeriod && validIdentity && validProfile && validCourses && validDegrees
-      && typeof data.already_applied === 'boolean' && validEnglishScore(data.english_test_score);
+      && typeof data.already_applied === 'boolean' && validEnglishScore(data.english_test_score)
+      && (data.replacement == null || (data.already_applied && isRecord(data.replacement)
+        && isText(data.replacement.endpoint) && data.replacement.endpoint.length > 0
+        && isText(data.replacement.revision) && /^[a-f0-9]{64}$/.test(data.replacement.revision)));
   }
 
   student.createApplicationApi = ({ nonce, timeoutMs = 30000, messages = {} } = {}) => {
@@ -95,11 +98,12 @@
       return data;
     }
 
-    async function save(endpoint, { term, details, course_preferences, revision }) {
+    async function save(endpoint, { term, details, course_preferences, revision, replace_existing }) {
       const payload = {
         term: { semester: term.semester, year: term.year },
         details, course_preferences,
-        ...(revision !== undefined ? { revision } : {})
+        ...(revision !== undefined ? { revision } : {}),
+        ...(replace_existing !== undefined ? { replace_existing } : {})
       };
       const result = await request(endpoint, 'POST', payload);
       if (!Number.isInteger(result?.submission_id) || result.submission_id < 1) {

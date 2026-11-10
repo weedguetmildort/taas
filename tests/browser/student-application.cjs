@@ -15,6 +15,8 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     const target = `${origin}/?pagename=student-application&taas_role=student`;
     let current = null;
     let postCount = 0;
+    const replacementEndpoint = `${origin}/?rest_route=/taas/v1/student/application/2/2027`;
+    const replacementRevision = 'a'.repeat(64);
     const bodies = [];
     await page.route(url => url.href.includes('/taas/v1/student/application') || url.searchParams.get('rest_route') === '/taas/v1/student/application', async route => {
       const request = route.request();
@@ -23,6 +25,9 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
         ? route.fulfill({ json: current })
         : route.fulfill({ status: 503, json: { message: 'The application period has not been configured.' } });
       bodies.push(request.postDataJSON());
+      if (request.url() === replacementEndpoint) {
+        return route.fulfill({ json: { submission_id: 123, revision: 'b'.repeat(64) } });
+      }
       postCount++;
       if (postCount === 1) return route.fulfill({ status: 500, json: { message: 'Temporary test failure. Please retry.' } });
       return route.fulfill({ status: 201, json: { submission_id: 123, message: 'Saved', status_url: `${origin}/check-application-status/`, home_url: `${origin}/` } });
@@ -136,13 +141,32 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     console.log('PASS: Retry keeps the exact payload and success dialog has both destinations');
     if (process.env.TAAS_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.TAAS_SCREENSHOT_DIR}/student-application-success.png`, fullPage: false });
 
-    current = { ...structuredClone(fixture), already_applied: true };
-    await page.goto(target, { waitUntil: 'networkidle' });
-    assert(await page.locator('#existing-application-notice').isVisible());
+    current = { ...structuredClone(fixture), already_applied: true, replacement: null };
+    await page.goto(target, { waitUntil: 'domcontentloaded' });
+    await page.locator('#existing-application-notice').waitFor();
+    assert(await page.locator('#start-recovery-form').isHidden());
+    assert(await page.locator('#student-application-form').isHidden());
+
+    current.replacement = { endpoint: replacementEndpoint, revision: replacementRevision };
+    await page.goto(target, { waitUntil: 'domcontentloaded' });
+    const warning = page.locator('#existing-application-notice strong').filter({ hasText: 'will overwrite' });
+    await warning.waitFor();
     assert(await page.locator('#student-application-form').isHidden());
     await page.locator('#start-recovery-form').click();
     assert(await page.locator('#student-application-form').isVisible());
-    console.log('PASS: Already-applied notice offers the recovery form');
+    await page.locator('[name="firstName"]').fill('Alex');
+    await page.locator('[name="lastName"]').fill('Replacement');
+    await page.locator('[name="englishTestScore"]').selectOption('2');
+    await page.locator('[name="selectedCourses"][value="test-0"]').check();
+    await page.locator('[name="courseRank"]').selectOption('1');
+    await page.locator('[name="courseHistory"]').selectOption('no');
+    const replacementRequest = page.waitForRequest(request => request.method() === 'POST' && request.url() === replacementEndpoint);
+    await submit.click();
+    const replacementPayload = (await replacementRequest).postDataJSON();
+    assert.equal(replacementPayload.revision, replacementRevision);
+    assert.equal(replacementPayload.replace_existing, true);
+    await page.locator('#application-success[open]').waitFor();
+    console.log('PASS: Replacement requires an editable application and sends the saved revision to the edit endpoint');
 
     current = structuredClone(fixture); current.period.is_open = false;
     await page.goto(target, { waitUntil: 'networkidle' });

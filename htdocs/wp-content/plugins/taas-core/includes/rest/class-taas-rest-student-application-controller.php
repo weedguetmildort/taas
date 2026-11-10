@@ -97,10 +97,22 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				$user       = TAAS_Auth::current_user();
 				$ufid       = $this->authenticated_ufid();
 				$semester   = TAAS_Semester::from( $period['semester'] );
-				$submission = ( new TAAS_Student_Submission_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] );
-				$choices    = ( new TAAS_Application_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] );
+				$submissions = new TAAS_Student_Submission_Repository();
+				$saved = $submissions->find_application_for_term( $ufid, $semester, $period['year'] );
+				$replacement = null;
+				if ( null !== $saved && TAAS_Student_Application_Service::can_edit( $semester, $period['year'], $saved['choices'] ) ) {
+					$endpoint = rest_url( 'taas/v1/student/application/' . $semester->value . '/' . $period['year'] );
+					if ( TAAS_Auth::is_local_dev() ) {
+						$endpoint = add_query_arg( 'taas_role', 'student', $endpoint );
+					}
+					$replacement = array(
+						'endpoint' => $endpoint,
+						'revision' => TAAS_Student_Application_Service::revision( $saved['snapshot'], $saved['choices'] ),
+					);
+				}
+				$already_applied = null !== $saved || ! empty( ( new TAAS_Application_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] ) );
 				$profile    = ( new TAAS_Student_Profile_Repository() )->find( $ufid );
-				$latest     = ( new TAAS_Student_Submission_Repository() )->latest_for_student( $ufid );
+				$latest     = $submissions->latest_for_student( $ufid );
 				$exam_source = null !== $latest ? ( $latest->submitted_details['profile'] ?? array() ) : ( $profile?->to_row() ?? array() );
 				return $this->student_response(
 					array(
@@ -109,7 +121,8 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 							'ufid'  => $ufid,
 							'email' => $user['email'],
 						),
-						'already_applied'     => null !== $submission || ! empty( $choices ),
+						'already_applied'     => $already_applied,
+						'replacement'         => $replacement,
 						'profile'             => $profile?->to_row(),
 						'english_test_score'  => $exam_source['english_test_score'] ?? null,
 						'academic_background' => array_map(
@@ -228,7 +241,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 	}
 
 	/**
-	 * Save explicit edits from the status page; initial creation remains separate.
+	 * Save explicit edits or replacements for an existing term.
 	 *
 	 * @param mixed $request Current REST request.
 	 */
@@ -239,14 +252,15 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 		}
 		$input = $parsed['input'];
 		$revision = $parsed['revision'];
+		$replacement = $parsed['replacement'];
 		$path = $request->get_url_params();
 		if ( $input['term']['semester'] !== (int) $path['semester'] || $input['term']['year'] !== (int) $path['year'] ) {
 			return new WP_Error( 'taas_invalid_term', 'The submitted term does not match the application being edited.', array( 'status' => 400 ) );
 		}
 		return $this->respond(
-			function () use ( $input, $revision ) {
+			function () use ( $input, $revision, $replacement ) {
 				try {
-					$saved = TAAS_Student_Application_Service::update( $this->authenticated_ufid(), $input, $revision );
+					$saved = TAAS_Student_Application_Service::update( $this->authenticated_ufid(), $input, $revision, $replacement );
 				} catch ( DomainException $e ) {
 					return new WP_Error( 'taas_application_not_saved', $e->getMessage(), array( 'status' => $e->getCode() ) );
 				}
@@ -278,24 +292,31 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 	/**
 	 * Parse create/edit requests while retaining the existing validation errors.
 	 *
-	 * @return array{input: array, revision: ?string}|WP_Error
+	 * @return array{input: array, revision: ?string, replacement: bool}|WP_Error
 	 * @param WP_REST_Request $request Current REST request.
 	 * @param bool            $editing Whether the request edits a saved application.
 	 */
 	private function parse_request( WP_REST_Request $request, bool $editing = false ): array|WP_Error {
 		$body = $request->get_json_params();
 		$revision = null;
+		$replacement = false;
 		if ( $editing ) {
 			$revision = is_array( $body ) ? ( $body['revision'] ?? null ) : null;
 			if ( ! is_string( $revision ) || ! preg_match( '/^[a-f0-9]{64}$/', $revision ) ) {
 				return new WP_Error( 'taas_invalid_revision', 'Load the saved application before submitting edits.', array( 'status' => 400 ) );
 			}
-			unset( $body['revision'] );
+			if ( array_key_exists( 'replace_existing', $body ) ) {
+				$replacement = $body['replace_existing'];
+				if ( ! is_bool( $replacement ) ) {
+					return new WP_Error( 'taas_invalid_application', 'The replacement flag must be a boolean.', array( 'status' => 400 ) );
+				}
+			}
+			unset( $body['revision'], $body['replace_existing'] );
 		} elseif ( ! is_array( $body ) || array_is_list( $body ) ) {
 			return new WP_Error( 'taas_invalid_application', 'Send an application JSON object.', array( 'status' => 400 ) );
 		}
 		try {
-			$input = TAAS_Student_Application_Input::parse( $body, $editing );
+			$input = TAAS_Student_Application_Input::parse( $body, $editing && ! $replacement );
 			$email = TAAS_Auth::current_user()['email'] ?? '';
 			if ( ! is_string( $email ) || ! is_email( $email ) || ! preg_match( '/@ufl\.edu$/i', $email ) ) {
 				return new WP_Error( 'taas_student_email_unavailable', 'Your authenticated university email is unavailable. Please contact the administrator.', array( 'status' => 403 ) );
@@ -306,8 +327,9 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 			// Use the authenticated value for both the shared identity and term snapshot.
 			$input['details']['student_email'] = $email;
 			return array(
-				'input'    => $input,
-				'revision' => $revision,
+				'input'       => $input,
+				'revision'    => $revision,
+				'replacement' => $replacement,
 			);
 		} catch ( InvalidArgumentException $e ) {
 			return new WP_Error( 'taas_invalid_application', $e->getMessage(), array( 'status' => 400 ) );

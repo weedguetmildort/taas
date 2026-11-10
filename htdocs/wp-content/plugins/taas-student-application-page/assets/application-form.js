@@ -86,7 +86,7 @@
     function showInitial(data) {
       setTerm(data.period.label);
       prefill(data);
-      showExisting(data.already_applied);
+      showExisting(data.already_applied, data.period.is_open && Boolean(data.replacement) && courses.hasCourses());
       if (!data.period.is_open) {
         showMessage('Applications are closed. New submissions and edits are unavailable.', 'error');
       } else if (!courses.hasCourses()) {
@@ -142,10 +142,23 @@
       else ui.term.textContent = `${editing ? 'Application for: ' : 'Applying for: '}${label}`;
     }
 
-    function showExisting(applied) {
+    function showExisting(applied, canReplace) {
       if (ui.notice) ui.notice.hidden = !applied;
-      // Without a recovery control, keep the form accessible; the API enforces conflicts.
-      form.hidden = !!(applied && ui.notice && ui.recovery);
+      if (ui.recovery) {
+        ui.recovery.hidden = !canReplace;
+        const replacement = ui.recovery.closest('[data-application-replacement]');
+        if (replacement) replacement.hidden = !canReplace;
+      }
+      form.hidden = !!(applied && ui.notice);
+    }
+
+    function onRecovery(startReplacement) {
+      ui.recovery?.addEventListener('click', () => {
+        if (!startReplacement()) return;
+        form.hidden = false;
+        if (ui.notice) ui.notice.hidden = true;
+        form.elements.namedItem('firstName')?.focus();
+      });
     }
 
     function showSuccess() {
@@ -163,16 +176,11 @@
       setLink(ui.existingLink, config?.statusUrl);
       setLink(ui.statusLink, config?.statusUrl);
       setLink(ui.homeLink, config?.homeUrl);
-      ui.recovery?.addEventListener('click', () => {
-        form.hidden = false;
-        if (ui.notice) ui.notice.hidden = true;
-        form.elements.namedItem('firstName')?.focus();
-      });
     }
 
     return {
       prefill, collect, showMessage, showInitial, showSaved,
-      setAvailability, setTerm, showExisting, showSuccess,
+      setAvailability, setTerm, showExisting, showSuccess, onRecovery,
       didSave: fields.didSave,
       hasCourses: courses.hasCourses,
       hasMissingChoices: courses.hasMissingChoices,

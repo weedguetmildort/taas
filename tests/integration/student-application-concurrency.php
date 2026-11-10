@@ -294,7 +294,7 @@ try {
 		'Losing edit cannot change the winner identity, profile, degrees, choices, or revision'
 	);
 
-	// Force failure at the final snapshot write after all earlier edit writes ran.
+	// Force failure at the final snapshot write after a replacement deletes the old choice.
 	$before = owner_state( $owner );
 	$failed = $edits[ 1 - $winner ];
 	$input = TAAS_Student_Application_Input::parse( $failed, true );
@@ -302,7 +302,7 @@ try {
 	add_filter( 'query', $fail );
 	$previous_errors = $wpdb->suppress_errors( true );
 	try {
-		TAAS_Student_Application_Service::update( $owner, $input, TAAS_Student_Application_Service::revision( $saved['snapshot'], $saved['choices'] ) );
+		TAAS_Student_Application_Service::update( $owner, $input, TAAS_Student_Application_Service::revision( $saved['snapshot'], $saved['choices'] ), true );
 		throw new LogicException( 'Expected snapshot failure.' );
 	} catch ( RuntimeException $error ) {
 		concurrency_check( str_contains( $error->getMessage(), 'Saving student submission failed' ), 'Failed edit surfaces the injected snapshot failure' );
@@ -310,7 +310,7 @@ try {
 		remove_filter( 'query', $fail );
 		$wpdb->suppress_errors( $previous_errors );
 	}
-	concurrency_check( $before === owner_state( $owner ), 'Failed edit rolls back identity, profile, degree IDs, preferences, and snapshot' );
+	concurrency_check( $before === owner_state( $owner ), 'Failed replacement restores the deleted choice and rolls back the other writes' );
 } finally {
 	null === $original_cycle ? $cycles->delete( TAAS_Application_Cycle::CURRENT_ID ) : $cycles->save( $original_cycle );
 	// Only delete rows belonging to IDs created successfully by this test.
