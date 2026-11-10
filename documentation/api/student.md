@@ -83,7 +83,7 @@ Everything the application page needs: the period, the student's identity, their
     "english_test_score": 2,
     "has_ta_experience": 0,
     "eap5836_status": 1,
-    "eap5837_status": 4,
+    "eap5837_status": 3,
     "country_code": "US",
     "additional_info": ""
   },
@@ -155,7 +155,7 @@ Submits the student's first application for the period's term. Edits to an exist
       "available_hours": 10,
       "enrollment_status": 2,
       "eap5836_status": 1,
-      "eap5837_status": 4,
+      "eap5837_status": 3,
       "resume_url": null,
       "english_test_score": 2,
       "additional_info": ""
@@ -202,7 +202,7 @@ Submits the student's first application for the period's term. Edits to an exist
 | `admitted_semester` | yes | `Spring`, `Summer`, `Summer A`, `Summer B`, `Summer C` or `Fall`, then a space and a 4-digit year, such as `Fall 2025` |
 | `available_hours` | yes | `10` or `20` |
 | `enrollment_status` | yes | `1` Undergraduate, `2` Masters, `3` PhD |
-| `eap5836_status`, `eap5837_status` | yes | `1` Taken at UF, `2` Taken elsewhere, `3` Currently taking, `4` Not taken. Required for every student, not only PhD students |
+| `eap5836_status`, `eap5837_status` | yes | `1` Taken, `2` Currently Enrolled, `3` Not Yet Taken, `4` N/A. Required for every student |
 | `resume_url` | no | An `http` or `https` URL, up to 255 characters. Omitted, `null` and `""` are all saved as `null` |
 | `fws_eligibility` | undergraduates | `yes`, `no`, or `not_applicable`; an explicit answer is required. Graduate saves normalize this to `no`. The profile column is non-nullable and defaults to `no`. |
 | `fws_award_letter_url` | when FWS is `yes` | Separate FWS award letter link: complete HTTP/HTTPS URL, maximum 255 characters. The column is nullable; omitted, `null`, and empty values become `null` unless eligibility is `yes`. Graduate saves always clear it to `null`. |
@@ -331,7 +331,7 @@ The student's saved application for one term, with each course's status. Use it 
       "available_hours": 10,
       "enrollment_status": 2,
       "eap5836_status": 1,
-      "eap5837_status": 4,
+      "eap5837_status": 3,
       "resume_url": null,
       "additional_info": "",
       "english_test_score": 2

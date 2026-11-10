@@ -49,7 +49,7 @@ $body = array(
 			'available_hours'    => 10,
 			'enrollment_status'  => 2,
 			'eap5836_status'     => 1,
-			'eap5837_status'     => 4,
+			'eap5837_status'     => 3,
 			'english_test_score' => 2,
 		),
 		'academic_background' => array(

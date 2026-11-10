@@ -13,19 +13,19 @@ defined( 'ABSPATH' ) || exit;
  */
 enum TAAS_Course_Taken_Status: int {
 	case Taken_At_UF     = 1;
-	case Taken_Elsewhere = 2;
-	case Taking          = 3;
-	case Not_Taken       = 4;
+	case Taking          = 2;
+	case Not_Taken       = 3;
+	case Not_Applicable  = 4;
 
 	/**
 	 * Human-readable name for display.
 	 */
 	public function label(): string {
 		return match ( $this ) {
-			self::Taken_At_UF     => 'Taken at UF',
-			self::Taken_Elsewhere => 'Taken elsewhere',
-			self::Taking          => 'Currently taking',
-			self::Not_Taken       => 'Not taken',
+			self::Taken_At_UF     => 'Taken',
+			self::Taking          => 'Currently Enrolled',
+			self::Not_Taken       => 'Not Yet Taken',
+			self::Not_Applicable  => 'N/A',
 		};
 	}
 }

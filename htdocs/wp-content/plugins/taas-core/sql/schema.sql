@@ -40,8 +40,8 @@ CREATE TABLE {prefix}student_profiles (
 	fws_award_letter_url varchar(255) DEFAULT NULL,     -- separate from the resume; required for eligible undergraduates
 	english_test_score tinyint unsigned DEFAULT NULL, -- selected range 1–4; null until answered
 	has_ta_experience tinyint(1) NOT NULL DEFAULT 0,
-	eap5836_status tinyint unsigned DEFAULT NULL,       -- (PhD) 1 = taken at uf, 2 = taken not at uf, 3 = taking, 4 = not taken
-	eap5837_status tinyint unsigned DEFAULT NULL,       -- (PhD) same php enum values as above
+	eap5836_status tinyint unsigned DEFAULT NULL,       -- 1 = taken, 2 = enrolled, 3 = not yet taken, 4 = N/A
+	eap5837_status tinyint unsigned DEFAULT NULL,       -- same EAP status codes as above
 	country_code varchar(2) DEFAULT NULL,               -- ISO 3166-1 alpha-2
 	additional_info varchar(1000) DEFAULT NULL,         -- students' notes for anyone reading their profile (professors/HR)
 	PRIMARY KEY  (student_ufid)

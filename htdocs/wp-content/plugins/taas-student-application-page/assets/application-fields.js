@@ -3,7 +3,7 @@
   'use strict';
   const student = window.TAASStudent = window.TAASStudent || {};
   const PROGRAMS = { undergraduate: 1, masters: 2, phd: 3 };
-  const EAP_STATUSES = { uf_taken: 1, other_university: 2, currently_taking: 3, not_taken: 4 };
+  const EAP_STATUSES = { uf_taken: 1, currently_taking: 2, not_taken: 3, not_applicable: 4 };
   const keyForValue = (mapping, value) => Object.keys(mapping).find(key => mapping[key] === value) || '';
 
   const COUNTRY_CODES = [

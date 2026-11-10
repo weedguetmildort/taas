@@ -152,12 +152,27 @@ final class TAAS_Student_Application_Input {
 			'admitted_semester'  => $admitted_semester,
 			'available_hours'    => $available_hours,
 			'enrollment_status'  => $enrollment_status,
-			'eap5836_status'     => self::read_integer( $profile, 'eap5836_status', 1, 4 ),
-			'eap5837_status'     => self::read_integer( $profile, 'eap5837_status', 1, 4 ),
+			'eap5836_status'     => self::read_eap_status( $profile, 'eap5836_status' ),
+			'eap5837_status'     => self::read_eap_status( $profile, 'eap5837_status' ),
 			'resume_url'         => '' === $resume_url ? null : $resume_url,
 			'english_test_score' => $english_test_score,
 			'additional_info'    => self::read_text( $profile, 'additional_info', 1000, false ),
 		) + self::parse_fws( $profile, $enrollment_status );
+	}
+
+	/**
+	 * Read a required EAP course status from the profile.
+	 *
+	 * @param array  $profile Submitted profile values.
+	 * @param string $key     EAP status field name.
+	 * @throws InvalidArgumentException If the status is invalid.
+	 */
+	private static function read_eap_status( array $profile, string $key ): int {
+		$status = $profile[ $key ] ?? null;
+		if ( ! is_int( $status ) || null === TAAS_Course_Taken_Status::tryFrom( $status ) ) {
+			throw new InvalidArgumentException( 'Select a valid status for both EAP courses.' );
+		}
+		return $status;
 	}
 
 	/**

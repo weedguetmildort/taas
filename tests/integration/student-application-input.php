@@ -49,7 +49,7 @@ $body = array(
 			'enrollment_status'  => 2,
 			'english_test_score' => 2,
 			'eap5836_status'     => 1,
-			'eap5837_status'     => 4,
+			'eap5837_status'     => 3,
 		),
 		'academic_background' => array(
 			array(
@@ -99,6 +99,15 @@ foreach ( $integer_paths as $path ) {
 	}
 }
 echo "PASS: Strict integer types throughout the request\n";
+
+foreach ( array( 'eap5836_status', 'eap5837_status' ) as $field ) {
+	$request = $body;
+	$request['details']['profile'][ $field ] = 2;
+	taas_input_check( 2 === TAAS_Student_Application_Input::parse( $request )['details']['profile'][ $field ], 'EAP status 2 means Currently Enrolled.' );
+	$request['details']['profile'][ $field ] = 5;
+	taas_input_rejects( $request, 'Out-of-range EAP status 5 must be rejected.' );
+}
+echo "PASS: Consecutive EAP status codes are validated\n";
 
 foreach ( array( 0, 4, null, 3.456 ) as $gpa ) {
 	$request = $body;

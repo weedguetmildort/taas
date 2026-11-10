@@ -300,8 +300,8 @@ These routes are read-only views of student records.
     "resume_url": null,
     "english_test_score": "45–54 SPEAK / 23–27 TOEFL iBT",
     "has_ta_experience": false,
-    "eap5836_status": "Taken at UF",
-    "eap5837_status": "Currently taking",
+    "eap5836_status": "Taken",
+    "eap5837_status": "Currently Enrolled",
     "country_code": "IN",
     "additional_info": null
   }
@@ -318,7 +318,7 @@ Every field except `student_ufid` and `has_ta_experience` is *nullable*.
 | `enrollment_status` | The student's current program |
 | `resume_url` | A link to an external document |
 | `has_ta_experience` | Has TA'd any course before |
-| `eap5836_status`, `eap5837_status` | PhD students only |
+| `eap5836_status`, `eap5837_status` | EAP course status |
 | `country_code` | ISO 3166-1 alpha-2 |
 | `additional_info` | The student's notes for anyone reading their profile, up to 1000 characters |
 

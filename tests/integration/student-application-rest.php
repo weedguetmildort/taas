@@ -108,7 +108,7 @@ try {
 						'fws_eligibility'      => 'yes',
 						'fws_award_letter_url' => 'https://example.com/fws-letter',
 						'eap5836_status'       => 1,
-						'eap5837_status'       => 4,
+						'eap5837_status'       => 3,
 						'resume_url'           => null,
 						'english_test_score'   => 2,
 						'additional_info'      => '001',

@@ -9,7 +9,7 @@ const partial = fs.readFileSync(path.join(root, 'htdocs/wp-content/plugins/taas-
 const fixture = {
   period: { semester: 1, year: 2026, label: 'Fall 2026', is_open: true },
   identity: { ufid: '12345678', email: 'student@ufl.edu' }, already_applied: false,
-  profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, english_test_score: 2 },
+  profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 3, english_test_score: 2 },
   academic_background: [{ university: 'Example', major: 'CS', minor: 'Math', degree_type: 2, grad_date: '2025-05-01', gpa: null }],
   courses: [{ course_id: 'example', course_code: 'CS101', course_name: 'Example', instructor_name: 'Example' }]
 };
@@ -107,7 +107,7 @@ function html(editing, redesigned) {
     const saved = {
       term: fixture.period, identity: fixture.identity, can_edit: true, courses: fixture.courses,
       details: { student_name: 'Alex Student', student_email: fixture.identity.email, academic_background: fixture.academic_background,
-        profile: { ...fixture.profile, resume_url: 'https://example.com/resume', additional_info: 'Keep this', english_test_score: 3 } }
+        profile: { ...fixture.profile, resume_url: 'https://example.com/resume', additional_info: 'Keep this', english_test_score: 3, eap5836_status: 1, eap5837_status: 4 } }
     };
     assert(await open(true, true, saved));
     assert.equal(await page.locator('[name="firstName"]').inputValue(), 'Alex');
@@ -117,6 +117,14 @@ function html(editing, redesigned) {
     assert.equal(edited.details.profile.resume_url, saved.details.profile.resume_url);
     assert.equal(edited.details.profile.additional_info, 'Keep this');
     assert.equal(edited.details.profile.english_test_score, 3);
+    for (const name of ['eap5836Status', 'eap5837Status']) {
+      assert.deepEqual(await page.locator(`[name="${name}"] option`).allTextContents(), ['Select status', 'Taken', 'Currently Enrolled', 'Not Yet Taken', 'N/A']);
+    }
+    assert.equal(await page.locator('[name="eap5836Status"] option:checked').textContent(), 'Taken');
+    assert.equal(await page.locator('[name="eap5837Status"] option:checked').textContent(), 'N/A');
+    assert.equal(edited.details.profile.eap5836_status, 1);
+    assert.equal(edited.details.profile.eap5837_status, 4);
+    console.log('PASS: Both EAP dropdowns have the four supported options and prefill saved answers');
     console.log('PASS: Omitted optional controls preserve saved values during edits');
 
     const compound = { ...saved, details: { ...saved.details, student_name: 'Mary Jane van Buren' } };

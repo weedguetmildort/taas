@@ -43,7 +43,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       period: { semester: 2, year: 2027, label: 'Spring 2027', is_open: true, closes_at: null },
       identity: { ufid: '12345678', email: 'test.student@ufl.edu' },
       already_applied: false,
-      profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, resume_url: null, additional_info: '' },
+      profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 3, resume_url: null, additional_info: '' },
       academic_background: [
         { university: 'Example University', major: 'Computer Science', degree_type: 2, grad_date: '2025-05-01', gpa: 3.5 },
         { university: 'University of Florida', major: 'Computer Science', degree_type: 3, grad_date: '2028-05-01', gpa: null }

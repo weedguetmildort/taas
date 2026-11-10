@@ -133,7 +133,7 @@ class UfidVisibilityTest extends TestCase {
 				array(
 					'enrollment_status'  => 'PhD',
 					'has_ta_experience'  => true,
-					'eap5836_status'     => 'Taken at UF',
+					'eap5836_status'     => 'Taken',
 					'eap5837_status'     => null,
 					'english_test_score' => '45–54 SPEAK / 23–27 TOEFL iBT',
 				),

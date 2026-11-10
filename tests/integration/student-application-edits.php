@@ -103,7 +103,7 @@ try {
 						'available_hours'    => 10,
 						'enrollment_status'  => 2,
 						'eap5836_status'     => 1,
-						'eap5837_status'     => 4,
+						'eap5837_status'     => 3,
 						'english_test_score' => 2,
 					),
 					'academic_background' => array(
@@ -264,6 +264,7 @@ try {
 			taas_edit_check( $read['revision'] === taas_edit_request( 'GET', $route )->get_data()['revision'], 'Rejected score edits preserve the saved application' );
 			$edit['details']['profile']['available_hours'] = 20;
 			$edit['details']['profile']['english_test_score'] = 3;
+			$edit['details']['profile']['eap5837_status'] = 4;
 			$edit['details']['profile']['enrollment_status'] = 1;
 			$edit['details']['profile']['fws_eligibility'] = 'not_applicable';
 			$edit['course_preferences'] = array(
@@ -313,6 +314,7 @@ try {
 			$exam_profile = $repos['profiles']->find( $owner );
 			$exam_snapshot = taas_edit_request( 'GET', $route )->get_data()['details']['profile'];
 			taas_edit_check( TAAS_English_Test_Score::Upper_Range === $exam_profile->english_test_score && 3 === $exam_snapshot['english_test_score'], 'REST edits update the required category in the shared profile and snapshot' );
+			taas_edit_check( TAAS_Course_Taken_Status::Not_Applicable === $exam_profile->eap5837_status && 4 === $exam_snapshot['eap5837_status'], 'N/A is saved for an EAP course in the shared profile and snapshot' );
 			taas_edit_check( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Spring, $period['year'] )->submitted_details == $old_term, 'Other term snapshot is preserved' );
 			taas_edit_check( 409 === taas_edit_request( 'POST', $route, $replacement_edit )->get_status(), 'Stale replacement cannot overwrite newer saved edits' );
 			$withdraw = $edit;
