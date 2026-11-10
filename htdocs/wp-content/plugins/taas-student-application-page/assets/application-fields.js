@@ -100,7 +100,7 @@
         fwsAwardLetterUrl: profile.fws_award_letter_url || '',
         additionalInfo: profile.additional_info || ''
       };
-      if (editing) {
+      if (editing || typeof data.student_name === 'string') {
         // Only a full name is stored; students can correct this provisional split.
         const parts = (data.student_name || '').trim().split(/\s+/);
         values.firstName = parts.shift();

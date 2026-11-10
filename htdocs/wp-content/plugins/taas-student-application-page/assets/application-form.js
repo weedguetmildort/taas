@@ -85,7 +85,11 @@
 
     function showInitial(data) {
       setTerm(data.period.label);
-      prefill({ ...data, course_preferences: data.replacement?.course_preferences ?? data.course_preferences });
+      prefill({
+        ...data,
+        student_name: data.replacement?.student_name,
+        course_preferences: data.replacement?.course_preferences ?? data.course_preferences
+      });
       showExisting(data.already_applied, data.period.is_open && Boolean(data.replacement)
         && courses.hasCourses() && !courses.hasMissingChoices());
       if (!data.period.is_open) {

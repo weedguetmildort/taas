@@ -150,6 +150,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     current.replacement = {
       endpoint: replacementEndpoint,
       revision: replacementRevision,
+      student_name: 'Alex de la Cruz',
       course_preferences: [
         { course_id: 'test-1', rank: 1, match_status: 1, course_completion: 2, has_ta_for_course: true },
         { course_id: 'test-0', rank: 2, match_status: 1, course_completion: 0, has_ta_for_course: false }
@@ -161,8 +162,8 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert(await page.locator('#student-application-form').isHidden());
     await page.locator('#start-recovery-form').click();
     assert(await page.locator('#student-application-form').isVisible());
-    await page.locator('[name="firstName"]').fill('Alex');
-    await page.locator('[name="lastName"]').fill('Replacement');
+    assert.equal(await page.locator('[name="firstName"]').inputValue(), 'Alex');
+    assert.equal(await page.locator('[name="lastName"]').inputValue(), 'de la Cruz');
     await page.locator('[name="englishTestScore"]').selectOption('2');
     assert.deepEqual(await page.locator('[name="selectedCourses"]:checked').evaluateAll(rows => rows.map(row => row.value)), ['test-0', 'test-1']);
     const firstChoice = page.locator('[data-course="test-1"]');
@@ -177,12 +178,13 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     const replacementPayload = (await replacementRequest).postDataJSON();
     assert.equal(replacementPayload.revision, replacementRevision);
     assert.equal(replacementPayload.replace_existing, true);
+    assert.equal(replacementPayload.details.student_name, 'Alex de la Cruz');
     assert.deepEqual(replacementPayload.course_preferences, [
       { course_id: 'test-0', rank: 2, has_completed_course: false, course_completion: 0, has_ta_for_course: false },
       { course_id: 'test-1', rank: 1, has_completed_course: true, course_completion: 2, has_ta_for_course: true }
     ]);
     await page.locator('#application-success[open]').waitFor();
-    console.log('PASS: Replacement prefills course choices, ranks, and declarations and sends the saved revision');
+    console.log('PASS: Replacement prefills the saved name and course choices and sends the saved revision');
 
     current = structuredClone(fixture); current.period.is_open = false;
     await page.goto(target, { waitUntil: 'networkidle' });

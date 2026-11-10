@@ -122,7 +122,7 @@ Everything the application page needs: the period, the student's identity, their
 | `period` | object | See [Application period](#application-period) |
 | `identity` | object | The UFID and email from the session. The submitted `student_email` must match `email` |
 | `already_applied` | boolean | The student already has an application for the period's term, including one whose choices were all withdrawn. A conflicting POST to the creation endpoint returns 409 |
-| `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint`, current `revision`, and pending `course_preferences` to prefill the replacement form. Use the endpoint and revision to submit with `replace_existing: true` after the student chooses Start a new form. Omitted course applications are deleted for that term. |
+| `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint`, current `revision`, saved `student_name`, and pending `course_preferences` to prefill the replacement form. Use the endpoint and revision to submit with `replace_existing: true` after the student chooses Start a new form. Omitted course applications are deleted for that term. |
 | `profile` | object, *nullable* | The student's shared profile as stored, which every submission or edit replaces. `null` if they have no profile yet. `has_ta_experience` is `0` or `1` here, not a boolean |
 | `english_test_score` | integer, *nullable* | Latest application category (1–4), or null if unanswered |
 | `academic_background` | array | The student's shared degrees, in the order they last submitted them. `[]` if they have none. `minor` is *nullable* |

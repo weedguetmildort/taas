@@ -115,6 +115,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 					$replacement = array(
 						'endpoint'           => $endpoint,
 						'revision'           => TAAS_Student_Application_Service::revision( $saved['snapshot'], $saved['choices'] ),
+						'student_name'       => $saved['snapshot']->submitted_details['student_name'] ?? '',
 						'course_preferences' => $this->format_preferences( $pending, $courses ),
 					);
 				}

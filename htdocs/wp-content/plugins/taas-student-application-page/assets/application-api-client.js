@@ -49,6 +49,7 @@
       && (data.replacement == null || (data.already_applied && isRecord(data.replacement)
         && isText(data.replacement.endpoint) && data.replacement.endpoint.length > 0
         && isText(data.replacement.revision) && /^[a-f0-9]{64}$/.test(data.replacement.revision)
+        && (data.replacement.student_name == null || isText(data.replacement.student_name))
         && Array.isArray(data.replacement.course_preferences)
         && data.replacement.course_preferences.every(choice => isRecord(choice) && isText(choice.course_id)
           && choice.match_status === 1 && (choice.rank === null || (Number.isInteger(choice.rank) && choice.rank >= 1))

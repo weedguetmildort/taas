@@ -243,8 +243,9 @@ try {
 			taas_edit_check(
 				$read['revision'] === $replacement['revision']
 				&& add_query_arg( 'taas_role', 'student', rest_url( 'taas/v1' . $route ) ) === $replacement['endpoint']
+				&& $read['details']['student_name'] === $replacement['student_name']
 				&& $read['course_preferences'] === $replacement['course_preferences'],
-				'Replacement loads the saved course preferences with their current revision'
+				'Replacement loads the saved name and course preferences with their current revision'
 			);
 			$edit = $body;
 			$edit['revision'] = $replacement['revision'];
