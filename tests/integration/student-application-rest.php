@@ -135,6 +135,7 @@ try {
 						'course_id'            => $id,
 						'rank'                 => 1,
 						'has_completed_course' => true,
+						'course_completion'    => 2,
 						'has_ta_for_course'    => true,
 					),
 				),
@@ -208,8 +209,8 @@ try {
 			$invalid['course_preferences'][0]['course_id'] = $other_id;
 			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Other-term course is rejected' );
 			$invalid = $body;
-			$invalid['course_preferences'][0]['has_completed_course'] = false;
-			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Incomplete course is rejected' );
+			$invalid['course_preferences'][0]['has_completed_course'] = 'false';
+			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Non-boolean course completion is rejected' );
 			$invalid = $body;
 			$invalid['details']['profile']['enrollment_status'] = 0;
 			taas_application_check( 400 === taas_application_request( 'POST', '/student/application', $invalid )->get_status(), 'Not-enrolled status is rejected' );
@@ -243,6 +244,10 @@ try {
 			taas_application_check( 200 === $read->get_status() && 2 === count( $read->get_data()['details']['academic_background'] ), 'Snapshot read preserves both degrees' );
 			taas_application_check( 1 === $read->get_data()['course_preferences'][0]['match_status'], 'New course application is pending' );
 			taas_application_check( true === $read->get_data()['course_preferences'][0]['has_ta_for_course'], 'Previous TA declaration is stored and returned for the selected course' );
+			taas_application_check( 2 === $read->get_data()['course_preferences'][0]['course_completion'] && true === $read->get_data()['course_preferences'][0]['has_completed_course'], 'Equivalent coursework is saved and returned separately from Yes' );
+			$changed_completion = $body;
+			$changed_completion['course_preferences'][0]['course_completion'] = 1;
+			taas_application_check( 409 === taas_application_request( 'POST', '/student/application', $changed_completion )->get_status(), 'A different completion answer is not treated as an identical retry' );
 			$changed_experience = $body;
 			$changed_experience['course_preferences'][0]['has_ta_for_course'] = false;
 			taas_application_check( 409 === taas_application_request( 'POST', '/student/application', $changed_experience )->get_status(), 'A different TA declaration is not treated as an identical retry' );

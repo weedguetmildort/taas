@@ -146,7 +146,9 @@
         && Array.isArray(data.course_preferences) && data.course_preferences.every(choice =>
           isRecord(choice) && isId(choice.course_id) && [1, 2, 3, 4].includes(choice.match_status)
           && (choice.rank === null || (Number.isInteger(choice.rank) && choice.rank >= 1))
-          && typeof choice.has_completed_course === 'boolean');
+          && typeof choice.has_completed_course === 'boolean'
+          && (!Object.hasOwn(choice, 'course_completion')
+            || ([0, 1, 2].includes(choice.course_completion) && choice.has_completed_course === (choice.course_completion !== 0))));
       if (!valid) throw new Error(text('invalid-application'));
     }
 

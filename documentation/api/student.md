@@ -237,7 +237,8 @@ Missing, null, string, or out-of-range values return 400. `4` is an explicit N/A
 | --- | --- | --- |
 | `course_id` | yes | A `course_id` from `courses` in GET: application form, as a string. The course must be in the period's term |
 | `rank` | yes | The student's preference, where 1 is their first choice. The ranks must be exactly `1..n` for `n` courses, with no ties or gaps |
-| `has_completed_course` | yes | Must be `true`. Students can only apply for courses they have completed |
+| `has_completed_course` | yes | `true` for a completed course or equivalent, `false` for a course the student has not completed |
+| `course_completion` | no | Integer code: `0` = no, `1` = completed this course, `2` = completed an equivalent. Must agree with `has_completed_course`. When omitted, the boolean maps to `0` or `1`. |
 | `has_ta_for_course` | no | Whether the student has TA'd this course before. Defaults to `false` |
 
 Each `course_id` may appear once.
@@ -374,6 +375,7 @@ The student's saved application for one term, with each course's status. Use it 
       "match_status": 4,
       "status_label": "Withdrawn",
       "has_completed_course": true,
+      "course_completion": 1,
       "has_ta_for_course": false
     },
     {
@@ -385,6 +387,7 @@ The student's saved application for one term, with each course's status. Use it 
       "match_status": 1,
       "status_label": "Pending",
       "has_completed_course": true,
+      "course_completion": 1,
       "has_ta_for_course": true
     }
   ]

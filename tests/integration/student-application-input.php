@@ -185,10 +185,10 @@ $request = $body;
 $request['course_preferences'] = array();
 taas_input_rejects( $request, 'Creation accepted no courses.' );
 taas_input_check( array() === TAAS_Student_Application_Input::parse( $request, true )['course_preferences'], 'Editing must allow withdrawal of all courses.' );
-foreach ( array( false, 'true', 1, null ) as $completed ) {
+foreach ( array( 'true', 1, null ) as $completed ) {
 	$request = $body;
 	$request['course_preferences'][0]['has_completed_course'] = $completed;
-	taas_input_rejects( $request, 'Completion must be explicitly true.' );
+	taas_input_rejects( $request, 'Completion must be an explicit boolean.' );
 }
 $request = $body;
 $request['course_preferences'][] = array(

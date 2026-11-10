@@ -5,6 +5,7 @@
   const MAX_COURSES = 5;
   const PENDING = 1;
   const WITHDRAWN = 4;
+  const COURSE_HISTORY = ['no', 'yes', 'other'];
 
   student.createCoursePreferences = ({ form, list, rankings, message }) => {
     const templates = new Map(['header', 'row', 'ranking', 'emptyRankings', 'readOnlyEmptyRankings'].map(name => {
@@ -149,7 +150,6 @@
     rankings.addEventListener('change', event => {
       const control = event.target;
       if (control.matches('[name="courseRank"]')) updateRankAvailability();
-      if (control.matches('[name="courseHistory"]')) control.setCustomValidity('');
     }, true);
 
     return {
@@ -169,7 +169,7 @@
           if (!coursesById.has(choice.course_id)) missingChoices = true;
           savedChoices.set(choice.course_id, {
             rank: choice.rank === null ? '' : String(choice.rank),
-            history: choice.has_completed_course ? 'yes' : 'no',
+            history: COURSE_HISTORY[choice.course_completion ?? Number(choice.has_completed_course)],
             previouslyTA: choice.has_ta_for_course === true
           });
         }
@@ -177,16 +177,6 @@
         renderRanks(savedChoices);
       },
       validate() {
-        rankings.querySelectorAll('[name="courseHistory"]').forEach(history => {
-          // TODO: Finalize equivalent-course declarations and HR review with the team.
-          let error = '';
-          if (history.value === 'other') {
-            error = 'Equivalent-course eligibility needs HR guidance before submission. Please contact HR.';
-          } else if (history.value === 'no') {
-            error = 'You must have completed each selected course.';
-          }
-          history.setCustomValidity(error);
-        });
         updateRankAvailability();
       },
       selectionError(allowEmpty) {
@@ -195,12 +185,16 @@
         return allowEmpty ? 'Select no more than five courses.' : 'Select between one and five courses.';
       },
       collect() {
-        return [...rankings.querySelectorAll('[data-course]')].map(entry => ({
-          course_id: entry.dataset.course,
-          rank: Number(entry.querySelector('[name="courseRank"]').value),
-          has_completed_course: true,
-          has_ta_for_course: entry.querySelector('[name="previouslyTA"]').checked
-        }));
+        return [...rankings.querySelectorAll('[data-course]')].map(entry => {
+          const completion = COURSE_HISTORY.indexOf(entry.querySelector('[name="courseHistory"]').value);
+          return {
+            course_id: entry.dataset.course,
+            rank: Number(entry.querySelector('[name="courseRank"]').value),
+            has_completed_course: completion > 0,
+            course_completion: completion,
+            has_ta_for_course: entry.querySelector('[name="previouslyTA"]').checked
+          };
+        });
       }
     };
   };

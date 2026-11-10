@@ -332,6 +332,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				'match_status'         => (int) $row['match_status'],
 				'status_label'         => TAAS_Match_Status::from( (int) $row['match_status'] )->label(),
 				'has_completed_course' => (bool) $row['has_taken_course'],
+				'course_completion'    => (int) $row['has_taken_course'],
 				'has_ta_for_course'    => (bool) $row['has_ta_for_course'],
 			),
 			$choices

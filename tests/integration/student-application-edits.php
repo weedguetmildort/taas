@@ -262,13 +262,14 @@ try {
 				array(
 					'course_id'            => $ids['B'],
 					'rank'                 => 1,
-					'has_completed_course' => true,
+					'has_completed_course' => false,
 					'has_ta_for_course'    => false,
 				),
 				array(
 					'course_id'            => $ids['C'],
 					'rank'                 => 2,
 					'has_completed_course' => true,
+					'course_completion'    => 2,
 					'has_ta_for_course'    => true,
 				),
 			);
@@ -288,6 +289,8 @@ try {
 			taas_edit_check( (int) $by_id[ $ids['B'] ]['student_preference_rank'] === 1 && (int) $by_id[ $ids['B'] ]['professor_preference_rank'] === 2, 'Student ranking update preserves professor ranking' );
 			taas_edit_check( (int) $by_id[ $ids['C'] ]['match_status'] === 1, 'Added course starts pending' );
 			taas_edit_check( (int) $by_id[ $ids['A'] ]['has_ta_for_course'] === 1 && (int) $by_id[ $ids['B'] ]['has_ta_for_course'] === 0 && (int) $by_id[ $ids['C'] ]['has_ta_for_course'] === 1, 'Edits clear or set TA declarations per course and preserve withdrawn declarations' );
+			$completion = array_column( taas_edit_request( 'GET', $route )->get_data()['course_preferences'], 'course_completion', 'course_id' );
+			taas_edit_check( 0 === $completion[ $ids['B'] ] && 2 === $completion[ $ids['C'] ] && 1 === (int) $by_id[ $ids['A'] ]['has_taken_course'], 'Edits save No and Equivalent and preserve withdrawn declarations' );
 			$returned = array_column( taas_edit_request( 'GET', $route )->get_data()['course_preferences'], 'has_ta_for_course', 'course_id' );
 			taas_edit_check( false === $returned[ $ids['B'] ] && true === $returned[ $ids['C'] ], 'Saved course TA declarations are returned for editing' );
 			taas_edit_check( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] )->submitted_details['profile']['available_hours'] === 20, 'Same-term snapshot is replaced' );

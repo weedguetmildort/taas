@@ -18,12 +18,26 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_Application {
 
 	/**
+	 * Whether the student completed the course or an equivalent.
+	 *
+	 * @var bool
+	 */
+	public readonly bool $has_taken_course;
+
+	/**
+	 * Stored declaration: 0 = no, 1 = completed this course, 2 = equivalent.
+	 *
+	 * @var int
+	 */
+	public readonly int $course_completion;
+
+	/**
 	 * Create an application row.
 	 *
 	 * @param int|null          $application_id            Auto-increment id; null on a new, unsaved record.
 	 * @param string            $student_ufid              Applicant's UFID, 1-8 characters.
 	 * @param int               $applied_course_id         ID of the course applied for.
-	 * @param bool              $has_taken_course          Whether the student has taken the course.
+	 * @param bool|int          $has_taken_course          Course completion code, or a legacy boolean.
 	 * @param bool              $has_ta_for_course         Whether the student has previously TA'd this course.
 	 * @param string|null       $student_statement         Statement of interest.
 	 * @param int|null          $student_preference_rank   Student's ranking of this course, 1 or greater.
@@ -36,7 +50,7 @@ final class TAAS_Application {
 		public readonly ?int $application_id,
 		public readonly string $student_ufid,
 		public readonly int $applied_course_id,
-		public readonly bool $has_taken_course = false,
+		bool|int $has_taken_course = false,
 		public readonly bool $has_ta_for_course = false,
 		public readonly ?string $student_statement = null,
 		public readonly ?int $student_preference_rank = null,
@@ -46,6 +60,11 @@ final class TAAS_Application {
 	) {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
 		TAAS_Guard::course_id( 'applied_course_id', $applied_course_id );
+		$this->course_completion = (int) $has_taken_course;
+		if ( ! in_array( $this->course_completion, array( 0, 1, 2 ), true ) ) {
+			throw new InvalidArgumentException( 'Invalid course completion declaration.' );
+		}
+		$this->has_taken_course = 0 !== $this->course_completion;
 		TAAS_Guard::rank( 'student_preference_rank', $student_preference_rank );
 		TAAS_Guard::rank( 'professor_preference_rank', $professor_preference_rank );
 	}
@@ -69,7 +88,7 @@ final class TAAS_Application {
 			application_id: TAAS_Cast::int_or_null( $r['application_id'] ?? null ),
 			student_ufid: (string) $r['student_ufid'],
 			applied_course_id: TAAS_Cast::int( $r['applied_course_id'] ?? 0 ),
-			has_taken_course: TAAS_Cast::bool( $r['has_taken_course'] ?? 0 ),
+			has_taken_course: (int) ( $r['has_taken_course'] ?? 0 ),
 			has_ta_for_course: TAAS_Cast::bool( $r['has_ta_for_course'] ?? 0 ),
 			student_statement: TAAS_Cast::string_or_null( $r['student_statement'] ?? null ),
 			student_preference_rank: TAAS_Cast::int_or_null( $r['student_preference_rank'] ?? null ),
@@ -88,7 +107,7 @@ final class TAAS_Application {
 		$row = array(
 			'student_ufid'              => $this->student_ufid,
 			'applied_course_id'         => $this->applied_course_id,
-			'has_taken_course'          => $this->has_taken_course ? 1 : 0,
+			'has_taken_course'          => $this->course_completion,
 			'has_ta_for_course'         => $this->has_ta_for_course ? 1 : 0,
 			'student_statement'         => $this->student_statement,
 			'student_preference_rank'   => $this->student_preference_rank,

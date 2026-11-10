@@ -52,7 +52,8 @@ function html(editing, redesigned) {
         checkbox.checked = true;
         checkbox.dispatchEvent(new Event('change'));
         form.querySelector('[name="courseRank"]').value = '1';
-        form.querySelector('[name="courseHistory"]').value = 'yes';
+        const history = form.querySelector('[name="courseHistory"]');
+        if (!history.value) history.value = 'yes';
         return true;
       }, { editing, data });
     }
@@ -142,6 +143,18 @@ function html(editing, redesigned) {
     await page.locator('[name="selectedCourses"]').dispatchEvent('change');
     assert(await page.locator('[name="previouslyTA"]').isChecked());
     console.log('PASS: Course TA declarations prefill, can be cleared, and survive ranking rerenders');
+
+    const courseHistory = page.locator('[name="courseHistory"]');
+    for (const [answer, code] of [['no', 0], ['yes', 1], ['other', 2]]) {
+      await courseHistory.selectOption(answer);
+      const choice = (await page.evaluate(() => window.adapter.collect())).course_preferences[0];
+      assert.equal(choice.course_completion, code);
+      assert.equal(choice.has_completed_course, code !== 0);
+    }
+    experienced.course_preferences[0].course_completion = 2;
+    assert(await open(true, false, experienced));
+    assert.equal(await courseHistory.inputValue(), 'other');
+    console.log('PASS: All three course completion choices are distinct and Equivalent reloads correctly');
 
     assert(await open(true, false, saved));
     const disabledDetails = await page.evaluate(() => {

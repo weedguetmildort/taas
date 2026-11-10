@@ -50,7 +50,7 @@ final class TAAS_Student_Application_Input {
 	 *       grad_date: string, gpa: float|null
 	 *     }>
 	 *   },
-	 *   course_preferences: list<array{course_id: string, rank: int, has_completed_course: true, has_ta_for_course: bool}>
+	 *   course_preferences: list<array{course_id: string, rank: int, course_completion: int, has_ta_for_course: bool}>
 	 * } Normalized values ready for the application service.
 	 * @throws InvalidArgumentException If any input fails validation.
 	 */
@@ -251,7 +251,7 @@ final class TAAS_Student_Application_Input {
 			if ( ! is_array( $choice ) ) {
 				throw new InvalidArgumentException( 'Each course preference must be an object.' );
 			}
-			self::allow_only_fields( $choice, array( 'course_id', 'rank', 'has_completed_course', 'has_ta_for_course' ) );
+			self::allow_only_fields( $choice, array( 'course_id', 'rank', 'has_completed_course', 'course_completion', 'has_ta_for_course' ) );
 			$previously_taught = $choice['has_ta_for_course'] ?? false;
 			if ( array_key_exists( 'has_ta_for_course', $choice ) && ! is_bool( $choice['has_ta_for_course'] ) ) {
 				throw new InvalidArgumentException( 'Previous TA experience must be a boolean.' );
@@ -263,17 +263,23 @@ final class TAAS_Student_Application_Input {
 			}
 			$rank = self::read_integer( $choice, 'rank', 1, count( $course_choices ) );
 			$duplicate = in_array( $course_id, $course_ids, true ) || in_array( $rank, $used_ranks, true );
-			$completed = true === ( $choice['has_completed_course'] ?? null );
-			if ( $duplicate || ! $completed ) {
-				throw new InvalidArgumentException( 'Choose distinct courses and ranks, and confirm completion of each course.' );
+			$completed = $choice['has_completed_course'] ?? null;
+			if ( $duplicate || ! is_bool( $completed ) ) {
+				throw new InvalidArgumentException( 'Choose distinct courses and ranks, and answer whether you completed each course.' );
+			}
+			$completion = array_key_exists( 'course_completion', $choice )
+				? self::read_integer( $choice, 'course_completion', 0, 2 )
+				: (int) $completed;
+			if ( ( 0 !== $completion ) !== $completed ) {
+				throw new InvalidArgumentException( 'Course completion answers must agree.' );
 			}
 			$course_ids[]         = $course_id;
 			$used_ranks[]       = $rank;
 			$preferences[] = array(
-				'course_id'            => $course_id,
-				'rank'                 => $rank,
-				'has_completed_course' => true,
-				'has_ta_for_course'    => $previously_taught,
+				'course_id'         => $course_id,
+				'rank'              => $rank,
+				'course_completion' => $completion,
+				'has_ta_for_course' => $previously_taught,
 			);
 		}
 		usort( $preferences, static fn( array $a, array $b ) => $a['rank'] <=> $b['rank'] );
