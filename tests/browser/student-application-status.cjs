@@ -19,7 +19,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       identity: { ufid: '12345678', email: 'saved@ufl.edu' }, can_edit: false, revision: 'a'.repeat(64),
       details: {
         student_name: 'Saved student', student_email: 'saved@ufl.edu',
-        profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, english_test_score: null },
+        profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 3, english_test_score: null },
         academic_background: [{ university: 'Example University', major: 'CS', degree_type: 2, grad_date: '2025-05-01', gpa: 3.5 }]
       },
       courses: ['A', 'B', 'C', 'D'].map(code => ({ course_id: `fixture-${code}`, course_code: `TEST-${code}`, course_name: `Course ${code}`, instructor_name: 'Example Professor' })),
@@ -106,7 +106,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
       const payload = savedPayloads.at(-1);
       assert.equal(payload.revision, loadedRevision);
-      assert.equal(payload.details.profile.phone, phone);
+      assert.equal(payload.details.profile.phone, '+1' + phone);
       assert.deepEqual(payload.term, { semester: 1, year: 2155 });
       assert.equal(await page.locator('[name="phone"]').inputValue(), phone);
     }
@@ -171,7 +171,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert.equal(savedPayloads.at(-1).details.profile.fws_eligibility, 'yes');
     assert.equal(savedPayloads.at(-1).details.profile.fws_award_letter_url, 'https://example.com/updated-fws-letter');
     assert.equal(savedPayloads.at(-1).details.profile.resume_url, 'https://example.com/resume');
-    await page.locator('[name="collegeStatus"]').selectOption('phd');
+    await page.locator('[name="collegeStatus"]').selectOption('masters');
     await page.locator('#student-application-form [type="submit"]').click();
     await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
     assert.equal(savedPayloads.at(-1).details.profile.fws_eligibility, 'no');

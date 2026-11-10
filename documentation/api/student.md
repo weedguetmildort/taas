@@ -70,6 +70,7 @@ Everything the application page needs: the period, the student's identity, their
     "email": "test.student@ufl.edu"
   },
   "already_applied": true,
+  "replacement": null,
   "profile": {
     "student_ufid": "12345678",
     "phone": "3525550100",
@@ -82,7 +83,7 @@ Everything the application page needs: the period, the student's identity, their
     "english_test_score": 2,
     "has_ta_experience": 0,
     "eap5836_status": 1,
-    "eap5837_status": 4,
+    "eap5837_status": 3,
     "country_code": "US",
     "additional_info": ""
   },
@@ -120,7 +121,8 @@ Everything the application page needs: the period, the student's identity, their
 | --- | --- | --- |
 | `period` | object | See [Application period](#application-period) |
 | `identity` | object | The UFID and email from the session. The submitted `student_email` must match `email` |
-| `already_applied` | boolean | The student already has an application for the period's term, including one whose choices were all withdrawn. A second POST will return 409, so send them to their status page instead |
+| `already_applied` | boolean | The student already has an application for the period's term, including one whose choices were all withdrawn. A conflicting POST to the creation endpoint returns 409 |
+| `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint`, current `revision`, saved `student_name`, and pending `course_preferences` to prefill the replacement form. Use the endpoint and revision to submit with `replace_existing: true` after the student chooses Start a new form. Omitted course applications are deleted for that term. |
 | `profile` | object, *nullable* | The student's shared profile as stored, which every submission or edit replaces. `null` if they have no profile yet. `has_ta_experience` is `0` or `1` here, not a boolean |
 | `english_test_score` | integer, *nullable* | Latest application category (1–4), or null if unanswered |
 | `academic_background` | array | The student's shared degrees, in the order they last submitted them. `[]` if they have none. `minor` is *nullable* |
@@ -153,7 +155,7 @@ Submits the student's first application for the period's term. Edits to an exist
       "available_hours": 10,
       "enrollment_status": 2,
       "eap5836_status": 1,
-      "eap5837_status": 4,
+      "eap5837_status": 3,
       "resume_url": null,
       "english_test_score": 2,
       "additional_info": ""
@@ -195,12 +197,12 @@ Submits the student's first application for the period's term. Edits to an exist
 
 | Field | Required | Rules |
 | --- | --- | --- |
-| `phone` | yes | Up to 15 characters. The format isn't checked |
+| `phone` | yes | Up to 16 characters. The form sends international numbers as `+` followed by the calling code and national number |
 | `country_code` | yes | A two-letter ISO 3166-1 code from the form's country list, any case. Saved in upper case |
 | `admitted_semester` | yes | `Spring`, `Summer`, `Summer A`, `Summer B`, `Summer C` or `Fall`, then a space and a 4-digit year, such as `Fall 2025` |
 | `available_hours` | yes | `10` or `20` |
 | `enrollment_status` | yes | `1` Undergraduate, `2` Masters, `3` PhD |
-| `eap5836_status`, `eap5837_status` | yes | `1` Taken at UF, `2` Taken elsewhere, `3` Currently taking, `4` Not taken. Required for every student, not only PhD students |
+| `eap5836_status`, `eap5837_status` | yes | `1` Taken, `2` Currently Enrolled, `3` Not Yet Taken, `4` N/A. Required for every student |
 | `resume_url` | no | An `http` or `https` URL, up to 255 characters. Omitted, `null` and `""` are all saved as `null` |
 | `fws_eligibility` | undergraduates | `yes`, `no`, or `not_applicable`; an explicit answer is required. Graduate saves normalize this to `no`. The profile column is non-nullable and defaults to `no`. |
 | `fws_award_letter_url` | when FWS is `yes` | Separate FWS award letter link: complete HTTP/HTTPS URL, maximum 255 characters. The column is nullable; omitted, `null`, and empty values become `null` unless eligibility is `yes`. Graduate saves always clear it to `null`. |
@@ -231,13 +233,14 @@ Missing, null, string, or out-of-range values return 400. `4` is an explicit N/A
 | `grad_date` | yes | The 1st of the month, `YYYY-MM-01`. It may be in the future |
 | `gpa` | yes, but may be `null` | 0 to 4, rounded to two decimal places. `null` means no GPA yet. The key must be present |
 
-**`course_preferences`:** 1 to 5 courses.
+**`course_preferences`:** Exactly 5 courses for PhD students and 1 to 5 for other students.
 
 | Field | Required | Rules |
 | --- | --- | --- |
 | `course_id` | yes | A `course_id` from `courses` in GET: application form, as a string. The course must be in the period's term |
 | `rank` | yes | The student's preference, where 1 is their first choice. The ranks must be exactly `1..n` for `n` courses, with no ties or gaps |
-| `has_completed_course` | yes | Must be `true`. Students can only apply for courses they have completed |
+| `has_completed_course` | yes | `true` for a completed course or equivalent, `false` for a course the student has not completed |
+| `course_completion` | no | Integer code: `0` = no, `1` = completed this course, `2` = completed an equivalent. Must agree with `has_completed_course`. When omitted, the boolean maps to `0` or `1`. |
 | `has_ta_for_course` | no | Whether the student has TA'd this course before. Defaults to `false` |
 
 Each `course_id` may appear once.
@@ -328,7 +331,7 @@ The student's saved application for one term, with each course's status. Use it 
       "available_hours": 10,
       "enrollment_status": 2,
       "eap5836_status": 1,
-      "eap5837_status": 4,
+      "eap5837_status": 3,
       "resume_url": null,
       "additional_info": "",
       "english_test_score": 2
@@ -374,6 +377,7 @@ The student's saved application for one term, with each course's status. Use it 
       "match_status": 4,
       "status_label": "Withdrawn",
       "has_completed_course": true,
+      "course_completion": 1,
       "has_ta_for_course": false
     },
     {
@@ -385,6 +389,7 @@ The student's saved application for one term, with each course's status. Use it 
       "match_status": 1,
       "status_label": "Pending",
       "has_completed_course": true,
+      "course_completion": 1,
       "has_ta_for_course": true
     }
   ]
@@ -398,7 +403,7 @@ The student's saved application for one term, with each course's status. Use it 
 | `can_edit` | boolean | Whether PATCH: edit an application will be accepted. See below |
 | `revision` | string | 64 hex characters. Send it back with an edit |
 | `courses` | array | Every course in this term, in the same shape and order as GET: application form |
-| `course_preferences` | array | Every application for this term, withdrawn ones included, ordered by `rank`, then `application_id`. `[]` if every application was removed |
+| `course_preferences` | array | All remaining course applications for the term, including rows withdrawn through ordinary edits, ordered by `rank` then `application_id` |
 | `course_preferences[].rank` | integer, *nullable* | The student's preference. A withdrawn application keeps its last rank, so ranks are only unique among the ones that aren't withdrawn |
 | `course_preferences[].match_status` | integer | `1` Pending, `2` Matched, `3` Rejected, `4` Withdrawn. `status_label` has the label |
 
@@ -417,7 +422,7 @@ The student's saved application for one term, with each course's status. Use it 
 
 `PATCH /student/application/{semester}/{year}`
 
-`POST` and `PUT` do the same thing. Replaces the student's application for one term. Only works when GET: one application returns `can_edit: true`.
+`POST` and `PUT` do the same thing. Saves an edit or an explicit replacement for one term. Only works when GET: one application returns `can_edit: true`.
 
 **Request body:** the same body as POST: submit an application, plus the `revision` from GET: one application:
 
@@ -435,16 +440,17 @@ The student's saved application for one term, with each course's status. Use it 
 The rules are the same as POST, except:
 
 - `term` must match `{semester}` and `{year}` in the path.
-- `course_preferences` may have 0 to 5 courses, so `[]` withdraws every application.
+- Edits and replacements require exactly 5 courses for PhD students and 1 to 5 for other students. An empty list on an ordinary edit withdraws every course application. A replacement (`replace_existing: true`) deletes omitted course applications for that term.
 - `revision` is required. If the application has changed since it was read, for example in another tab, the edit returns 409. Read it again before retrying.
 
-**What changes:** the full list replaces the old one, in one transaction:
+**What changes:** all course and application details are saved in one transaction.
 
 | Course | Result |
 | --- | --- |
-| In the list, and the student already had an application for it | Set to `Pending` with the new `rank` and `has_ta_for_course`. A withdrawn application comes back this way |
+| In the list, and the student already had an application for it | Set to `Pending` with the submitted rank, completion answer, and prior TA declaration. An eligible withdrawn application can be reactivated this way |
 | In the list, and new | A new `Pending` application |
-| Not in the list, and `Pending` | Set to `Withdrawn`. Its `rank` and `has_ta_for_course` are kept |
+| Omitted from an ordinary edit | A `Pending` application becomes `Withdrawn`. Its last rank and declarations are kept |
+| Omitted from a replacement | The course application row for this term is deleted |
 
 `details` replaces this term's saved details and the shared profile and degrees, in the same way as POST. Other terms' saved details don't change.
 

@@ -1,6 +1,7 @@
 /* MAIN HOMEPAGE CARD */
 
 .student-homepage {
+    --student-home-action-background: #f58220;
     max-width: 1100px;
     margin: 40px auto;
     padding: 60px 50px;
@@ -75,7 +76,7 @@
 
     padding: 25px 30px;
 
-    background: #f58220;
+    background: var(--student-home-action-background);
     color: #222222 !important;
 
     text-decoration: none !important;
@@ -189,6 +190,24 @@
 
 .student-homepage .student-home-application-note { margin: 8px 0 0; color: #555; font-size: 14px; line-height: 1.5; font-family: inherit; }
 .student-homepage .student-home-link { min-width: 0; }
+
+.student-homepage .student-home-cycle-card {
+    margin: 0;
+    padding: 18px 24px;
+    border-radius: 6px;
+    background-color: #b42318;
+    color: #fff;
+    font-family: inherit;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.student-homepage .student-home-cycle-card[data-cycle-state="open"] {
+    background-color: var(--student-home-action-background);
+    color: #222;
+}
 
 /* Keep Gutenberg's classic-theme containers out of the original grid/flex layout. */
 .student-homepage .wp-block-group__inner-container { display: contents; }

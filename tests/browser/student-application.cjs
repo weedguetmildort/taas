@@ -15,6 +15,8 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     const target = `${origin}/?pagename=student-application&taas_role=student`;
     let current = null;
     let postCount = 0;
+    const replacementEndpoint = `${origin}/?rest_route=/taas/v1/student/application/2/2027`;
+    const replacementRevision = 'a'.repeat(64);
     const bodies = [];
     await page.route(url => url.href.includes('/taas/v1/student/application') || url.searchParams.get('rest_route') === '/taas/v1/student/application', async route => {
       const request = route.request();
@@ -23,6 +25,9 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
         ? route.fulfill({ json: current })
         : route.fulfill({ status: 503, json: { message: 'The application period has not been configured.' } });
       bodies.push(request.postDataJSON());
+      if (request.url() === replacementEndpoint) {
+        return route.fulfill({ json: { submission_id: 123, revision: 'b'.repeat(64) } });
+      }
       postCount++;
       if (postCount === 1) return route.fulfill({ status: 500, json: { message: 'Temporary test failure. Please retry.' } });
       return route.fulfill({ status: 201, json: { submission_id: 123, message: 'Saved', status_url: `${origin}/check-application-status/`, home_url: `${origin}/` } });
@@ -38,7 +43,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       period: { semester: 2, year: 2027, label: 'Spring 2027', is_open: true, closes_at: null },
       identity: { ufid: '12345678', email: 'test.student@ufl.edu' },
       already_applied: false,
-      profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, resume_url: null, additional_info: '' },
+      profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 3, resume_url: null, additional_info: '' },
       academic_background: [
         { university: 'Example University', major: 'Computer Science', degree_type: 2, grad_date: '2025-05-01', gpa: 3.5 },
         { university: 'University of Florida', major: 'Computer Science', degree_type: 3, grad_date: '2028-05-01', gpa: null }
@@ -136,13 +141,50 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     console.log('PASS: Retry keeps the exact payload and success dialog has both destinations');
     if (process.env.TAAS_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.TAAS_SCREENSHOT_DIR}/student-application-success.png`, fullPage: false });
 
-    current = { ...structuredClone(fixture), already_applied: true };
-    await page.goto(target, { waitUntil: 'networkidle' });
-    assert(await page.locator('#existing-application-notice').isVisible());
+    current = { ...structuredClone(fixture), already_applied: true, replacement: null };
+    await page.goto(target, { waitUntil: 'domcontentloaded' });
+    await page.locator('#existing-application-notice').waitFor();
+    assert(await page.locator('#start-recovery-form').isHidden());
+    assert(await page.locator('#student-application-form').isHidden());
+
+    current.replacement = {
+      endpoint: replacementEndpoint,
+      revision: replacementRevision,
+      student_name: 'Alex de la Cruz',
+      course_preferences: [
+        { course_id: 'test-1', rank: 1, match_status: 1, course_completion: 2, has_ta_for_course: true },
+        { course_id: 'test-0', rank: 2, match_status: 1, course_completion: 0, has_ta_for_course: false }
+      ]
+    };
+    await page.goto(target, { waitUntil: 'domcontentloaded' });
+    const warning = page.locator('#existing-application-notice strong').filter({ hasText: 'will overwrite' });
+    await warning.waitFor();
     assert(await page.locator('#student-application-form').isHidden());
     await page.locator('#start-recovery-form').click();
     assert(await page.locator('#student-application-form').isVisible());
-    console.log('PASS: Already-applied notice offers the recovery form');
+    assert.equal(await page.locator('[name="firstName"]').inputValue(), 'Alex');
+    assert.equal(await page.locator('[name="lastName"]').inputValue(), 'de la Cruz');
+    await page.locator('[name="englishTestScore"]').selectOption('2');
+    assert.deepEqual(await page.locator('[name="selectedCourses"]:checked').evaluateAll(rows => rows.map(row => row.value)), ['test-0', 'test-1']);
+    const firstChoice = page.locator('[data-course="test-1"]');
+    const secondChoice = page.locator('[data-course="test-0"]');
+    assert.equal(await firstChoice.locator('[name="courseRank"]').inputValue(), '1');
+    assert.equal(await firstChoice.locator('[name="courseHistory"]').inputValue(), 'other');
+    assert(await firstChoice.locator('[name="previouslyTA"]').isChecked());
+    assert.equal(await secondChoice.locator('[name="courseRank"]').inputValue(), '2');
+    assert.equal(await secondChoice.locator('[name="courseHistory"]').inputValue(), 'no');
+    const replacementRequest = page.waitForRequest(request => request.method() === 'POST' && request.url() === replacementEndpoint);
+    await submit.click();
+    const replacementPayload = (await replacementRequest).postDataJSON();
+    assert.equal(replacementPayload.revision, replacementRevision);
+    assert.equal(replacementPayload.replace_existing, true);
+    assert.equal(replacementPayload.details.student_name, 'Alex de la Cruz');
+    assert.deepEqual(replacementPayload.course_preferences, [
+      { course_id: 'test-0', rank: 2, has_completed_course: false, course_completion: 0, has_ta_for_course: false },
+      { course_id: 'test-1', rank: 1, has_completed_course: true, course_completion: 2, has_ta_for_course: true }
+    ]);
+    await page.locator('#application-success[open]').waitFor();
+    console.log('PASS: Replacement prefills the saved name and course choices and sends the saved revision');
 
     current = structuredClone(fixture); current.period.is_open = false;
     await page.goto(target, { waitUntil: 'networkidle' });

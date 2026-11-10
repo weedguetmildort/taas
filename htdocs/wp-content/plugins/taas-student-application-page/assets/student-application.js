@@ -1,4 +1,4 @@
-/* Create a new application: load the form and submit it once. */
+/* Submit a new application or explicitly replace an editable application. */
 (() => {
   'use strict';
 
@@ -22,11 +22,15 @@
     const state = {
       term: null,
       isOpen: false,
+      alreadyApplied: false,
+      replacement: null,
+      replacing: false,
       phase: 'idle'
     };
 
     function canSubmitApplication() {
-      return state.isOpen && state.phase === 'ready' && applicationForm.hasCourses();
+      return state.isOpen && state.phase === 'ready' && applicationForm.hasCourses()
+        && (!state.alreadyApplied || state.replacing);
     }
 
     function updateFormAvailability() {
@@ -43,6 +47,12 @@
         const application = await applicationApi.load(endpoint);
         state.term = application.period;
         state.isOpen = application.period.is_open;
+        state.alreadyApplied = application.already_applied;
+        state.replacement = application.replacement ?? null;
+        state.replacing = false;
+        if (state.replacement && new URL(state.replacement.endpoint, location.href).origin !== location.origin) {
+          throw new Error('The application replacement link is invalid. Please retry.');
+        }
         applicationForm.showInitial(application);
         state.phase = 'ready';
       } catch (error) {
@@ -73,8 +83,14 @@
       applicationForm.showMessage('Submitting application…');
 
       try {
-        await applicationApi.save(endpoint, { ...enteredValues, term: state.term });
-        // A confirmed initial submission stays locked to prevent duplicate saves.
+        const replacement = state.replacing ? state.replacement : null;
+        await applicationApi.save(replacement?.endpoint ?? endpoint, {
+          ...enteredValues,
+          term: state.term,
+          revision: replacement?.revision,
+          replace_existing: replacement ? true : undefined
+        });
+        // Keep confirmed submissions locked to prevent duplicate saves.
         state.phase = 'saved';
       } catch (error) {
         // Closed, unauthorized, or conflicting submissions require review/reload.
@@ -101,6 +117,13 @@
 
     formElement.addEventListener('submit', submitApplication);
     applicationForm.onRetry(loadApplication);
+    applicationForm.onRecovery(() => {
+      if (!state.replacement || state.phase !== 'ready' || !state.isOpen || !applicationForm.hasCourses()
+          || applicationForm.hasMissingChoices()) return false;
+      state.replacing = true;
+      updateFormAvailability();
+      return true;
+    });
     loadApplication();
   }
 

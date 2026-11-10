@@ -218,8 +218,8 @@ WordPress's own validation usually catches the last three first, and returns `re
     }
   ],
   "country_code": "IN",
-  "eap5836_status": "Taken at UF",
-  "eap5837_status": "Currently taking",
+  "eap5836_status": "Taken",
+  "eap5837_status": "Currently Enrolled",
   "resume_url": null,
   "student_statement": null,
   "english_test_score": 2
@@ -235,7 +235,7 @@ WordPress's own validation usually catches the last three first, and returns `re
 | `academic_background[].major`, `.minor` | string, *nullable* | |
 | `academic_background[].grad_date` | string | `YYYY-MM-DD`, always the 1st of the month. Display it as `MM/YYYY` |
 | `country_code` | string, *nullable* | ISO 3166-1 alpha-2 |
-| `eap5836_status`, `eap5837_status` | string, *nullable* | PhD students only |
+| `eap5836_status`, `eap5837_status` | string, *nullable* | EAP course status |
 | `resume_url` | string, *nullable* | An external link. Open it in a new tab |
 | `english_test_score` | integer, *nullable* | Category 1–4 as defined in the [student API](student.md); null means unanswered |
 | `student_statement` | string, *nullable* | Up to 500 characters |

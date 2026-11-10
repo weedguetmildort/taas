@@ -17,20 +17,37 @@
 
   function showApplicationMessage(link, config, index) {
     const wrapper = link.parentElement;
-    const applied = wrapper.querySelector('[data-home-applied]');
-    const unavailable = wrapper.querySelector('[data-home-unavailable]');
+    const homepage = link.closest('.student-homepage') || document;
+    const notices = [
+      ['applied', !config.unavailable && config.alreadyApplied],
+      ['cycle', !config.unavailable && typeof config.isClosed === 'boolean'],
+      ['unavailable', config.unavailable]
+    ];
+    const descriptions = [];
 
-    if (applied) applied.hidden = config.unavailable || !config.alreadyApplied;
-    if (unavailable) unavailable.hidden = !config.unavailable;
-
-    const message = config.unavailable ? unavailable : config.alreadyApplied ? applied : null;
-    if (!message) {
-      link.removeAttribute('aria-describedby');
-      return;
+    for (const [state, visible] of notices) {
+      const scope = state === 'cycle' ? homepage : wrapper;
+      const notice = scope.querySelector(`[data-home-${state}]`);
+      if (!notice) continue;
+      notice.hidden = !visible;
+      if (!visible) continue;
+      let message = notice.textContent;
+      if (state === 'cycle') {
+        notice.dataset.cycleState = config.isClosed ? 'closed' : 'open';
+        if (!config.isClosed) {
+          message = config.closesAtLabel ? notice.dataset.openMessage : notice.dataset.noDeadlineMessage;
+        }
+      }
+      notice.textContent = (message || '').replaceAll('{term}', config.termLabel || '').replaceAll('{deadline}', config.closesAtLabel || '');
+      notice.id ||= `student-home-application-note-${index}-${state}`;
+      descriptions.push(notice.id);
     }
-    message.textContent = message.textContent.replaceAll('{term}', config.termLabel || '');
-    message.id ||= `student-home-application-note-${index}`;
-    link.setAttribute('aria-describedby', message.id);
+
+    if (descriptions.length) {
+      link.setAttribute('aria-describedby', descriptions.join(' '));
+    } else {
+      link.removeAttribute('aria-describedby');
+    }
   }
 
   function initializeHomepage() {

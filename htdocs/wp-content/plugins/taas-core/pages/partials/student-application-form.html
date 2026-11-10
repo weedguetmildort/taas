@@ -13,7 +13,16 @@
           <label>Country of origin <input name="countryOfOrigin" list="country-options" autocomplete="country-name" required><datalist id="country-options"></datalist></label>
           <label>Semester you started at UF <select name="startSemester" id="start-semester" required><option value="">Select semester</option></select></label>
           <label>Current college status <select name="collegeStatus" required><option value="">Select status</option><option value="undergraduate">Undergraduate</option><option value="masters">Master's</option><option value="phd">PhD</option></select></label>
-          <label>Phone number <input name="phone" maxlength="15" type="tel" autocomplete="tel" inputmode="tel" required></label>
+          <div class="phone-fields">
+            <label for="student-phone">Phone number</label>
+            <div class="phone-code">
+              <span data-phone-code-display aria-hidden="true">+1</span>
+              <select name="phoneCallingCode" aria-label="Phone country code" autocomplete="tel-country-code">
+                <option value="">No calling code</option>
+              </select>
+            </div>
+            <input id="student-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" required>
+          </div>
         </div>
       </section>
 
@@ -46,8 +55,8 @@
         <h2 id="eligibility-heading">Eligibility Information</h2>
         <p class="section-help">Choose the status that applies to each course.</p>
         <div class="form-grid">
-          <label>EAP5836 status <select name="eap5836Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
-          <label>EAP5837 status <select name="eap5837Status" required><option value="">Select status</option><option value="uf_taken">Taken at UF</option><option value="currently_taking">Currently taking</option><option value="not_taken">Not taken</option><option value="other_university">Taken at another university</option></select></label>
+          <label>EAP5836 status <select name="eap5836Status" required><option value="">Select status</option><option value="uf_taken">Taken</option><option value="currently_taking">Currently Enrolled</option><option value="not_taken">Not Yet Taken</option><option value="not_applicable">N/A</option></select></label>
+          <label>EAP5837 status <select name="eap5837Status" required><option value="">Select status</option><option value="uf_taken">Taken</option><option value="currently_taking">Currently Enrolled</option><option value="not_taken">Not Yet Taken</option><option value="not_applicable">N/A</option></select></label>
         </div>
       </section>
 
@@ -72,11 +81,11 @@
 
       <section class="form-section course-section" aria-labelledby="preferences-heading">
         <h2 id="preferences-heading">Course Preferences</h2>
-        <p class="section-help">Select up to five courses from the current course list. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
+        <p class="section-help">PhD students must select exactly five courses. All other students must select one to five courses. Then assign each selected course a unique rank from 1 (highest preference) to 5 and confirm you have completed it. Completion is self-reported and will be verified by HR.</p>
         <div class="course-selection-layout">
           <div class="course-chooser">
             <h3>Available courses</h3>
-            <p class="course-subhelp">Check up to five courses.</p>
+            <p class="course-subhelp">Check the courses you want to rank.</p>
 
 <!-- Course templates: edit layout here; keep input names and data hooks. -->
 <template data-course-template="emptyRankings">
@@ -113,7 +122,7 @@
       <option value="no">No, I have not completed this course</option>
     </select>
   </label>
-  <label class="check-line"><input name="previouslyTA" type="checkbox"> I have previously worked as a TA for this course.</label>
+  <label class="check-line"><input name="previouslyTA" type="checkbox"> I have previously worked as a TA for this course at UF.</label>
 </fieldset>
 </template>
 <div id="available-course-list" class="available-course-list" aria-describedby="course-selection-message"></div>
@@ -141,7 +150,7 @@
           <label>University <input data-field="university" maxlength="255" required></label>
           <label>Major <input data-field="major" maxlength="255" required></label>
           <label>Degree type <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
-          <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[1-9][0-9]{3}" maxlength="7" required></label>
+          <label>Expected graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[1-9][0-9]{3}" maxlength="7" required></label>
           <div>
             <label>GPA (out of 4.0) <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
             <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> GPA not yet available</label>

@@ -114,8 +114,15 @@
                           </select>
                         </label>
                       </div>
-                      <div class="wp-block-taas-application-field">
-                        <label>Phone number <input name="phone" type="tel" required maxlength="15" autocomplete="tel"></label>
+                      <div class="wp-block-taas-application-field phone-fields">
+                        <label for="student-phone">Phone number</label>
+                        <div class="phone-code">
+                          <span data-phone-code-display aria-hidden="true">+1</span>
+                          <select name="phoneCallingCode" aria-label="Phone country code" autocomplete="tel-country-code">
+                            <option value="">No calling code</option>
+                          </select>
+                        </div>
+                        <input id="student-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" required>
                       </div>
                     </div>
                   </div>
@@ -134,7 +141,7 @@
                         <label>University <input data-field="university" maxlength="255" required></label>
                         <label>Major <input data-field="major" maxlength="255" required></label>
                         <label>Degree type <input data-field="degree_type" list="degree-type-options" placeholder="AA, BS, MS, or PhD" required></label>
-                        <label>Graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[1-9][0-9]{3}" maxlength="7" required></label>
+                        <label>Expected graduation date (MM/YYYY) <input data-field="grad_date" placeholder="MM/YYYY" pattern="(0[1-9]|1[0-2])/[1-9][0-9]{3}" maxlength="7" required></label>
                         <div>
                           <label>GPA (out of 4.0) <input data-field="gpa" type="number" min="0" max="4" step="0.01" required></label>
                           <label class="check-line"><input data-field="gpa_unavailable" type="checkbox"> GPA not yet available</label>
@@ -181,10 +188,10 @@
                           EAP5836 status
                           <select name="eap5836Status" required>
                             <option value="">Select status</option>
-                            <option value="uf_taken">Taken at UF</option>
-                            <option value="currently_taking">Currently taking</option>
-                            <option value="not_taken">Not taken</option>
-                            <option value="other_university">Taken at another university</option>
+                            <option value="uf_taken">Taken</option>
+                            <option value="currently_taking">Currently Enrolled</option>
+                            <option value="not_taken">Not Yet Taken</option>
+                            <option value="not_applicable">N/A</option>
                           </select>
                         </label>
                       </div>
@@ -193,10 +200,10 @@
                           EAP5837 status
                           <select name="eap5837Status" required>
                             <option value="">Select status</option>
-                            <option value="uf_taken">Taken at UF</option>
-                            <option value="currently_taking">Currently taking</option>
-                            <option value="not_taken">Not taken</option>
-                            <option value="other_university">Taken at another university</option>
+                            <option value="uf_taken">Taken</option>
+                            <option value="currently_taking">Currently Enrolled</option>
+                            <option value="not_taken">Not Yet Taken</option>
+                            <option value="not_applicable">N/A</option>
                           </select>
                         </label>
                       </div>
@@ -255,11 +262,11 @@
               <div class="wp-block-group form-section course-section">
                 <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
                   <h2 class="wp-block-heading">Course Preferences</h2>
-                  <p class="section-help wp-block-paragraph">Select up to five courses from the current course list. Rank all selected courses consecutively starting at 1 (highest preference), with no ties or skipped numbers. For example, three selected courses must have ranks 1, 2, and 3. Confirm you have completed each selected course. Completion is self-reported and will be verified by HR. To withdraw all course preferences while editing is available, uncheck every course and click Submit Changes.</p>
+                  <p class="section-help wp-block-paragraph">PhD students must select exactly five courses. All other students must select one to five courses. Rank all selected courses consecutively starting at 1 (highest preference), with no ties or skipped numbers. For example, three selected courses must have ranks 1, 2, and 3. Confirm you have completed each selected course. Completion is self-reported and will be verified by HR. To withdraw all course preferences while editing is available, uncheck every course and click Submit Changes.</p>
                   <div class="course-selection-layout">
                     <div class="course-chooser">
                       <h3>Available courses</h3>
-                      <p class="course-subhelp">Check up to five courses.</p>
+                      <p class="course-subhelp">Check the courses you want to rank.</p>
 
 <!-- Course templates: edit layout here; keep input names and data hooks. -->
 <template data-course-template="emptyRankings">
@@ -296,7 +303,7 @@
       <option value="no">No, I have not completed this course</option>
     </select>
   </label>
-  <label class="check-line"><input name="previouslyTA" type="checkbox"> I have previously worked as a TA for this course.</label>
+  <label class="check-line"><input name="previouslyTA" type="checkbox"> I have previously worked as a TA for this course at UF.</label>
 </fieldset>
 </template>
 <div id="available-course-list" data-application-ui="courseList" class="available-course-list" aria-describedby="course-selection-message"></div>

@@ -105,7 +105,7 @@
       });
       host.querySelectorAll('[data-field="grad_date"]').forEach(input => {
         const valid = /^(0[1-9]|1[0-2])\/[1-9][0-9]{3}$/.test(input.value);
-        input.setCustomValidity(valid ? '' : 'Enter a graduation date in MM/YYYY format with a year from 1000 to 9999.');
+        input.setCustomValidity(valid ? '' : 'Enter an expected graduation date in MM/YYYY format with a year from 1000 to 9999.');
       });
     }
 

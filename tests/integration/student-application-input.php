@@ -49,7 +49,7 @@ $body = array(
 			'enrollment_status'  => 2,
 			'english_test_score' => 2,
 			'eap5836_status'     => 1,
-			'eap5837_status'     => 4,
+			'eap5837_status'     => 3,
 		),
 		'academic_background' => array(
 			array(
@@ -76,6 +76,13 @@ taas_input_check( null === $parsed['details']['profile']['resume_url'], 'Missing
 taas_input_check( '' === $parsed['details']['profile']['additional_info'] && '' === $parsed['details']['academic_background'][0]['minor'], 'Missing optional text becomes empty text.' );
 echo "PASS: Normalized output and optional defaults\n";
 
+$request = $body;
+$request['details']['profile']['phone'] = '+123456789012345';
+taas_input_check( '+123456789012345' === TAAS_Student_Application_Input::parse( $request )['details']['profile']['phone'], 'The plus sign and 15 digits fit in the phone field.' );
+$request['details']['profile']['phone'] .= '6';
+taas_input_rejects( $request, 'An oversized phone number was accepted.' );
+echo "PASS: Phone input accepts a calling code and up to 15 digits\n";
+
 // Exercise the same strict integer rule at each nesting level.
 $integer_paths = array(
 	array( 'term', 'semester' ),
@@ -100,6 +107,15 @@ foreach ( $integer_paths as $path ) {
 }
 echo "PASS: Strict integer types throughout the request\n";
 
+foreach ( array( 'eap5836_status', 'eap5837_status' ) as $field ) {
+	$request = $body;
+	$request['details']['profile'][ $field ] = 2;
+	taas_input_check( 2 === TAAS_Student_Application_Input::parse( $request )['details']['profile'][ $field ], 'EAP status 2 means Currently Enrolled.' );
+	$request['details']['profile'][ $field ] = 5;
+	taas_input_rejects( $request, 'Out-of-range EAP status 5 must be rejected.' );
+}
+echo "PASS: Consecutive EAP status codes are validated\n";
+
 foreach ( array( 0, 4, null, 3.456 ) as $gpa ) {
 	$request = $body;
 	$request['details']['academic_background'][0]['gpa'] = $gpa;
@@ -116,9 +132,19 @@ unset( $request['details']['academic_background'][0]['gpa'] );
 taas_input_rejects( $request, 'Missing GPA must not silently mean unavailable.' );
 echo "PASS: GPA boundaries, rounding and explicit unavailability\n";
 
+$five_choices = array();
+foreach ( range( 1, 5 ) as $rank ) {
+	$five_choices[] = array(
+		'course_id'            => (string) ( 100 + $rank ),
+		'rank'                 => $rank,
+		'has_completed_course' => true,
+	);
+}
+
 foreach ( array( 1, 2, 3 ) as $program ) {
 	foreach ( array( 1, 2, 3, 4 ) as $category ) {
 		$request = $body;
+		$request['course_preferences'] = $five_choices;
 		$request['details']['profile']['enrollment_status'] = $program;
 		$request['details']['profile']['fws_eligibility'] = 'no';
 		$request['details']['profile']['english_test_score'] = $category;
@@ -185,10 +211,10 @@ $request = $body;
 $request['course_preferences'] = array();
 taas_input_rejects( $request, 'Creation accepted no courses.' );
 taas_input_check( array() === TAAS_Student_Application_Input::parse( $request, true )['course_preferences'], 'Editing must allow withdrawal of all courses.' );
-foreach ( array( false, 'true', 1, null ) as $completed ) {
+foreach ( array( 'true', 1, null ) as $completed ) {
 	$request = $body;
 	$request['course_preferences'][0]['has_completed_course'] = $completed;
-	taas_input_rejects( $request, 'Completion must be explicitly true.' );
+	taas_input_rejects( $request, 'Completion must be an explicit boolean.' );
 }
 $request = $body;
 $request['course_preferences'][] = array(
@@ -204,6 +230,22 @@ $request['course_preferences'][0]['rank'] = 2;
 $request['course_preferences'][0]['course_id'] = '101';
 taas_input_rejects( $request, 'Duplicate courses were accepted.' );
 echo "PASS: Course completion, uniqueness, ordering and withdrawal\n";
+
+$request = $body;
+$request['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Phd->value;
+foreach ( range( 0, 4 ) as $count ) {
+	$request['course_preferences'] = array_slice( $five_choices, 0, $count );
+	taas_input_rejects( $request, 'PhD applications must require exactly five courses.' );
+}
+$request['course_preferences'] = $five_choices;
+taas_input_check( 5 === count( TAAS_Student_Application_Input::parse( $request )['course_preferences'] ), 'PhD applications accept five courses.' );
+$request['course_preferences'][] = array(
+	'course_id'            => '106',
+	'rank'                 => 6,
+	'has_completed_course' => true,
+);
+taas_input_rejects( $request, 'PhD applications must reject more than five courses.' );
+echo "PASS: PhD applications require exactly five courses\n";
 
 foreach ( array( true, false ) as $experience ) {
 	$request = $body;
@@ -249,6 +291,7 @@ foreach ( array( 'https://example.com/letter', 'http://example.com/letter' ) as 
 	$profile = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
 	taas_input_check( $url === $profile['fws_award_letter_url'] && 'https://example.com/resume' === $profile['resume_url'], 'FWS award letters are trimmed and remain separate from resumes.' );
 }
+$request['course_preferences'] = $five_choices;
 foreach ( array( 2, 3 ) as $graduate_status ) {
 	$request['details']['profile']['enrollment_status'] = $graduate_status;
 	$profile = TAAS_Student_Application_Input::parse( $request )['details']['profile'];

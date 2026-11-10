@@ -9,7 +9,7 @@ const partial = fs.readFileSync(path.join(root, 'htdocs/wp-content/plugins/taas-
 const fixture = {
   period: { semester: 1, year: 2026, label: 'Fall 2026', is_open: true },
   identity: { ufid: '12345678', email: 'student@ufl.edu' }, already_applied: false,
-  profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 4, english_test_score: 2 },
+  profile: { phone: '3525550100', country_code: 'US', admitted_semester: 'Fall 2025', available_hours: 10, enrollment_status: 2, eap5836_status: 1, eap5837_status: 3, english_test_score: 2 },
   academic_background: [{ university: 'Example', major: 'CS', minor: 'Math', degree_type: 2, grad_date: '2025-05-01', gpa: null }],
   courses: [{ course_id: 'example', course_code: 'CS101', course_name: 'Example', instructor_name: 'Example' }]
 };
@@ -52,7 +52,8 @@ function html(editing, redesigned) {
         checkbox.checked = true;
         checkbox.dispatchEvent(new Event('change'));
         form.querySelector('[name="courseRank"]').value = '1';
-        form.querySelector('[name="courseHistory"]').value = 'yes';
+        const history = form.querySelector('[name="courseHistory"]');
+        if (!history.value) history.value = 'yes';
         return true;
       }, { editing, data });
     }
@@ -106,7 +107,7 @@ function html(editing, redesigned) {
     const saved = {
       term: fixture.period, identity: fixture.identity, can_edit: true, courses: fixture.courses,
       details: { student_name: 'Alex Student', student_email: fixture.identity.email, academic_background: fixture.academic_background,
-        profile: { ...fixture.profile, resume_url: 'https://example.com/resume', additional_info: 'Keep this', english_test_score: 3 } }
+        profile: { ...fixture.profile, resume_url: 'https://example.com/resume', additional_info: 'Keep this', english_test_score: 3, eap5836_status: 1, eap5837_status: 4 } }
     };
     assert(await open(true, true, saved));
     assert.equal(await page.locator('[name="firstName"]').inputValue(), 'Alex');
@@ -116,6 +117,14 @@ function html(editing, redesigned) {
     assert.equal(edited.details.profile.resume_url, saved.details.profile.resume_url);
     assert.equal(edited.details.profile.additional_info, 'Keep this');
     assert.equal(edited.details.profile.english_test_score, 3);
+    for (const name of ['eap5836Status', 'eap5837Status']) {
+      assert.deepEqual(await page.locator(`[name="${name}"] option`).allTextContents(), ['Select status', 'Taken', 'Currently Enrolled', 'Not Yet Taken', 'N/A']);
+    }
+    assert.equal(await page.locator('[name="eap5836Status"] option:checked').textContent(), 'Taken');
+    assert.equal(await page.locator('[name="eap5837Status"] option:checked').textContent(), 'N/A');
+    assert.equal(edited.details.profile.eap5836_status, 1);
+    assert.equal(edited.details.profile.eap5837_status, 4);
+    console.log('PASS: Both EAP dropdowns have the four supported options and prefill saved answers');
     console.log('PASS: Omitted optional controls preserve saved values during edits');
 
     const compound = { ...saved, details: { ...saved.details, student_name: 'Mary Jane van Buren' } };
@@ -142,6 +151,18 @@ function html(editing, redesigned) {
     await page.locator('[name="selectedCourses"]').dispatchEvent('change');
     assert(await page.locator('[name="previouslyTA"]').isChecked());
     console.log('PASS: Course TA declarations prefill, can be cleared, and survive ranking rerenders');
+
+    const courseHistory = page.locator('[name="courseHistory"]');
+    for (const [answer, code] of [['no', 0], ['yes', 1], ['other', 2]]) {
+      await courseHistory.selectOption(answer);
+      const choice = (await page.evaluate(() => window.adapter.collect())).course_preferences[0];
+      assert.equal(choice.course_completion, code);
+      assert.equal(choice.has_completed_course, code !== 0);
+    }
+    experienced.course_preferences[0].course_completion = 2;
+    assert(await open(true, false, experienced));
+    assert.equal(await courseHistory.inputValue(), 'other');
+    console.log('PASS: All three course completion choices are distinct and Equivalent reloads correctly');
 
     assert(await open(true, false, saved));
     const disabledDetails = await page.evaluate(() => {
@@ -203,6 +224,33 @@ function html(editing, redesigned) {
       assert.match(result.error, /Enter your phone number/);
     }
     console.log('PASS: Whitespace-only phone numbers are rejected in both modes and recover after correction');
+    assert(await open());
+    const phone = page.locator('[name="phone"]');
+    const callingCode = page.locator('[name="phoneCallingCode"]');
+    const displayedCode = page.locator('[data-phone-code-display]');
+    assert.equal(await callingCode.inputValue(), '+1');
+    assert.equal(await displayedCode.textContent(), '+1');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+1' + fixture.profile.phone);
+    await page.addStyleTag({ path: path.join(assets, 'student-application.css') });
+    const codeBox = await displayedCode.boundingBox();
+    const phoneBox = await phone.boundingBox();
+    assert(codeBox.x + codeBox.width < phoneBox.x && codeBox.width < phoneBox.width);
+    assert.equal(codeBox.y, phoneBox.y);
+    await callingCode.selectOption('+44');
+    assert.equal(await displayedCode.textContent(), '+44');
+    await phone.fill('20 7946 0958');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+442079460958');
+    await phone.fill('+44 20 7946 0958');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+442079460958');
+    await phone.fill('+1 352 555 0100');
+    assert.equal(await page.evaluate(() => window.adapter.collect()), null);
+    const international = { ...saved, details: { ...saved.details, profile: { ...saved.details.profile, phone: '+442079460958' } } };
+    assert(await open(true, true, international));
+    assert.equal(await callingCode.inputValue(), '+44');
+    assert.equal(await displayedCode.textContent(), '+44');
+    assert.equal(await phone.inputValue(), '2079460958');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.phone), '+442079460958');
+    console.log('PASS: The compact calling-code selector defaults to +1 and reloads international numbers');
     assert(await open(true, true, saved));
 
     const degrees = await page.evaluate(() => {
@@ -308,6 +356,21 @@ function html(editing, redesigned) {
     });
     assert(rankIgnoresUnrelatedControl);
     console.log('PASS: Course ranking validation ignores controls outside the rankings container');
+
+    const fiveCourses = Array.from({ length: 5 }, (_, index) => ({
+      ...fixture.courses[0], course_id: String(index + 1)
+    }));
+    assert(await open(false, false, { ...fixture, courses: fiveCourses }));
+    await page.locator('[name="collegeStatus"]').selectOption('phd');
+    assert.equal(await page.evaluate(() => window.adapter.collect()), null);
+    assert.match(await page.locator('#form-message').textContent(), /exactly five courses/);
+    for (const choice of await page.locator('[name="selectedCourses"]').all()) await choice.check();
+    for (const [index, rank] of (await page.locator('[name="courseRank"]').all()).entries()) {
+      await rank.selectOption(String(index + 1));
+    }
+    for (const history of await page.locator('[name="courseHistory"]').all()) await history.selectOption('yes');
+    assert.equal(await page.evaluate(() => window.adapter.collect().course_preferences.length), 5);
+    console.log('PASS: The PhD selection requires five ranked courses');
 
     for (const name of ['selectedCourses', 'courseRank', 'courseHistory', 'previouslyTA']) {
       for (const defect of ['missing', 'duplicate', 'wrong-type', 'not-required']) {

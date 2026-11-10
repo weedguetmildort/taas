@@ -47,6 +47,7 @@ test('saving sends the term contract without server-owned period settings', asyn
     const payload = JSON.parse(options.body);
     assert.deepEqual(payload.term, { semester: 1, year: 2026 });
     assert.equal(payload.revision, undefined);
+    assert.equal(payload.replace_existing, undefined);
     return new Response('{"submission_id":1}');
   }, async () => {
     const result = await createApplicationApi({ nonce: 'test' }).save('/fixture', {
@@ -66,10 +67,14 @@ test('saving requires server confirmation and a fresh revision for edits', async
     await assert.rejects(createApplicationApi({ nonce: 'test' }).save('/fixture', { ...application, revision: 'a'.repeat(64) }), /did not confirm the saved version/);
   });
   await withFetch(async (_url, options) => {
-    assert.equal(JSON.parse(options.body).revision, 'a'.repeat(64));
+    const payload = JSON.parse(options.body);
+    assert.equal(payload.revision, 'a'.repeat(64));
+    assert.equal(payload.replace_existing, true);
     return new Response(JSON.stringify({ submission_id: 1, revision: 'b'.repeat(64) }));
   }, async () => {
-    const result = await createApplicationApi({ nonce: 'test' }).save('/fixture', { ...application, revision: 'a'.repeat(64) });
+    const result = await createApplicationApi({ nonce: 'test' }).save('/fixture', {
+      ...application, revision: 'a'.repeat(64), replace_existing: true
+    });
     assert.equal(result.revision, 'b'.repeat(64));
   });
 });

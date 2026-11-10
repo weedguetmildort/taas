@@ -85,7 +85,7 @@ On routes where the term is optional, send both or neither. Sending neither uses
 | `match_status` | `Pending`, `Matched`, `Rejected`, `Withdrawn` |
 | `enrollment_status` | `Not enrolled`, `Undergraduate`, `Masters`, `PhD` |
 | `degree_type` | `AA`, `BS`, `MS`, `PhD` |
-| `eap5836_status`, `eap5837_status` | `Taken at UF`, `Taken elsewhere`, `Currently taking`, `Not taken` |
+| `eap5836_status`, `eap5837_status` | `Taken`, `Currently Enrolled`, `Not Yet Taken`, `N/A` |
 | `stage` | `student_application`, `hr_review`, `professor_ranking`, `admin_matching` |
 
 **Timestamps** in the application cycle are UTC, in the form `2026-11-16T04:59:59Z`. Other formats are rejected, including UTC offsets. Convert to Eastern for display, and convert Eastern input to UTC before sending. **Dates** on student records are `YYYY-MM-DD`.

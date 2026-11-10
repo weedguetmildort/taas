@@ -50,16 +50,19 @@ final class TAAS_Student_Application_Input {
 	 *       grad_date: string, gpa: float|null
 	 *     }>
 	 *   },
-	 *   course_preferences: list<array{course_id: string, rank: int, has_completed_course: true, has_ta_for_course: bool}>
+	 *   course_preferences: list<array{course_id: string, rank: int, course_completion: int, has_ta_for_course: bool}>
 	 * } Normalized values ready for the application service.
 	 * @throws InvalidArgumentException If any input fails validation.
 	 */
 	public static function parse( array $body, bool $allow_empty_courses = false ): array {
 		self::allow_only_fields( $body, array( 'term', 'details', 'course_preferences' ) );
+		$term = self::parse_term( self::require_object( $body, 'term' ) );
+		$details = self::parse_details( self::require_object( $body, 'details' ) );
+		$is_phd = TAAS_Enrollment_Status::Phd->value === $details['profile']['enrollment_status'];
 		return array(
-			'term'               => self::parse_term( self::require_object( $body, 'term' ) ),
-			'details'            => self::parse_details( self::require_object( $body, 'details' ) ),
-			'course_preferences' => self::parse_preferences( $body['course_preferences'] ?? null, $allow_empty_courses ),
+			'term'               => $term,
+			'details'            => $details,
+			'course_preferences' => self::parse_preferences( $body['course_preferences'] ?? null, $allow_empty_courses, $is_phd ),
 		);
 	}
 
@@ -147,17 +150,32 @@ final class TAAS_Student_Application_Input {
 			}
 		}
 		return array(
-			'phone'              => self::read_text( $profile, 'phone', 15 ),
+			'phone'              => self::read_text( $profile, 'phone', 16 ),
 			'country_code'       => $country_code,
 			'admitted_semester'  => $admitted_semester,
 			'available_hours'    => $available_hours,
 			'enrollment_status'  => $enrollment_status,
-			'eap5836_status'     => self::read_integer( $profile, 'eap5836_status', 1, 4 ),
-			'eap5837_status'     => self::read_integer( $profile, 'eap5837_status', 1, 4 ),
+			'eap5836_status'     => self::read_eap_status( $profile, 'eap5836_status' ),
+			'eap5837_status'     => self::read_eap_status( $profile, 'eap5837_status' ),
 			'resume_url'         => '' === $resume_url ? null : $resume_url,
 			'english_test_score' => $english_test_score,
 			'additional_info'    => self::read_text( $profile, 'additional_info', 1000, false ),
 		) + self::parse_fws( $profile, $enrollment_status );
+	}
+
+	/**
+	 * Read a required EAP course status from the profile.
+	 *
+	 * @param array  $profile Submitted profile values.
+	 * @param string $key     EAP status field name.
+	 * @throws InvalidArgumentException If the status is invalid.
+	 */
+	private static function read_eap_status( array $profile, string $key ): int {
+		$status = $profile[ $key ] ?? null;
+		if ( ! is_int( $status ) || null === TAAS_Course_Taken_Status::tryFrom( $status ) ) {
+			throw new InvalidArgumentException( 'Select a valid status for both EAP courses.' );
+		}
+		return $status;
 	}
 
 	/**
@@ -236,13 +254,17 @@ final class TAAS_Student_Application_Input {
 	 *
 	 * @param mixed $course_choices Submitted course preferences.
 	 * @param bool  $allow_empty_courses Whether all preferences may be withdrawn.
+	 * @param bool  $is_phd Whether five ranked courses are required.
 	 * @throws InvalidArgumentException If input validation fails.
 	 */
-	private static function parse_preferences( mixed $course_choices, bool $allow_empty_courses ): array {
-		$minimum_courses = $allow_empty_courses ? 0 : 1;
+	private static function parse_preferences( mixed $course_choices, bool $allow_empty_courses, bool $is_phd ): array {
+		$minimum_courses = $is_phd ? 5 : 1;
+		if ( $allow_empty_courses && array() === $course_choices ) {
+			return array();
+		}
 		if ( ! is_array( $course_choices ) || ! array_is_list( $course_choices )
 			|| count( $course_choices ) < $minimum_courses || count( $course_choices ) > 5 ) {
-			throw new InvalidArgumentException( $allow_empty_courses ? 'Select no more than five courses.' : 'Select between one and five courses.' );
+			throw new InvalidArgumentException( $is_phd ? 'PhD students must select exactly five courses.' : 'Select between one and five courses.' );
 		}
 		$preferences = array();
 		$course_ids         = array();
@@ -251,7 +273,7 @@ final class TAAS_Student_Application_Input {
 			if ( ! is_array( $choice ) ) {
 				throw new InvalidArgumentException( 'Each course preference must be an object.' );
 			}
-			self::allow_only_fields( $choice, array( 'course_id', 'rank', 'has_completed_course', 'has_ta_for_course' ) );
+			self::allow_only_fields( $choice, array( 'course_id', 'rank', 'has_completed_course', 'course_completion', 'has_ta_for_course' ) );
 			$previously_taught = $choice['has_ta_for_course'] ?? false;
 			if ( array_key_exists( 'has_ta_for_course', $choice ) && ! is_bool( $choice['has_ta_for_course'] ) ) {
 				throw new InvalidArgumentException( 'Previous TA experience must be a boolean.' );
@@ -263,17 +285,23 @@ final class TAAS_Student_Application_Input {
 			}
 			$rank = self::read_integer( $choice, 'rank', 1, count( $course_choices ) );
 			$duplicate = in_array( $course_id, $course_ids, true ) || in_array( $rank, $used_ranks, true );
-			$completed = true === ( $choice['has_completed_course'] ?? null );
-			if ( $duplicate || ! $completed ) {
-				throw new InvalidArgumentException( 'Choose distinct courses and ranks, and confirm completion of each course.' );
+			$completed = $choice['has_completed_course'] ?? null;
+			if ( $duplicate || ! is_bool( $completed ) ) {
+				throw new InvalidArgumentException( 'Choose distinct courses and ranks, and answer whether you completed each course.' );
+			}
+			$completion = array_key_exists( 'course_completion', $choice )
+				? self::read_integer( $choice, 'course_completion', 0, 2 )
+				: (int) $completed;
+			if ( ( 0 !== $completion ) !== $completed ) {
+				throw new InvalidArgumentException( 'Course completion answers must agree.' );
 			}
 			$course_ids[]         = $course_id;
 			$used_ranks[]       = $rank;
 			$preferences[] = array(
-				'course_id'            => $course_id,
-				'rank'                 => $rank,
-				'has_completed_course' => true,
-				'has_ta_for_course'    => $previously_taught,
+				'course_id'         => $course_id,
+				'rank'              => $rank,
+				'course_completion' => $completion,
+				'has_ta_for_course' => $previously_taught,
 			);
 		}
 		usort( $preferences, static fn( array $a, array $b ) => $a['rank'] <=> $b['rank'] );
