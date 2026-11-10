@@ -113,13 +113,21 @@ if ( $term_data['terms'] ) {
 	taas_page_check( 200 === wp_remote_retrieve_response_code( $saved_term ) && isset( $saved_data['revision'], $saved_data['details'], $saved_data['course_preferences'] ), 'Status page can retrieve the real submitted term and its edit token' );
 }
 
-foreach ( array( 'student-application', 'check-application-status', 'front-page' ) as $slug ) {
+foreach ( array( 'student-application', 'check-application-status' ) as $slug ) {
 	$url = TAAS_Pages::url( $slug );
 	$denied = taas_page_get( add_query_arg( 'taas_role', 'instructor', $url ) );
 	$body = wp_remote_retrieve_body( $denied );
 	taas_page_check( 403 === wp_remote_retrieve_response_code( $denied ) && str_contains( $body, 'not authorized' ), $slug . ' denies non-students' );
 	taas_page_check( str_contains( $body, 'Go to your homepage' ) && ! str_contains( $body, 'TAASStudentApplication' ), $slug . ' provides the role homepage link without a form nonce' );
 }
+
+$instructor_home = taas_page_get( add_query_arg( 'taas_role', 'instructor', TAAS_Pages::url( 'front-page' ) ) );
+taas_page_check(
+	302 === wp_remote_retrieve_response_code( $instructor_home )
+	&& TAAS_Pages::url( 'professor-homepage' ) === wp_remote_retrieve_header( $instructor_home, 'location' )
+	&& ! str_contains( wp_remote_retrieve_body( $instructor_home ), 'TAASStudentHome' ),
+	'The site root redirects instructors to the professor homepage without student configuration'
+);
 
 $professor = taas_page_get( add_query_arg( 'taas_role', 'instructor', TAAS_Pages::url( 'professor-homepage' ) ) );
 taas_page_check( ! str_contains( wp_remote_retrieve_body( $professor ), 'assets/student-application.js' ), 'Student application script is not loaded on professor pages' );

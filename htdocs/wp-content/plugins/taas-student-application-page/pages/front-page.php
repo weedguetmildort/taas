@@ -63,6 +63,7 @@ function taas_student_homepage_state() {
 /** Supply data and managed URLs; homepage markup belongs to the HTML page. */
 function taas_student_homepage_config(): array {
 	$state = taas_student_homepage_state();
+	$closes_at = is_wp_error( $state ) ? null : $state['period']['closes_at'];
 	return array(
 		'urls'           => array(
 			'student-application'      => TAAS_Pages::url( 'student-application' ),
@@ -70,7 +71,9 @@ function taas_student_homepage_config(): array {
 			'professor-page'           => TAAS_Pages::url( 'professor-page' ),
 		),
 		'unavailable'    => is_wp_error( $state ),
+		'isClosed'       => ! is_wp_error( $state ) && ! $state['period']['is_open'],
 		'alreadyApplied' => ! is_wp_error( $state ) && $state['already_applied'],
 		'termLabel'      => is_wp_error( $state ) ? '' : $state['period']['label'],
+		'closesAtLabel'  => null === $closes_at ? null : wp_date( 'F j, Y \a\t g:i A T', $closes_at, new DateTimeZone( 'America/New_York' ) ),
 	);
 }
