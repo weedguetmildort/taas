@@ -56,10 +56,13 @@ final class TAAS_Student_Application_Input {
 	 */
 	public static function parse( array $body, bool $allow_empty_courses = false ): array {
 		self::allow_only_fields( $body, array( 'term', 'details', 'course_preferences' ) );
+		$term = self::parse_term( self::require_object( $body, 'term' ) );
+		$details = self::parse_details( self::require_object( $body, 'details' ) );
+		$is_phd = TAAS_Enrollment_Status::Phd->value === $details['profile']['enrollment_status'];
 		return array(
-			'term'               => self::parse_term( self::require_object( $body, 'term' ) ),
-			'details'            => self::parse_details( self::require_object( $body, 'details' ) ),
-			'course_preferences' => self::parse_preferences( $body['course_preferences'] ?? null, $allow_empty_courses ),
+			'term'               => $term,
+			'details'            => $details,
+			'course_preferences' => self::parse_preferences( $body['course_preferences'] ?? null, $allow_empty_courses, $is_phd ),
 		);
 	}
 
@@ -251,13 +254,17 @@ final class TAAS_Student_Application_Input {
 	 *
 	 * @param mixed $course_choices Submitted course preferences.
 	 * @param bool  $allow_empty_courses Whether all preferences may be withdrawn.
+	 * @param bool  $is_phd Whether five ranked courses are required.
 	 * @throws InvalidArgumentException If input validation fails.
 	 */
-	private static function parse_preferences( mixed $course_choices, bool $allow_empty_courses ): array {
-		$minimum_courses = $allow_empty_courses ? 0 : 1;
+	private static function parse_preferences( mixed $course_choices, bool $allow_empty_courses, bool $is_phd ): array {
+		$minimum_courses = $is_phd ? 5 : 1;
+		if ( $allow_empty_courses && array() === $course_choices ) {
+			return array();
+		}
 		if ( ! is_array( $course_choices ) || ! array_is_list( $course_choices )
 			|| count( $course_choices ) < $minimum_courses || count( $course_choices ) > 5 ) {
-			throw new InvalidArgumentException( $allow_empty_courses ? 'Select no more than five courses.' : 'Select between one and five courses.' );
+			throw new InvalidArgumentException( $is_phd ? 'PhD students must select exactly five courses.' : 'Select between one and five courses.' );
 		}
 		$preferences = array();
 		$course_ids         = array();

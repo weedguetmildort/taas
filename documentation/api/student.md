@@ -233,7 +233,7 @@ Missing, null, string, or out-of-range values return 400. `4` is an explicit N/A
 | `grad_date` | yes | The 1st of the month, `YYYY-MM-01`. It may be in the future |
 | `gpa` | yes, but may be `null` | 0 to 4, rounded to two decimal places. `null` means no GPA yet. The key must be present |
 
-**`course_preferences`:** 1 to 5 courses.
+**`course_preferences`:** Exactly 5 courses for PhD students and 1 to 5 for other students.
 
 | Field | Required | Rules |
 | --- | --- | --- |
@@ -440,7 +440,7 @@ The student's saved application for one term, with each course's status. Use it 
 The rules are the same as POST, except:
 
 - `term` must match `{semester}` and `{year}` in the path.
-- Ordinary edits accept 0 to 5 courses. An empty list withdraws every course application. A replacement (`replace_existing: true`) requires 1 to 5 courses and deletes omitted course applications for that term.
+- Edits and replacements require exactly 5 courses for PhD students and 1 to 5 for other students. An empty list on an ordinary edit withdraws every course application. A replacement (`replace_existing: true`) deletes omitted course applications for that term.
 - `revision` is required. If the application has changed since it was read, for example in another tab, the edit returns 409. Read it again before retrying.
 
 **What changes:** all course and application details are saved in one transaction.

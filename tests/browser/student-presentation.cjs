@@ -330,6 +330,21 @@ function html(editing, redesigned) {
     assert(rankIgnoresUnrelatedControl);
     console.log('PASS: Course ranking validation ignores controls outside the rankings container');
 
+    const fiveCourses = Array.from({ length: 5 }, (_, index) => ({
+      ...fixture.courses[0], course_id: String(index + 1)
+    }));
+    assert(await open(false, false, { ...fixture, courses: fiveCourses }));
+    await page.locator('[name="collegeStatus"]').selectOption('phd');
+    assert.equal(await page.evaluate(() => window.adapter.collect()), null);
+    assert.match(await page.locator('#form-message').textContent(), /exactly five courses/);
+    for (const choice of await page.locator('[name="selectedCourses"]').all()) await choice.check();
+    for (const [index, rank] of (await page.locator('[name="courseRank"]').all()).entries()) {
+      await rank.selectOption(String(index + 1));
+    }
+    for (const history of await page.locator('[name="courseHistory"]').all()) await history.selectOption('yes');
+    assert.equal(await page.evaluate(() => window.adapter.collect().course_preferences.length), 5);
+    console.log('PASS: The PhD selection requires five ranked courses');
+
     for (const name of ['selectedCourses', 'courseRank', 'courseHistory', 'previouslyTA']) {
       for (const defect of ['missing', 'duplicate', 'wrong-type', 'not-required']) {
         if (['selectedCourses', 'previouslyTA'].includes(name) && defect === 'not-required') continue;

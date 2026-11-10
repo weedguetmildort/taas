@@ -72,7 +72,7 @@
       courses.validate();
       const details = fields.collect();
       if (!details) return null;
-      const error = courses.selectionError(editing);
+      const error = courses.selectionError(editing, fields.isPhd());
       if (error) {
         showMessage(error, 'error');
         return null;

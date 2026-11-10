@@ -206,6 +206,6 @@
     inputs.collegeStatus.addEventListener('change', updateFws);
     inputs.fwsEligibility?.addEventListener('change', updateFws);
     inputs.fwsAwardLetterUrl?.addEventListener('input', () => inputs.fwsAwardLetterUrl.setCustomValidity(''));
-    return { prefill, collect, updateFws, didSave };
+    return { prefill, collect, updateFws, didSave, isPhd: () => inputs.collegeStatus.value === 'phd' };
   };
 })();

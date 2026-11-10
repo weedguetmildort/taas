@@ -179,10 +179,11 @@
       validate() {
         updateRankAvailability();
       },
-      selectionError(allowEmpty) {
+      selectionError(allowEmpty, isPhd) {
         const count = getSelectedCourseIds().length;
-        if (count <= MAX_COURSES && (allowEmpty || count > 0)) return '';
-        return allowEmpty ? 'Select no more than five courses.' : 'Select between one and five courses.';
+        if (allowEmpty && count === 0) return '';
+        if (isPhd) return count === MAX_COURSES ? '' : 'PhD students must select exactly five courses.';
+        return count >= 1 && count <= MAX_COURSES ? '' : 'Select between one and five courses.';
       },
       collect() {
         return [...rankings.querySelectorAll('[data-course]')].map(entry => {

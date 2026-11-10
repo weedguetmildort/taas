@@ -125,9 +125,19 @@ unset( $request['details']['academic_background'][0]['gpa'] );
 taas_input_rejects( $request, 'Missing GPA must not silently mean unavailable.' );
 echo "PASS: GPA boundaries, rounding and explicit unavailability\n";
 
+$five_choices = array();
+foreach ( range( 1, 5 ) as $rank ) {
+	$five_choices[] = array(
+		'course_id'            => (string) ( 100 + $rank ),
+		'rank'                 => $rank,
+		'has_completed_course' => true,
+	);
+}
+
 foreach ( array( 1, 2, 3 ) as $program ) {
 	foreach ( array( 1, 2, 3, 4 ) as $category ) {
 		$request = $body;
+		$request['course_preferences'] = $five_choices;
 		$request['details']['profile']['enrollment_status'] = $program;
 		$request['details']['profile']['fws_eligibility'] = 'no';
 		$request['details']['profile']['english_test_score'] = $category;
@@ -214,6 +224,22 @@ $request['course_preferences'][0]['course_id'] = '101';
 taas_input_rejects( $request, 'Duplicate courses were accepted.' );
 echo "PASS: Course completion, uniqueness, ordering and withdrawal\n";
 
+$request = $body;
+$request['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Phd->value;
+foreach ( range( 0, 4 ) as $count ) {
+	$request['course_preferences'] = array_slice( $five_choices, 0, $count );
+	taas_input_rejects( $request, 'PhD applications must require exactly five courses.' );
+}
+$request['course_preferences'] = $five_choices;
+taas_input_check( 5 === count( TAAS_Student_Application_Input::parse( $request )['course_preferences'] ), 'PhD applications accept five courses.' );
+$request['course_preferences'][] = array(
+	'course_id'            => '106',
+	'rank'                 => 6,
+	'has_completed_course' => true,
+);
+taas_input_rejects( $request, 'PhD applications must reject more than five courses.' );
+echo "PASS: PhD applications require exactly five courses\n";
+
 foreach ( array( true, false ) as $experience ) {
 	$request = $body;
 	$request['course_preferences'][0]['has_ta_for_course'] = $experience;
@@ -258,6 +284,7 @@ foreach ( array( 'https://example.com/letter', 'http://example.com/letter' ) as 
 	$profile = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
 	taas_input_check( $url === $profile['fws_award_letter_url'] && 'https://example.com/resume' === $profile['resume_url'], 'FWS award letters are trimmed and remain separate from resumes.' );
 }
+$request['course_preferences'] = $five_choices;
 foreach ( array( 2, 3 ) as $graduate_status ) {
 	$request['details']['profile']['enrollment_status'] = $graduate_status;
 	$profile = TAAS_Student_Application_Input::parse( $request )['details']['profile'];
