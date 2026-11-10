@@ -12,6 +12,7 @@ async function setup({ saveError, popupError, application } = {}) {
   const observed = { saves: 0, enabled: false, message: '', messageState: '' };
   const form = {
     hasCourses: () => true,
+    hasMissingChoices: () => false,
     setAvailability(enabled) { observed.enabled = enabled; },
     showRetry() {}, showLoading() {}, showInitial() {}, setTerm() {}, onRetry() {},
     onRecovery(callback) { startReplacement = callback; },

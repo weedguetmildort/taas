@@ -118,7 +118,8 @@
     formElement.addEventListener('submit', submitApplication);
     applicationForm.onRetry(loadApplication);
     applicationForm.onRecovery(() => {
-      if (!state.replacement || state.phase !== 'ready' || !state.isOpen || !applicationForm.hasCourses()) return false;
+      if (!state.replacement || state.phase !== 'ready' || !state.isOpen || !applicationForm.hasCourses()
+          || applicationForm.hasMissingChoices()) return false;
       state.replacing = true;
       updateFormAvailability();
       return true;

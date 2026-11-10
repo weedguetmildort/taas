@@ -85,8 +85,9 @@
 
     function showInitial(data) {
       setTerm(data.period.label);
-      prefill(data);
-      showExisting(data.already_applied, data.period.is_open && Boolean(data.replacement) && courses.hasCourses());
+      prefill({ ...data, course_preferences: data.replacement?.course_preferences ?? data.course_preferences });
+      showExisting(data.already_applied, data.period.is_open && Boolean(data.replacement)
+        && courses.hasCourses() && !courses.hasMissingChoices());
       if (!data.period.is_open) {
         showMessage('Applications are closed. New submissions and edits are unavailable.', 'error');
       } else if (!courses.hasCourses()) {

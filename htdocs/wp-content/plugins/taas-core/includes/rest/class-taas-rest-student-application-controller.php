@@ -99,15 +99,23 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				$semester   = TAAS_Semester::from( $period['semester'] );
 				$submissions = new TAAS_Student_Submission_Repository();
 				$saved = $submissions->find_application_for_term( $ufid, $semester, $period['year'] );
+				$courses = ( new TAAS_Course_Repository() )->application_choices( $semester, $period['year'] );
 				$replacement = null;
 				if ( null !== $saved && TAAS_Student_Application_Service::can_edit( $semester, $period['year'], $saved['choices'] ) ) {
 					$endpoint = rest_url( 'taas/v1/student/application/' . $semester->value . '/' . $period['year'] );
 					if ( TAAS_Auth::is_local_dev() ) {
 						$endpoint = add_query_arg( 'taas_role', 'student', $endpoint );
 					}
+					$pending = array_values(
+						array_filter(
+							$saved['choices'],
+							static fn( array $choice ) => TAAS_Match_Status::Pending->value === (int) $choice['match_status']
+						)
+					);
 					$replacement = array(
-						'endpoint' => $endpoint,
-						'revision' => TAAS_Student_Application_Service::revision( $saved['snapshot'], $saved['choices'] ),
+						'endpoint'           => $endpoint,
+						'revision'           => TAAS_Student_Application_Service::revision( $saved['snapshot'], $saved['choices'] ),
+						'course_preferences' => $this->format_preferences( $pending, $courses ),
 					);
 				}
 				$already_applied = null !== $saved || ! empty( ( new TAAS_Application_Repository() )->find_by_student_and_term( $ufid, $semester, $period['year'] ) );
@@ -129,7 +137,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 							static fn( TAAS_Academic_Background $entry ) => $entry->to_row(),
 							( new TAAS_Academic_Background_Repository() )->find_by_student( $ufid )
 						),
-						'courses'             => ( new TAAS_Course_Repository() )->application_choices( $semester, $period['year'] ),
+						'courses'             => $courses,
 					)
 				);
 			}

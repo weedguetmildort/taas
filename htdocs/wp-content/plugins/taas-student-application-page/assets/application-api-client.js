@@ -48,7 +48,11 @@
       && typeof data.already_applied === 'boolean' && validEnglishScore(data.english_test_score)
       && (data.replacement == null || (data.already_applied && isRecord(data.replacement)
         && isText(data.replacement.endpoint) && data.replacement.endpoint.length > 0
-        && isText(data.replacement.revision) && /^[a-f0-9]{64}$/.test(data.replacement.revision)));
+        && isText(data.replacement.revision) && /^[a-f0-9]{64}$/.test(data.replacement.revision)
+        && Array.isArray(data.replacement.course_preferences)
+        && data.replacement.course_preferences.every(choice => isRecord(choice) && isText(choice.course_id)
+          && choice.match_status === 1 && (choice.rank === null || (Number.isInteger(choice.rank) && choice.rank >= 1))
+          && [0, 1, 2].includes(choice.course_completion) && typeof choice.has_ta_for_course === 'boolean')));
   }
 
   student.createApplicationApi = ({ nonce, timeoutMs = 30000, messages = {} } = {}) => {

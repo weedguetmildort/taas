@@ -242,8 +242,9 @@ try {
 			$replacement = taas_edit_request( 'GET', '/student/application' )->get_data()['replacement'];
 			taas_edit_check(
 				$read['revision'] === $replacement['revision']
-				&& add_query_arg( 'taas_role', 'student', rest_url( 'taas/v1' . $route ) ) === $replacement['endpoint'],
-				'An editable same-term application offers replacement with the current revision'
+				&& add_query_arg( 'taas_role', 'student', rest_url( 'taas/v1' . $route ) ) === $replacement['endpoint']
+				&& $read['course_preferences'] === $replacement['course_preferences'],
+				'Replacement loads the saved course preferences with their current revision'
 			);
 			$edit = $body;
 			$edit['revision'] = $replacement['revision'];
@@ -322,6 +323,8 @@ try {
 				array( $ids['B'], $ids['C'] ) === array_column( $withdrawn, 'course_id' ) && array( 4, 4 ) === array_column( $withdrawn, 'match_status' ),
 				'Ordinary edits still show withdrawn courses'
 			);
+			$withdrawn_replacement = taas_edit_request( 'GET', '/student/application' )->get_data()['replacement'];
+			taas_edit_check( array() === $withdrawn_replacement['course_preferences'], 'Replacement does not preselect withdrawn courses' );
 			$rows = $repos['applications']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] );
 			taas_edit_check( 2 === count( $rows ) && 2 === count( array_filter( $rows, static fn( array $row ) => (int) $row['match_status'] === 4 ) ), 'Withdrawing all keeps both selected course records' );
 			taas_edit_check( 1 === count( array_filter( $rows, static fn( array $row ) => (bool) $row['has_ta_for_course'] ) ), 'Withdrawing all preserves existing per-course TA declarations' );

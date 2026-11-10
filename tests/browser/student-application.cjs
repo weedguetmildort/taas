@@ -147,7 +147,14 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     assert(await page.locator('#start-recovery-form').isHidden());
     assert(await page.locator('#student-application-form').isHidden());
 
-    current.replacement = { endpoint: replacementEndpoint, revision: replacementRevision };
+    current.replacement = {
+      endpoint: replacementEndpoint,
+      revision: replacementRevision,
+      course_preferences: [
+        { course_id: 'test-1', rank: 1, match_status: 1, course_completion: 2, has_ta_for_course: true },
+        { course_id: 'test-0', rank: 2, match_status: 1, course_completion: 0, has_ta_for_course: false }
+      ]
+    };
     await page.goto(target, { waitUntil: 'domcontentloaded' });
     const warning = page.locator('#existing-application-notice strong').filter({ hasText: 'will overwrite' });
     await warning.waitFor();
@@ -157,16 +164,25 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     await page.locator('[name="firstName"]').fill('Alex');
     await page.locator('[name="lastName"]').fill('Replacement');
     await page.locator('[name="englishTestScore"]').selectOption('2');
-    await page.locator('[name="selectedCourses"][value="test-0"]').check();
-    await page.locator('[name="courseRank"]').selectOption('1');
-    await page.locator('[name="courseHistory"]').selectOption('no');
+    assert.deepEqual(await page.locator('[name="selectedCourses"]:checked').evaluateAll(rows => rows.map(row => row.value)), ['test-0', 'test-1']);
+    const firstChoice = page.locator('[data-course="test-1"]');
+    const secondChoice = page.locator('[data-course="test-0"]');
+    assert.equal(await firstChoice.locator('[name="courseRank"]').inputValue(), '1');
+    assert.equal(await firstChoice.locator('[name="courseHistory"]').inputValue(), 'other');
+    assert(await firstChoice.locator('[name="previouslyTA"]').isChecked());
+    assert.equal(await secondChoice.locator('[name="courseRank"]').inputValue(), '2');
+    assert.equal(await secondChoice.locator('[name="courseHistory"]').inputValue(), 'no');
     const replacementRequest = page.waitForRequest(request => request.method() === 'POST' && request.url() === replacementEndpoint);
     await submit.click();
     const replacementPayload = (await replacementRequest).postDataJSON();
     assert.equal(replacementPayload.revision, replacementRevision);
     assert.equal(replacementPayload.replace_existing, true);
+    assert.deepEqual(replacementPayload.course_preferences, [
+      { course_id: 'test-0', rank: 2, has_completed_course: false, course_completion: 0, has_ta_for_course: false },
+      { course_id: 'test-1', rank: 1, has_completed_course: true, course_completion: 2, has_ta_for_course: true }
+    ]);
     await page.locator('#application-success[open]').waitFor();
-    console.log('PASS: Replacement requires an editable application and sends the saved revision to the edit endpoint');
+    console.log('PASS: Replacement prefills course choices, ranks, and declarations and sends the saved revision');
 
     current = structuredClone(fixture); current.period.is_open = false;
     await page.goto(target, { waitUntil: 'networkidle' });
