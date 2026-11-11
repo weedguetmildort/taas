@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TAAS Core
  * Description: Provides shared foundation used by TAAS Onboarding and Matching
- * Version: 0.7.8.8.2.4
+ * Version: 0.7.8.8.2.5
  *
  * @package TAAS_Core
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAAS_CORE_VERSION', '0.7.8.8.2.4' );
+define( 'TAAS_CORE_VERSION', '0.7.8.8.2.5' );
 define( 'TAAS_CORE_FILE', __FILE__ );
 define( 'TAAS_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_CORE_URL', plugin_dir_url( __FILE__ ) );
