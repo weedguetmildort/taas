@@ -26,6 +26,7 @@ wp-config.php
 /vendor/
 /real-data
 .phpunit.cache/
+/build/
 
 # PHP storm junk files
 .idea/

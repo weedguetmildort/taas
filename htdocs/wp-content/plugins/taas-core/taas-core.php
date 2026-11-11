@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TAAS Core
  * Description: Provides shared foundation used by TAAS Onboarding and Matching
- * Version: 0.7.8.8.2.5
+ * Version: 0.7.8.8.2.6
  *
  * @package TAAS_Core
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAAS_CORE_VERSION', '0.7.8.8.2.5' );
+define( 'TAAS_CORE_VERSION', '0.7.8.8.2.6' );
 define( 'TAAS_CORE_FILE', __FILE__ );
 define( 'TAAS_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_CORE_URL', plugin_dir_url( __FILE__ ) );
@@ -106,16 +106,42 @@ TAAS_Shibboleth::init();
 /**
  * Apply the database schema and any pending migrations
  *
- * @return void
+ * The upgrade is recorded only when the tables match sql/ afterwards and every
+ * migration ran. Otherwise the problems are stored for the admin notice, and
+ * the unchanged fingerprint makes the installer try again.
+ *
+ * @return bool True if the database now matches sql/
  */
-function taas_core_install(): void {
+function taas_core_install(): bool {
+	$fingerprint = TAAS_DB::fingerprint( TAAS_CORE_PATH );
+
 	TAAS_Auth::register_roles();
 	TAAS_Pages::install();
 	TAAS_Pages::sync_content();
 	TAAS_Schema::install();
 	TAAS_Migrations::run( 'core', TAAS_CORE_PATH . 'migrations/' );
+
+	// A migration can unblock changes dbDelta could not make on the first pass
+	TAAS_Schema::install();
+
+	$problems = TAAS_Schema::drift();
+	$pending  = TAAS_Migrations::pending( 'core', TAAS_CORE_PATH . 'migrations/' );
+
+	if ( ! empty( $pending ) ) {
+		$problems[] = 'Migration not applied: ' . implode( ', ', $pending );
+	}
+
+	if ( ! empty( $problems ) ) {
+		TAAS_DB::record_install_failure( 'core', $fingerprint, $problems );
+		TAAS_Logger::error( 'Install did not finish; the database does not match sql/.', array( 'problems' => $problems ) );
+		return false;
+	}
+
+	TAAS_DB::clear_install_failure( 'core' );
 	TAAS_DB::set_schema_version( 'core', TAAS_CORE_VERSION );
-	TAAS_DB::set_fingerprint( 'core', TAAS_DB::fingerprint( TAAS_CORE_PATH ) );
+	TAAS_DB::set_fingerprint( 'core', $fingerprint );
+
+	return true;
 }
 
 /**
@@ -162,6 +188,11 @@ function taas_core_upgrade(): void {
 	$fingerprint = TAAS_DB::fingerprint( TAAS_CORE_PATH );
 
 	if ( ! TAAS_DB::needs_upgrade( 'core', TAAS_CORE_VERSION, $fingerprint ) ) {
+		return;
+	}
+
+	// A failed install of these same files waits before trying again
+	if ( ! TAAS_DB::install_retry_due( 'core', $fingerprint ) ) {
 		return;
 	}
 
@@ -229,6 +260,42 @@ function taas_core_admin_notices(): void {
 }
 add_action( 'admin_notices', 'taas_core_admin_notices' );
 add_action( 'admin_notices', array( 'TAAS_Version', 'admin_notice' ) );
+
+/**
+ * Tell administrators when the last database update did not finish
+ *
+ * @return void
+ */
+function taas_core_install_failure_notice(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	$failure = TAAS_DB::get_install_failure( 'core' );
+
+	if ( null === $failure ) {
+		return;
+	}
+
+	echo '<div class="notice notice-error"><p><strong>TAAS Core:</strong> ';
+	echo esc_html__( 'The last database update did not finish, so the database does not match this version of the plugin. Features that depend on the changes below may fail. The update is retried every 15 minutes and after the next deploy.', 'taas-core' );
+	echo '</p><ul style="list-style:disc;margin-left:20px;">';
+
+	foreach ( array_slice( $failure['problems'], 0, 10 ) as $problem ) {
+		echo '<li>' . esc_html( $problem ) . '</li>';
+	}
+
+	if ( count( $failure['problems'] ) > 10 ) {
+		/* translators: %d: number of further problems */
+		echo '<li>' . esc_html( sprintf( __( 'and %d more, listed in the debug log', 'taas-core' ), count( $failure['problems'] ) - 10 ) ) . '</li>';
+	}
+
+	echo '</ul><p>';
+	/* translators: %s: time of the failed update */
+	echo esc_html( sprintf( __( 'Last attempt: %s.', 'taas-core' ), wp_date( 'Y-m-d H:i', (int) $failure['time'] ) ) );
+	echo '</p></div>';
+}
+add_action( 'admin_notices', 'taas_core_install_failure_notice' );
 
 /*
  * Add the TAAS panel to Tools > Site Health > Info
