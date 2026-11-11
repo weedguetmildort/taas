@@ -58,3 +58,21 @@ echo "\nFingerprint\n";
 echo '  stored:  ' . ( '' === $stored ? 'none' : $stored ) . "\n";
 echo '  current: ' . $current . "\n";
 echo '  upgrade: ' . ( TAAS_DB::needs_upgrade( 'core', TAAS_CORE_VERSION, $current ) ? 'pending, runs on next wp-admin load' : 'up to date' ) . "\n";
+
+echo "\nSchema check\n";
+
+$drift = TAAS_Schema::drift();
+
+if ( empty( $drift ) ) {
+	echo "  tables match sql/\n";
+} else {
+	foreach ( $drift as $problem ) {
+		echo '  ' . $problem . "\n";
+	}
+}
+
+$failure = TAAS_DB::get_install_failure( 'core' );
+
+if ( null !== $failure ) {
+	echo '  last install failed at ' . gmdate( 'Y-m-d H:i', (int) $failure['time'] ) . " UTC; retried on wp-admin loads\n";
+}
