@@ -38,6 +38,16 @@ class TAAS_DB {
 	private const FINGERPRINT_OPTION_PREFIX = 'taas_schema_fingerprint_';
 
 	/**
+	 * Create option key prefix for the last failed install
+	 */
+	private const INSTALL_FAILURE_OPTION_PREFIX = 'taas_install_failure_';
+
+	/**
+	 * Seconds to wait before retrying a failed install of the same files
+	 */
+	public const INSTALL_RETRY_SECONDS = 900;
+
+	/**
 	 * Build a fully prefixed table name
 	 *
 	 * @param string $name One of the NS_* constants
@@ -177,6 +187,66 @@ class TAAS_DB {
 	 */
 	public static function set_fingerprint( string $component, string $fingerprint ): void {
 		update_option( self::FINGERPRINT_OPTION_PREFIX . $component, $fingerprint, false );
+	}
+
+	/**
+	 * Record why an install did not finish, so admins see it and it is retried
+	 *
+	 * @param string   $component Short component key
+	 * @param string   $fingerprint Fingerprint of the files the install used
+	 * @param string[] $problems One line per problem
+	 * @return void
+	 */
+	public static function record_install_failure( string $component, string $fingerprint, array $problems ): void {
+		update_option(
+			self::INSTALL_FAILURE_OPTION_PREFIX . $component,
+			array(
+				'fingerprint' => $fingerprint,
+				'time'        => time(),
+				'problems'    => array_values( $problems ),
+			),
+			false
+		);
+	}
+
+	/**
+	 * Read the last failed install, if the most recent install failed
+	 *
+	 * @param string $component Short component key
+	 * @return array{fingerprint: string, time: int, problems: string[]}|null
+	 */
+	public static function get_install_failure( string $component ): ?array {
+		$failure = get_option( self::INSTALL_FAILURE_OPTION_PREFIX . $component, null );
+
+		return is_array( $failure ) ? $failure : null;
+	}
+
+	/**
+	 * Forget a failed install once one succeeds
+	 *
+	 * @param string $component Short component key
+	 * @return void
+	 */
+	public static function clear_install_failure( string $component ): void {
+		delete_option( self::INSTALL_FAILURE_OPTION_PREFIX . $component );
+	}
+
+	/**
+	 * Whether a failed install is due another attempt
+	 *
+	 * Retrying on every admin request would repeat the same failing statements,
+	 * so the same files wait INSTALL_RETRY_SECONDS. New files retry at once.
+	 *
+	 * @param string $component Short component key
+	 * @param string $fingerprint Current value from fingerprint()
+	 * @return bool
+	 */
+	public static function install_retry_due( string $component, string $fingerprint ): bool {
+		$failure = self::get_install_failure( $component );
+
+		return null === $failure
+			|| $failure['fingerprint'] !== $fingerprint
+			|| time() - (int) $failure['time'] >= self::INSTALL_RETRY_SECONDS;
 	}
 
 	/**

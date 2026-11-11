@@ -10,7 +10,29 @@ Only changes `dbDelta` cannot make:
 - dropping a column or index
 - renaming a column
 - narrowing a type, or removing `NOT NULL`
+- changing a primary key, or adding an `AUTO_INCREMENT` column to an existing table
+- changing a column that a foreign key uses, on either side
+- changing an existing constraint (see below)
 - changing data (backfills, normalising values)
+
+`dbDelta` never reports these. It fails or skips them and the old structure
+stays, which is how 0.7.8.8.2.5 reached prod with half-converted `professors`
+and `courses` tables (fixed by `004-professor-surrogate-key.php`). If unsure,
+run `bin/check-schema-upgrade.sh`: it fails when a change needs a migration.
+
+## Changing a constraint
+
+The installer adds a constraint from `sql/constraints.sql` only when no
+constraint has that name. It never alters one that exists, so editing a
+definition in place reaches fresh installs but not existing ones. To change one:
+
+1. Give it a new name in `sql/constraints.sql`, e.g. `fk_courses_professor_id`
+2. Drop the old name in a migration, guarded on it existing
+
+The installer then adds the new one. It also reports a foreign key whose
+columns or `ON DELETE` rule differ from `sql/constraints.sql`, but MySQL
+rewrites `CHECK` expressions, so those are matched by name only. Renaming is
+what makes a changed `CHECK` apply.
 
 **Not** initial setup. `sql/schema.sql` and `sql/constraints.sql` describe
 the desired end state and run idempotently on every activation. A fresh
@@ -79,9 +101,20 @@ return function ( wpdb $wpdb ): void {
 - No version bump needed. Adding a file changes the schema fingerprint, and
   the installer runs on the next wp-admin load after deploy.
 
-- There is no rollback.
+- There is no rollback, and MySQL commits each `ALTER TABLE` at once. Guard
+  every step on the current state, so a run that stopped halfway can repeat.
+
+- The installer applies `sql/`, runs migrations, then applies `sql/` again,
+  so a migration only needs to unblock what `dbDelta` could not do.
 
 - Test locally against real rows.
+
+## When an update does not finish
+
+After migrations, the installer compares the tables with `sql/`. If anything
+differs, or a migration failed, it does not record the upgrade: administrators
+see an error notice listing the differences, the debug log has the full list,
+and the installer retries every 15 minutes and after the next deploy.
 
 ## Checking state
 
@@ -89,9 +122,18 @@ return function ( wpdb $wpdb ): void {
 docker compose exec wordpress php /var/www/taas/bin/db-status.php
 ```
 
-Shows applied and pending migrations, and whether the fingerprint says an
-upgrade is due. After running one, snapshot the result and read the diff:
+Shows applied and pending migrations, whether the fingerprint says an upgrade
+is due, and every way the live tables differ from `sql/`.
+
+Before opening a PR that touches `sql/` or `migrations/`:
 
 ```
-docker compose exec wordpress php /var/www/taas/bin/export-schema.php
+bin/check-schema-upgrade.sh                    # needs docker compose up -d
+bin/check-schema-upgrade.sh --write-snapshots  # then commit snapshots/taas-core/
 ```
+
+It replays every release tag's schema in order, upgrades to your branch, and
+fails unless the result matches a fresh install and `snapshots/taas-core/`
+matches too. CI runs the same script. Refresh snapshots with
+`--write-snapshots` rather than `bin/export-schema.php`, which exports your
+local database, whatever state it is in.

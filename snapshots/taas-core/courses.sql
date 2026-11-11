@@ -11,11 +11,11 @@ CREATE TABLE `{prefix}courses` (
   `lab_hours` int NOT NULL DEFAULT '0',
   `enrollment` int NOT NULL DEFAULT '0',
   `max_enrollment` int NOT NULL DEFAULT '0',
-  `professor_ufid` varchar(8) COLLATE utf8mb4_unicode_520_ci NOT NULL,
+  `professor_id` bigint unsigned NOT NULL,
   PRIMARY KEY (`course_id`),
   UNIQUE KEY `course_offering` (`course_semester`,`course_year`,`course_code`,`course_name`),
   KEY `course_code` (`course_code`),
-  KEY `professor_ufid` (`professor_ufid`),
-  CONSTRAINT `fk_courses_professor` FOREIGN KEY (`professor_ufid`) REFERENCES `{prefix}professors` (`professor_ufid`),
+  KEY `professor_id` (`professor_id`),
+  CONSTRAINT `fk_courses_professor` FOREIGN KEY (`professor_id`) REFERENCES `{prefix}professors` (`professor_id`),
   CONSTRAINT `chk_courses_lab_hours` CHECK (((`lab_hours` >= 0) and (`lab_hours` <= 2)))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci

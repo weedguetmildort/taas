@@ -75,10 +75,12 @@ class TAAS_Snapshots {
 	/**
 	 * Clean DDL so snapshots diff usefully
 	 *
+	 * Public so bin/check-schema-upgrade.php writes and compares the same text.
+	 *
 	 * @param string $ddl Raw SHOW CREATE TABLE output
 	 * @return string
 	 */
-	private static function normalise( string $ddl ): string {
+	public static function normalise( string $ddl ): string {
 		$ddl = (string) preg_replace( '/ AUTO_INCREMENT=\d+/', '', $ddl );
 		$ddl = str_replace( '`' . TAAS_Schema::prefix(), '`{prefix}', $ddl );
 

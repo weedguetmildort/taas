@@ -29,6 +29,7 @@ jobs:
               - 'bin/**'
               - 'dev/**'
               - 'tests/**'
+              - 'snapshots/**'
               - 'composer.json'
               - 'composer.lock'
               - 'phpcs.xml.dist'
@@ -76,3 +77,29 @@ jobs:
 
       - name: Run PHPUnit
         run: composer run test
+
+  # dbDelta cannot make every schema change, and fails quietly when it cannot.
+  # Replay every release's schema, upgrade to this branch, and require the
+  # result to match a fresh install, on the same WordPress and MySQL as prod.
+  schema:
+    name: Schema Upgrade
+    needs: changes
+    if: needs.changes.outputs.php == 'true'
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+        with:
+          # Full history, so the release tags to replay are present
+          fetch-depth: 0
+
+      - name: Start WordPress and MySQL
+        run: docker compose up -d
+
+      - name: Check upgrades from every release match a fresh install
+        run: bash bin/check-schema-upgrade.sh
+
+      - name: Show WordPress logs
+        if: failure()
+        run: docker compose logs --tail=200 wordpress
