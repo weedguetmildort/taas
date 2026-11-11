@@ -40,7 +40,11 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
         const payload = route.request().postDataJSON();
         savedPayloads.push(payload);
         if (simulateConflict) return route.fulfill({ status: 409, json: { message: 'The application changed after you loaded it.' } });
-        fixture.details = payload.details;
+        if (payload.withdraw_all) {
+          fixture.course_preferences = fixture.course_preferences.map(choice => ({ ...choice, match_status: 4, status_label: 'Withdrawn' }));
+        } else {
+          fixture.details = payload.details;
+        }
         fixture.revision = savedPayloads.length.toString(16).padStart(64, '0');
         return route.fulfill({ json: { submission_id: fixture.submission_id, revision: fixture.revision } });
       }
@@ -184,6 +188,36 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     await page.locator('#student-application-form [type="submit"]').click();
     assert.equal(savedPayloads.length, countBefore);
     console.log('PASS: FWS prefills and saves separately from the resume; a graduate save clears FWS and requires a new answer on return');
+
+    fixture.details.profile.enrollment_status = 3;
+    fixture.courses = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(code => ({
+      course_id: `fixture-${code}`, course_code: `TEST-${code}`, course_name: `Course ${code}`
+    }));
+    fixture.course_preferences = fixture.courses.map((course, index) => ({
+      ...course, rank: index < 5 ? index + 1 : null, match_status: 1, has_completed_course: false
+    }));
+    await open();
+    assert.equal(await page.locator('#status-course-rows [data-status-text="rank"]').filter({ hasText: 'Unranked' }).count(), 2);
+    assert.equal(await page.locator('[name="selectedCourses"]:checked').count(), 7);
+    await page.locator('[data-course="fixture-E"] [name="courseRank"]').selectOption('');
+    await page.locator('[data-course="fixture-F"] [name="courseRank"]').selectOption('5');
+    await page.locator('[data-course="fixture-E"] [name="courseHistory"]').selectOption('yes');
+    await page.locator('[name="selectedCourses"][value="fixture-G"]').uncheck();
+    await page.locator('#student-application-form [type="submit"]').click();
+    await page.waitForFunction(() => document.querySelector('#status-message').dataset.state === 'success');
+    await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
+    const choices = savedPayloads.at(-1).course_preferences;
+    assert.equal(choices.find(choice => choice.course_id === 'fixture-E').rank, null);
+    assert.equal(choices.find(choice => choice.course_id === 'fixture-E').course_completion, 1);
+    assert.equal(choices.find(choice => choice.course_id === 'fixture-F').rank, 5);
+    assert(!choices.some(choice => choice.course_id === 'fixture-G'));
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('[data-withdraw-all]').click();
+    await page.locator('#status-course-rows [data-status-text="status"]').filter({ hasText: 'Withdrawn' }).last().waitFor();
+    assert.deepEqual(Object.keys(savedPayloads.at(-1)).sort(), ['revision', 'term', 'withdraw_all']);
+    assert.equal(await page.locator('[name="selectedCourses"]:checked').count(), 0);
+    assert(await page.locator('[data-withdraw-all]').isHidden());
+    console.log('PASS: PhD status edits distinguish course participation and rank, and withdraw-all clears every selection');
 
     const duplicate = await context.newPage();
     const errors = [];

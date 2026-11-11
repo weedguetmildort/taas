@@ -60,13 +60,13 @@
       updateFormAvailability();
     }
 
-    async function submitChanges(event) {
+    async function submitChanges(event, withdrawAll = false) {
       event.preventDefault();
       if (!canSubmitChanges()) {
         return;
       }
 
-      const enteredValues = applicationForm.collect();
+      const enteredValues = withdrawAll ? { withdraw_all: true } : applicationForm.collect();
       if (!enteredValues) {
         return;
       }
@@ -84,8 +84,8 @@
       try {
         const savedApplication = await applicationApi.save(state.endpoint, submission);
         state.revision = savedApplication.revision;
-        applicationForm.didSave();
-        applicationForm.showMessage('Your application changes were saved.', 'success');
+        if (!withdrawAll) applicationForm.didSave();
+        applicationForm.showMessage(withdrawAll ? 'You withdrew from all courses.' : 'Your application changes were saved.', 'success');
         notifyStatusPage('saved');
       } catch (error) {
         applicationForm.showMessage(error.message || 'Could not submit. Your entries have been kept; please retry.', 'error');
@@ -98,6 +98,11 @@
     }
 
     formElement.addEventListener('submit', submitChanges);
+    formElement.querySelector('[data-withdraw-all]')?.addEventListener('click', event => {
+      if (canSubmitChanges() && window.confirm('Withdraw your application from every course for this term?')) {
+        submitChanges(event, true);
+      }
+    });
 
     // The status controller loads saved terms, then calls open/lock on this interface.
     window.TAASStudentApplicationForm = {

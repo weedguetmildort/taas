@@ -103,12 +103,13 @@
       return data;
     }
 
-    async function save(endpoint, { term, details, course_preferences, revision, replace_existing }) {
+    async function save(endpoint, { term, details, course_preferences, revision, replace_existing, withdraw_all }) {
       const payload = {
         term: { semester: term.semester, year: term.year },
         details, course_preferences,
         ...(revision !== undefined ? { revision } : {}),
-        ...(replace_existing !== undefined ? { replace_existing } : {})
+        ...(replace_existing !== undefined ? { replace_existing } : {}),
+        ...(withdraw_all !== undefined ? { withdraw_all } : {})
       };
       const result = await request(endpoint, 'POST', payload);
       if (!Number.isInteger(result?.submission_id) || result.submission_id < 1) {

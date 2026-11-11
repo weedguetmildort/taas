@@ -94,7 +94,7 @@ final class TAAS_Student_Application_Service {
 	 * @param bool   $replacement Whether to delete omitted course applications.
 	 * @phpstan-param array{
 	 *     term: array{semester: int, year: int},
-	 *     details: array{
+	 *     details?: array{
 	 *         student_name: string, student_email: string,
 	 *         profile: array{
 	 *             phone: string, country_code: string, admitted_semester: string,
@@ -109,7 +109,7 @@ final class TAAS_Student_Application_Service {
 	 *             degree_type: int, grad_date: string, gpa: float|null
 	 *         }>
 	 *     },
-	 *     course_preferences: list<array{course_id: string, rank: int, course_completion: int, has_ta_for_course: bool}>
+	 *     course_preferences: list<array{course_id: string, rank: int|null, course_completion: int, has_ta_for_course: bool}>
 	 * } $input Validated application; zero choices withdraws all.
 	 * @return array{submission_id: int, revision: string}
 	 * @throws DomainException If the application changed, closed or is not editable.
@@ -185,8 +185,12 @@ final class TAAS_Student_Application_Service {
 				}
 				$existing_submission = $this->submissions->find_by_student_and_term( $ufid, $semester, $year );
 				$existing_choices  = $this->applications->find_by_student_and_term( $ufid, $semester, $year );
+				$preferences = array_column( $input['course_preferences'], null, 'course_id' );
+				if ( self::is_phd( $details ) ) {
+					$preferences = $this->include_unranked_courses( $preferences, $semester, $year );
+				}
 				if ( null !== $existing_submission || $existing_choices ) {
-					if ( null !== $existing_submission && self::is_identical_retry( $existing_submission, $existing_choices, $input ) ) {
+					if ( null !== $existing_submission && self::is_identical_retry( $existing_submission, $existing_choices, $details, $preferences ) ) {
 						return array(
 							'submission_id' => $existing_submission->submission_id,
 							'already_saved' => true,
@@ -197,9 +201,7 @@ final class TAAS_Student_Application_Service {
 				$this->validate_preferences( $input['course_preferences'], $semester, $year );
 
 				$this->save_details( $ufid, $details );
-				foreach ( $input['course_preferences'] as $preference ) {
-					$this->applications->insert( new TAAS_Application( null, $ufid, (int) $preference['course_id'], has_taken_course: $preference['course_completion'], has_ta_for_course: $preference['has_ta_for_course'], student_preference_rank: $preference['rank'] ) );
-				}
+				$this->save_choices( $ufid, array(), $preferences, false );
 				$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
 				return array(
 					'submission_id' => $submission_id,
@@ -220,12 +222,16 @@ final class TAAS_Student_Application_Service {
 	private function update_application( string $ufid, array $input, string $revision, bool $replacement ): array {
 		return TAAS_Transaction::run(
 			function () use ( $ufid, $input, $revision, $replacement ) {
-				$details      = $input['details'];
+				$details      = $input['details'] ?? null;
 				$semester     = TAAS_Semester::from( $input['term']['semester'] );
 				$year         = $input['term']['year'];
 
 				// Serialize with initial submission and other edits by this owner.
-				$this->students->save_identity( new TAAS_Student( $ufid, $details['student_name'], $details['student_email'] ) );
+				if ( null === $details ) {
+					$this->students->lock( $ufid );
+				} else {
+					$this->students->save_identity( new TAAS_Student( $ufid, $details['student_name'], $details['student_email'] ) );
+				}
 				$existing_submission = $this->submissions->find_by_student_and_term( $ufid, $semester, $year );
 				if ( null === $existing_submission ) {
 					throw new DomainException( 'No application was found for this term.', 404 );
@@ -238,11 +244,20 @@ final class TAAS_Student_Application_Service {
 					throw new DomainException( 'Your application has changed since it was loaded. Review the latest saved application before submitting again.', 409 );
 				}
 				$previous_choices_by_course = array_column( $existing_choices, null, 'applied_course_id' );
-				$selected_preferences = $this->validate_preferences( $input['course_preferences'], $semester, $year, $previous_choices_by_course );
-
-				$this->save_choices( $ufid, $previous_choices_by_course, $selected_preferences, $replacement );
-				$this->save_details( $ufid, $details );
-				$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
+				$this->validate_preferences( $input['course_preferences'], $semester, $year );
+				$selected_preferences = array_column( $input['course_preferences'], null, 'course_id' );
+				$was_phd = self::is_phd( $existing_submission->submitted_details );
+				$is_phd = null !== $details && self::is_phd( $details );
+				if ( $selected_preferences && $is_phd && ( $replacement || ! $was_phd ) ) {
+					$selected_preferences = $this->include_unranked_courses( $selected_preferences, $semester, $year );
+				}
+				$delete_omitted = $replacement || ( $selected_preferences && $was_phd && ! $is_phd );
+				$this->save_choices( $ufid, $previous_choices_by_course, $selected_preferences, $delete_omitted );
+				$submission_id = $existing_submission->submission_id;
+				if ( null !== $details ) {
+					$this->save_details( $ufid, $details );
+					$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
+				}
 
 				$saved_snapshot = $this->submissions->find_by_student_and_term( $ufid, $semester, $year );
 				$saved_choices = $this->applications->find_by_student_and_term( $ufid, $semester, $year );
@@ -259,10 +274,11 @@ final class TAAS_Student_Application_Service {
 	 *
 	 * @param TAAS_Student_Submission $saved_submission Saved term snapshot.
 	 * @param array                   $saved_choices Saved course application rows.
-	 * @param array                   $input Normalized application input.
+	 * @param array                   $details Normalized submitted details.
+	 * @param array                   $expected_choices Expected choices keyed by course ID.
 	 */
-	private static function is_identical_retry( TAAS_Student_Submission $saved_submission, array $saved_choices, array $input ): bool {
-		if ( ! self::same_details( $saved_submission->submitted_details, $input['details'] ) ) {
+	private static function is_identical_retry( TAAS_Student_Submission $saved_submission, array $saved_choices, array $details, array $expected_choices ): bool {
+		if ( ! self::same_details( $saved_submission->submitted_details, $details ) ) {
 			return false;
 		}
 		foreach ( $saved_choices as $choice ) {
@@ -273,13 +289,45 @@ final class TAAS_Student_Application_Service {
 		$preferences = array_map(
 			static fn( array $row ) => array(
 				'course_id'         => $row['applied_course_id'],
-				'rank'              => (int) $row['student_preference_rank'],
+				'rank'              => TAAS_Cast::int_or_null( $row['student_preference_rank'] ),
 				'course_completion' => (int) $row['has_taken_course'],
 				'has_ta_for_course' => (bool) $row['has_ta_for_course'],
 			),
 			$saved_choices
 		);
-		return $preferences === $input['course_preferences'];
+		$preferences = array_column( $preferences, null, 'course_id' );
+		ksort( $preferences );
+		ksort( $expected_choices );
+		return $preferences === $expected_choices;
+	}
+
+	/**
+	 * Check the program recorded in the term's submitted details.
+	 *
+	 * @param array $details Submitted details.
+	 */
+	private static function is_phd( array $details ): bool {
+		return TAAS_Enrollment_Status::Phd->value === ( $details['profile']['enrollment_status'] ?? null );
+	}
+
+	/**
+	 * Add the term's remaining courses with no rank or course-history claims.
+	 *
+	 * @param array         $preferences Student choices keyed by course ID.
+	 * @param TAAS_Semester $semester Application semester.
+	 * @param int           $year Application year.
+	 */
+	private function include_unranked_courses( array $preferences, TAAS_Semester $semester, int $year ): array {
+		foreach ( $this->courses->application_choices( $semester, $year ) as $course ) {
+			$course_id = $course['course_id'];
+			$preferences[ $course_id ] ??= array(
+				'course_id'         => $course_id,
+				'rank'              => null,
+				'course_completion' => 0,
+				'has_ta_for_course' => false,
+			);
+		}
+		return $preferences;
 	}
 
 	/**
@@ -309,18 +357,14 @@ final class TAAS_Student_Application_Service {
 	}
 
 	/**
-	 * Validate course availability/reactivation and return the selections keyed by course ID.
+	 * Validate that selected courses belong to the submitted term.
 	 *
 	 * @param list<array{course_id: string, rank: int, course_completion: int, has_ta_for_course: bool}> $preferences Submitted course selections.
 	 * @param TAAS_Semester                                                                              $semester Application semester.
 	 * @param int                                                                                        $year Application year.
-	 * @param array<string|int, array<string, mixed>>                                                    $previous_choices Course ID to database row.
-	 * @return array<string|int, array{course_id: string, rank: int, course_completion: int, has_ta_for_course: bool}>
-	 * @throws DomainException If course availability or reactivation rules fail.
+	 * @throws DomainException If a course is unavailable.
 	 */
-	private function validate_preferences( array $preferences, TAAS_Semester $semester, int $year, array $previous_choices = array() ): array {
-
-		$selected_preferences = array();
+	private function validate_preferences( array $preferences, TAAS_Semester $semester, int $year ): void {
 		foreach ( $preferences as $preference ) {
 			$course_id = $preference['course_id'];
 			// Shared lock until commit, so an admin cannot move the course to another term after this check.
@@ -328,15 +372,7 @@ final class TAAS_Student_Application_Service {
 			if ( null === $course || $course->course_semester !== $semester || $course->course_year !== $year ) {
 				throw new DomainException( 'A selected course is not available in this application term.', 400 );
 			}
-			$previous = $previous_choices[ $course_id ] ?? null;
-			// TODO: Decide whether professor ranks are cleared or retained on reactivation.
-			// Do not guess: reactivation with a prior professor rank needs review.
-			if ( null !== $previous && TAAS_Match_Status::Withdrawn->value === (int) $previous['match_status'] && null !== $previous['professor_preference_rank'] ) {
-				throw new DomainException( 'This withdrawn course requires administrator review before it can be added again.', 409 );
-			}
-			$selected_preferences[ $course_id ] = $preference;
 		}
-		return $selected_preferences;
 	}
 
 	/**
@@ -345,9 +381,9 @@ final class TAAS_Student_Application_Service {
 	 * @param string                                  $ufid Verified authenticated owner.
 	 * @param array<string|int, array<string, mixed>> $previous_choices Course ID to database row.
 	 * @param array<string|int, array>                $selected_preferences Validated selections keyed by course ID.
-	 * @param bool                                    $replacement Whether to delete omitted course applications.
+	 * @param bool                                    $delete_omitted Whether to delete omitted course applications.
 	 */
-	private function save_choices( string $ufid, array $previous_choices, array $selected_preferences, bool $replacement ): void {
+	private function save_choices( string $ufid, array $previous_choices, array $selected_preferences, bool $delete_omitted ): void {
 		foreach ( $previous_choices as $course_id => $choice ) {
 			if ( array_key_exists( $course_id, $selected_preferences ) ) {
 				$preference = $selected_preferences[ $course_id ];
@@ -359,7 +395,7 @@ final class TAAS_Student_Application_Service {
 					has_ta_for_course: $preference['has_ta_for_course'],
 					has_taken_course: $preference['course_completion']
 				);
-			} elseif ( $replacement ) {
+			} elseif ( $delete_omitted ) {
 				$this->applications->delete( (int) $choice['application_id'] );
 			} elseif ( TAAS_Match_Status::Pending->value === (int) $choice['match_status'] ) {
 				$this->applications->save_student_choice( $ufid, (int) $choice['application_id'], null, TAAS_Match_Status::Withdrawn );

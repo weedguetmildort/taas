@@ -14,6 +14,17 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_Student_Repository extends TAAS_Repository {
 
 	/**
+	 * Serialize a withdrawal with other saves by this student.
+	 *
+	 * @param string $student_ufid Verified owner.
+	 */
+	public function lock( string $student_ufid ): void {
+		global $wpdb;
+		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
+		$this->select_rows( $wpdb->prepare( 'SELECT student_ufid FROM %i WHERE student_ufid = %s FOR UPDATE', $this->table(), $student_ufid ) );
+	}
+
+	/**
 	 * Save identity and lock this student for the surrounding transaction.
 	 *
 	 * Initial submissions use the lock to serialize duplicate requests for a

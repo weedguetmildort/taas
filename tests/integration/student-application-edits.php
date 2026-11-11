@@ -78,6 +78,7 @@ try {
 	TAAS_Transaction::run(
 		static function () use ( &$period, $owner, $repos, $sentinel, $wpdb ) {
 			while ( $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_A, $period['year'] )
+				|| $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Fall, $period['year'] )
 				|| $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Spring, $period['year'] )
 				|| $repos['submissions']->find_by_student_and_term( $owner, TAAS_Semester::Summer_C, $period['year'] ) ) {
 				--$period['year'];
@@ -352,9 +353,9 @@ try {
 			taas_edit_check( $by_id[ $ids['A'] ]['application_id'] !== $original_ids[ $ids['A'] ], 'Re-adding a course deleted by replacement creates a new row' );
 			taas_edit_check( 0 === (int) $by_id[ $ids['C'] ]['has_ta_for_course'], 'Reactivation stores the newly submitted TA declaration' );
 			$reactivate['revision'] = taas_edit_request( 'GET', $route )->get_data()['revision'];
-			$blocked = $reactivate;
-			$blocked['course_preferences'][0]['course_id'] = $ids['B'];
-			taas_edit_check( 409 === taas_edit_request( 'POST', $route, $blocked )->get_status(), 'Unresolved prior professor-rank reactivation requires review' );
+			$rejoin = $reactivate;
+			$rejoin['course_preferences'][0]['course_id'] = $ids['B'];
+			taas_edit_check( 200 === taas_edit_request( 'POST', $route, $rejoin )->get_status(), 'Students can rejoin a withdrawn course during the student application stage' );
 			$wrong_term = $reactivate;
 			$wrong_term['term']['year']--;
 			taas_edit_check( 400 === taas_edit_request( 'POST', $route, $wrong_term )->get_status(), 'Payload cannot target a different term from the route' );
@@ -386,6 +387,79 @@ try {
 			$wpdb->update( $repos['applications']->table(), array( 'match_status' => 2 ), array( 'application_id' => $retained_id ) );
 			taas_edit_check( null === taas_edit_request( 'GET', '/student/application' )->get_data()['replacement'], 'Matched applications do not offer replacement' );
 			taas_edit_check( ! taas_edit_request( 'GET', $route )->get_data()['can_edit'] && 403 === taas_edit_request( 'POST', $route, $reactivate )->get_status(), 'Deferred matched-application policy is not bypassed' );
+
+			$period['semester'] = TAAS_Semester::Fall->value;
+			taas_test_set_period( $period );
+			$phd = $body;
+			$phd['term']['semester'] = $period['semester'];
+			$phd['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Phd->value;
+			$phd['course_preferences'] = array();
+			$phd_ids = array();
+			foreach ( range( 1, 8 ) as $rank ) {
+				$id = (string) $repos['courses']->insert( new TAAS_Course( null, 'PHD' . $rank, 'PhD test course', $professor, TAAS_Semester::Fall, $period['year'] ) );
+				$phd_ids[ $rank ] = $id;
+				if ( $rank <= 5 ) {
+					$phd['course_preferences'][] = array(
+						'course_id'            => $id,
+						'rank'                 => $rank,
+						'has_completed_course' => true,
+					);
+				}
+			}
+			$phd_route = '/student/application/' . $period['semester'] . '/' . $period['year'];
+			$read_phd = static fn() => taas_edit_request( 'GET', $phd_route )->get_data();
+			taas_edit_check( 201 === taas_edit_request( 'POST', '/student/application', $phd )->get_status(), 'PhD application is created from five ranked choices' );
+			taas_edit_check( 200 === taas_edit_request( 'POST', '/student/application', $phd )->get_status(), 'PhD creation retries recognize the automatically added rows' );
+			$saved_phd = $read_phd();
+			$choices = array_column( $saved_phd['course_preferences'], null, 'course_id' );
+			taas_edit_check( 8 === count( $choices ) && 5 === $choices[ $phd_ids[5] ]['rank'], 'PhD submission saves all eight courses with the selected ranks' );
+			$extra = $choices[ $phd_ids[6] ];
+			taas_edit_check( null === $extra['rank'] && 1 === $extra['match_status'] && 0 === $extra['course_completion'] && false === $extra['has_ta_for_course'], 'Automatically added courses are pending with a null rank and default history' );
+
+			$phd_edit = $phd;
+			$phd_edit['revision'] = $saved_phd['revision'];
+			$phd_edit['course_preferences'][4]['rank'] = null;
+			$phd_edit['course_preferences'][4]['has_ta_for_course'] = true;
+			$phd_edit['course_preferences'][] = array(
+				'course_id'            => $phd_ids[6],
+				'rank'                 => 5,
+				'has_completed_course' => true,
+			);
+			$phd_edit['course_preferences'][] = array(
+				'course_id'            => $phd_ids[7],
+				'rank'                 => null,
+				'has_completed_course' => true,
+				'has_ta_for_course'    => true,
+			);
+			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $phd_edit )->get_status(), 'PhD edits accept five ranks plus unranked courses' );
+			$choices = array_column( $read_phd()['course_preferences'], null, 'course_id' );
+			taas_edit_check( null === $choices[ $phd_ids[5] ]['rank'] && 5 === $choices[ $phd_ids[6] ]['rank'] && true === $choices[ $phd_ids[7] ]['has_ta_for_course'] && 4 === $choices[ $phd_ids[8] ]['match_status'], 'PhD edits support swapping ranks, editing unranked history and withdrawing an individual course' );
+			$replacement_phd = taas_edit_request( 'GET', '/student/application' )->get_data()['replacement'];
+			taas_edit_check( 5 === count( $replacement_phd['course_preferences'] ) && $replacement_phd['reset_prior_ta'], 'PhD replacement prefills only the five active ranks and resets prior TA answers' );
+			$phd['revision'] = $replacement_phd['revision'];
+			$phd['replace_existing'] = true;
+			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $phd )->get_status(), 'PhD replacement restores full course coverage' );
+			$choices = array_column( $read_phd()['course_preferences'], null, 'course_id' );
+			taas_edit_check( 1 === $choices[ $phd_ids[8] ]['match_status'] && false === $choices[ $phd_ids[7] ]['has_ta_for_course'], 'Replacement reactivates withdrawn courses and resets unranked history' );
+
+			unset( $phd['replace_existing'] );
+			$masters = $phd;
+			$masters['revision'] = $read_phd()['revision'];
+			$masters['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Masters->value;
+			$masters['course_preferences'] = array_slice( $masters['course_preferences'], 0, 3 );
+			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $masters )->get_status() && 3 === count( $read_phd()['course_preferences'] ), 'Switching away from PhD deletes omitted applications' );
+			$phd['revision'] = $read_phd()['revision'];
+			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $phd )->get_status() && 8 === count( $read_phd()['course_preferences'] ), 'Switching to PhD adds the remaining courses after five ranks are supplied' );
+			$saved_phd = $read_phd();
+			$withdraw_all = array(
+				'term'         => $phd['term'],
+				'revision'     => $saved_phd['revision'],
+				'withdraw_all' => true,
+			);
+			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $withdraw_all )->get_status(), 'Explicit withdrawal requires no profile edits or ranks' );
+			$after_withdrawal = $read_phd();
+			taas_edit_check( array_fill( 0, 8, 4 ) === array_column( $after_withdrawal['course_preferences'], 'match_status' ) && $saved_phd['details'] === $after_withdrawal['details'], 'Withdrawing all preserves the saved details and withdraws ranked and unranked courses' );
+			taas_edit_check( array() === taas_edit_request( 'GET', '/student/application' )->get_data()['replacement']['course_preferences'], 'Starting a new form after withdrawing all prefills no ranks' );
 			throw $sentinel;
 		}
 	);

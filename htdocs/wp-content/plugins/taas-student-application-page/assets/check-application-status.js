@@ -98,7 +98,7 @@
       const values = {
         code: choice.course_code || choice.course_id,
         name: choice.course_name || '',
-        rank: choice.match_status === 4 || choice.rank === null ? '—' : String(choice.rank),
+        rank: choice.match_status === 4 ? '—' : choice.rank === null ? 'Unranked' : String(choice.rank),
         status: choice.status_label || statusInfo?.label || 'Status unavailable'
       };
       for (const [field, text] of Object.entries(values)) {
@@ -110,7 +110,8 @@
     }
 
     function renderApplication(data) {
-      const courseRows = data.course_preferences.map(createCourseRow);
+      const visibleRank = choice => choice.match_status === 4 ? Number.MAX_SAFE_INTEGER : choice.rank ?? Number.MAX_SAFE_INTEGER;
+      const courseRows = [...data.course_preferences].sort((a, b) => visibleRank(a) - visibleRank(b)).map(createCourseRow);
       rows.replaceChildren(...(courseRows.length ? courseRows : [cloneStatusTemplate('empty')]));
       edit.textContent = data.can_edit ? edit.dataset.editLabel || 'Edit Application' : edit.dataset.viewLabel || 'View Application Details';
       table.hidden = false;
