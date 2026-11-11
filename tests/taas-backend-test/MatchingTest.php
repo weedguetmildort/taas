@@ -75,12 +75,10 @@ class MatchingTest extends TestCase {
 	 * @param int      $course_id    Course applied for
 	 * @param int|null $student_rank Student's rank of the course, null if the student did not rank it
 	 * @param int|null $prof_rank    Professor's rank of the student, null if the professor did not rank them
-	 * @param bool|int $taken        Whether the student has taken the course, or a completion code
-	 *                               (0 = no, 1 = this course, 2 = equivalent). Defaults to true because
-	 *                               taas_run_matching() ignores applications for courses not taken
+	 * @param bool     $taken        Whether the student has taken the course
 	 * @param bool     $ta_for       Whether the student has previously TA'd the course
 	 */
-	private function app( string $ufid, int $course_id, ?int $student_rank = null, ?int $prof_rank = null, bool|int $taken = true, bool $ta_for = false ): TAAS_Application {
+	private function app( string $ufid, int $course_id, ?int $student_rank = null, ?int $prof_rank = null, bool $taken = false, bool $ta_for = false ): TAAS_Application {
 		return new TAAS_Application(
 			application_id: null,
 			student_ufid: $ufid,
@@ -290,13 +288,14 @@ class MatchingTest extends TestCase {
 	 */
 	public function test_full_priority_order(): void {
 		$assigned = array();
-		$cth      = 60;
+		$cth      = 70;
 
 		$matches = taas_match_course(
-			$this->course( 1, 60 ),
+			$this->course( 1, 70 ),
 			array(
 				$this->app( 'APPLIED', 1 ),
 				$this->app( 'TA', 1 ),
+				$this->app( 'TAKEN', 1, taken: true ),
 				$this->app( 'TAFOR', 1, ta_for: true ),
 				$this->app( 'STUDENT', 1, student_rank: 1 ),
 				$this->app( 'MUTUAL', 1, student_rank: 5, prof_rank: 1 ),
@@ -304,6 +303,7 @@ class MatchingTest extends TestCase {
 			$this->by_ufid(
 				$this->profile( 'APPLIED', hours: 10 ),
 				$this->profile( 'TA', hours: 10, ta_experience: true ),
+				$this->profile( 'TAKEN', hours: 10 ),
 				$this->profile( 'TAFOR', hours: 10 ),
 				$this->profile( 'STUDENT', hours: 10 ),
 				$this->profile( 'MUTUAL', hours: 10 ),
@@ -312,9 +312,9 @@ class MatchingTest extends TestCase {
 			$cth
 		);
 
-		$this->assertSame( array( 'MUTUAL', 'STUDENT', 'TAFOR', 'TA', 'APPLIED' ), $this->ufids( $matches ) );
+		$this->assertSame( array( 'MUTUAL', 'STUDENT', 'TAFOR', 'TAKEN', 'TA', 'APPLIED' ), $this->ufids( $matches ) );
 		$this->assertSame(
-			array( 'professor_preference_1', 'student_preference_1', 'ta_for_course', 'ta_experience', 'applied' ),
+			array( 'professor_preference_1', 'student_preference_1', 'ta_for_course', 'taken_course', 'ta_experience', 'applied' ),
 			array_column( $matches, 'reason' )
 		);
 		$this->assertSame( 10, $cth );
@@ -381,7 +381,7 @@ class MatchingTest extends TestCase {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Every PhD student applies to every course, so tiers 4 and 5 place PhD students
+	 * Every PhD student applies to every course, so tiers 5 and 6 place PhD students
 	 * in courses they did not rank. Courses go in order, so course 1 uses 10 of PHD1's
 	 * hours under 'applied' before course 2, where the professor ranked PHD1 first.
 	 */
@@ -492,31 +492,5 @@ class MatchingTest extends TestCase {
 		);
 		$this->assertSame( array( 1, 2, 3 ), array_keys( $result['matches'] ) );
 		$this->assertSame( array(), $result['matches'][3] );
-	}
-
-	/**
-	 * Only applicants who took the course (or an equivalent) are considered for it.
-	 * NOTTAKEN would otherwise be first (mutual top pick and a past TA of the course),
-	 * but is skipped and keeps all their hours, leaving the course partly unfilled.
-	 */
-	public function test_applicants_who_have_not_taken_course_are_skipped(): void {
-		$result = taas_run_matching(
-			array( $this->course( 1, 30 ) ),
-			array(
-				$this->app( 'NOTTAKEN', 1, student_rank: 1, prof_rank: 1, taken: false, ta_for: true ),
-				$this->app( 'TOOK', 1, taken: 1 ),
-				$this->app( 'EQUIV', 1, taken: 2 ),
-			),
-			array(
-				$this->profile( 'NOTTAKEN', hours: 10, ta_experience: true ),
-				$this->profile( 'TOOK', hours: 10 ),
-				$this->profile( 'EQUIV', hours: 10 ),
-			)
-		);
-
-		$this->assertSame( array( 'TOOK', 'EQUIV' ), $this->ufids( $result['matches'][1] ) );
-		$this->assertSame( array( 'applied', 'applied' ), array_column( $result['matches'][1], 'reason' ) );
-		$this->assertSame( array( 1 => 10 ), $result['unfilled_hours'] );
-		$this->assertSame( array( 'NOTTAKEN' => 10 ), $result['students_with_hours_left'] );
 	}
 }

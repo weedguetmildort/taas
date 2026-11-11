@@ -7,11 +7,8 @@
  *
  * Assumptions:
  * - Every application passed in has been approved by HR
- * - A student is only considered for a course they have taken (or an equivalent).
- *   Applications where has_taken_course is false are dropped before matching
- * - Every PhD student has applied to every course, so tier 5 is the catch-all for
- *   unassigned PhD students across the courses they have taken, and no separate
- *   pass over all PhD students is needed
+ * - Every PhD student has applied to every course, so tier 6 is the catch-all for
+ *   unassigned PhD students and no separate pass over all PhD students is needed
  * - Courses are processed in the order given, so earlier courses get first pick in each pass
  * - Matches can be partial: a student's hours can be split across several courses, and a
  *   course can be filled by several students. Each match takes the smaller of the student's
@@ -132,15 +129,13 @@ function taas_match_candidates( TAAS_Course $course, array $ufids, string $reaso
 /**
  * Propose matches for one course from its applicants
  *
- * Every applicant passed in is expected to have taken the course (or an equivalent);
- * taas_run_matching() filters out the rest before calling this.
- *
  * Tiers, in priority order:
  * 1. Professor-ranked applicants who also ranked the course, by professor rank
  * 2. Applicants who ranked the course, by student rank
  * 3. Applicants who have previously TA'd the course
- * 4. Applicants with previous TA experience
- * 5. Any remaining applicant
+ * 4. Applicants who have taken the course
+ * 5. Applicants with previous TA experience
+ * 6. Any remaining applicant
  *
  * Matches are keyed by student UFID, in the order they were made. Within this
  * course, a student is matched at most once, under the first tier that reaches
@@ -172,7 +167,7 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 			}
 
 			if ( null === $rank_field ) {
-				$app_reason = $reason; // tiers 3–5: no rank given, use the reason as is
+				$app_reason = $reason; // tiers 3–6: no rank given, use the reason as is
 			} else {
 				$app_reason = $reason . '_' . $app->$rank_field; // tiers 1–2: add the rank to the end
 			}
@@ -212,14 +207,21 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 	);
 	$run_tier( $ta_for_course, 'ta_for_course' );
 
-	// Tier 4: previous TAs of any course (from the student's profile)
+	// Tier 4: students who have taken the course
+	$taken_course = array_filter(
+		$course_apps,
+		fn( TAAS_Application $app ) => $app->has_taken_course
+	);
+	$run_tier( $taken_course, 'taken_course' );
+
+	// Tier 5: previous TAs of any course (from the student's profile)
 	$prev_tas = array_filter(
 		$course_apps,
 		fn( TAAS_Application $app ) => $profiles[ $app->student_ufid ]->has_ta_experience ?? false
 	);
 	$run_tier( $prev_tas, 'ta_experience' );
 
-	// Tier 5: anyone else who applied
+	// Tier 6: anyone else who applied
 	$run_tier( $course_apps, 'applied' );
 
 	return $matches;
@@ -246,11 +248,11 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 
 	$phd_apps_by_course = array();
 
-	// Get course applications accessed by course's ID, keeping only PhD applicants who have taken the course they applied for (or an equivalent)
+	// Get course applications accessed by course's ID, split by whether the applicant is a PhD student
 	foreach ( $apps as $app ) {
 		$is_phd = TAAS_Enrollment_Status::Phd === ( $profiles_by_ufid[ $app->student_ufid ]->enrollment_status ?? null );
 
-		if ( $is_phd && $app->has_taken_course ) {
+		if ( $is_phd ) {
 			$phd_apps_by_course[ $app->applied_course_id ][] = $app;
 		}
 	}
