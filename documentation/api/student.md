@@ -122,7 +122,7 @@ Everything the application page needs: the period, the student's identity, their
 | `period` | object | See [Application period](#application-period) |
 | `identity` | object | The UFID and email from the session. The submitted `student_email` must match `email` |
 | `already_applied` | boolean | The student already has an application for the period's term, including one whose choices were all withdrawn. A conflicting POST to the creation endpoint returns 409 |
-| `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint`, current `revision`, saved `student_name`, and pending `course_preferences` to prefill the replacement form. Use the endpoint and revision to submit with `replace_existing: true` after the student chooses Start a new form. Omitted course applications are deleted for that term. |
+| `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint`, current `revision`, saved `student_name`, and pending ranked `course_preferences`. For a saved PhD application, `reset_prior_ta: true` tells the form to clear the prior TA checkboxes while prefilling the ranks and course completion answers. Submit to this endpoint with `replace_existing: true` after the student chooses Start a new form. |
 | `profile` | object, *nullable* | The student's shared profile as stored, which every submission or edit replaces. `null` if they have no profile yet. `has_ta_experience` is `0` or `1` here, not a boolean |
 | `english_test_score` | integer, *nullable* | Latest application category (1–4), or null if unanswered |
 | `academic_background` | array | The student's shared degrees, in the order they last submitted them. `[]` if they have none. `minor` is *nullable* |
@@ -233,7 +233,7 @@ Missing, null, string, or out-of-range values return 400. `4` is an explicit N/A
 | `grad_date` | yes | The 1st of the month, `YYYY-MM-01`. It may be in the future |
 | `gpa` | yes, but may be `null` | 0 to 4, rounded to two decimal places. `null` means no GPA yet. The key must be present |
 
-**`course_preferences`:** Exactly 5 courses for PhD students and 1 to 5 for other students.
+**`course_preferences`:** Exactly 5 ranked courses for PhD students and 1 to 5 for other students. After a PhD submission, the server creates a pending application for each remaining course in the term with a null rank and both course-history answers set to false.
 
 | Field | Required | Rules |
 | --- | --- | --- |
@@ -404,7 +404,7 @@ The student's saved application for one term, with each course's status. Use it 
 | `revision` | string | 64 hex characters. Send it back with an edit |
 | `courses` | array | Every course in this term, in the same shape and order as GET: application form |
 | `course_preferences` | array | All remaining course applications for the term, including rows withdrawn through ordinary edits, ordered by `rank` then `application_id` |
-| `course_preferences[].rank` | integer, *nullable* | The student's preference. A withdrawn application keeps its last rank, so ranks are only unique among the ones that aren't withdrawn |
+| `course_preferences[].rank` | integer, *nullable* | The student's preference. Null means unranked. A withdrawn application keeps its last rank |
 | `course_preferences[].match_status` | integer | `1` Pending, `2` Matched, `3` Rejected, `4` Withdrawn. `status_label` has the label |
 
 `can_edit` is `true` only when all of these hold:
@@ -440,7 +440,10 @@ The student's saved application for one term, with each course's status. Use it 
 The rules are the same as POST, except:
 
 - `term` must match `{semester}` and `{year}` in the path.
-- Edits and replacements require exactly 5 courses for PhD students and 1 to 5 for other students. An empty list on an ordinary edit withdraws every course application. A replacement (`replace_existing: true`) deletes omitted course applications for that term.
+- PhD edits require exactly five distinct ranks from 1 to 5 and allow additional active courses with `rank: null`. Other students can rank one to five courses. An ordinary edit withdraws omitted courses.
+- A replacement (`replace_existing: true`) accepts only ranked choices and starts a new set of preferences. PhD replacements add every remaining course back as pending with the default course-history answers. For other students, omitted course applications are deleted.
+- Switching to PhD requires five ranked choices and adds any remaining courses. Switching away from PhD deletes omitted course applications.
+- To withdraw from all courses without updating the profile, send only `term`, `revision`, and `withdraw_all: true`. An empty `course_preferences` list on an ordinary edit is also accepted.
 - `revision` is required. If the application has changed since it was read, for example in another tab, the edit returns 409. Read it again before retrying.
 
 **What changes:** all course and application details are saved in one transaction.
@@ -450,11 +453,9 @@ The rules are the same as POST, except:
 | In the list, and the student already had an application for it | Set to `Pending` with the submitted rank, completion answer, and prior TA declaration. An eligible withdrawn application can be reactivated this way |
 | In the list, and new | A new `Pending` application |
 | Omitted from an ordinary edit | A `Pending` application becomes `Withdrawn`. Its last rank and declarations are kept |
-| Omitted from a replacement | The course application row for this term is deleted |
+| Omitted from a replacement | A PhD application gets a pending unranked row with default history. For other students, the course application row is deleted |
 
 `details` replaces this term's saved details and the shared profile and degrees, in the same way as POST. Other terms' saved details don't change.
-
-A withdrawn application that a professor had already ranked can't come back this way, and the edit returns 409. The admin has to review it.
 
 **Response:** 200 OK with the new `revision`. Use it for the next edit:
 
@@ -477,7 +478,7 @@ A withdrawn application that a professor had already ranked can't come back this
 | 403 | `taas_student_email_unavailable` | Same as POST |
 | 403 | `taas_application_not_saved` | `can_edit` would be `false` |
 | 404 | `taas_application_not_saved` | The student has no application for this term. This is not `taas_not_found` |
-| 409 | `taas_application_not_saved` | The application changed since `revision` was read, or a withdrawn course a professor ranked was sent again |
+| 409 | `taas_application_not_saved` | The application changed since `revision` was read |
 
 ## Changelog
 
