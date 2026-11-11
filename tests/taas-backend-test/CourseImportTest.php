@@ -588,6 +588,30 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
+	 * An incomplete PHP upload is refused before the importer reads or moves it
+	 */
+	public function test_import_route_reports_upload_error(): void {
+		$request = new WP_REST_Request(
+			array(),
+			array(),
+			'POST',
+			'/taas/v1/courses/import',
+			array(
+				'file' => array(
+					'name'     => 'courses.xlsx',
+					'tmp_name' => sys_get_temp_dir() . '/partial-upload',
+					'error'    => UPLOAD_ERR_PARTIAL,
+				),
+			)
+		);
+		$response = ( new TAAS_REST_Course_Controller() )->import_items( $request );
+
+		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
+		$this->assertSame( 400, $response->get_error_data()['status'] );
+		$this->assertSame( array(), $this->db->writes );
+	}
+
+	/**
 	 * A file not named .xlsx is refused before it is read
 	 */
 	public function test_import_route_refuses_other_file_types(): void {

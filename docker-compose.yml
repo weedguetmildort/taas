@@ -86,6 +86,7 @@ services:
       - wp_data:/var/www/html
       - ./htdocs/wp-content/plugins/taas-core:/var/www/html/wp-content/plugins/taas-core
       - ./htdocs/wp-content/plugins/taas-student-application-page:/var/www/html/wp-content/plugins/taas-student-application-page
+      - ./htdocs/wp-content/plugins/taas-admin-page:/var/www/html/wp-content/plugins/taas-admin-page
       # Local-only testing ground; kept out of htdocs/ so it is never deployed
       - ./dev/taas-backend-test:/var/www/html/wp-content/plugins/taas-backend-test
       # Uncomment each of these once the plugin exists

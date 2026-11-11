@@ -11,6 +11,8 @@ Only changes `dbDelta` cannot make:
 - renaming a column
 - narrowing a type, or removing `NOT NULL`
 - changing data (backfills, normalising values)
+- changing a relationship key while preserving existing references, such as
+  moving courses from professor UFIDs to stable professor IDs
 
 **Not** initial setup. `sql/schema.sql` and `sql/constraints.sql` describe
 the desired end state and run idempotently on every activation. A fresh

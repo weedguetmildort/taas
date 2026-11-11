@@ -16,6 +16,7 @@
 /htdocs/wp-content/plugins/*
 !/htdocs/wp-content/plugins/taas-core/
 !/htdocs/wp-content/plugins/taas-student-application-page/
+!/htdocs/wp-content/plugins/taas-admin-page/
 
 # Sensitive files
 wp-config.php

@@ -34,6 +34,8 @@ docker compose up -d
   in `.env`, or add `?taas_role=instructor` to any URL
 - Activating `taas-core` creates the tables, constraints and pages, and
   imports `seeds/demo-data.json`
+- Activate `taas-admin-page` in wp-admin to enable the protected Admin Home
+  and its managed page links.
 
 The repo root is mounted at `/var/www/taas` inside the container:
 
