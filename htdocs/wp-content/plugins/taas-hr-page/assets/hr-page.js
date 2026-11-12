@@ -16,7 +16,7 @@
             const cycle = await response.json();
             if (response.status === 404 && cycle?.code === "taas_no_current_cycle") {
                 status.textContent = "No application cycle has been set.";
-                return;
+                return false;
             }
             if (!response.ok || typeof cycle?.term !== "string" || !cycle.term.trim() || !Number.isInteger(cycle.year) ||
                 (cycle.stage !== null && typeof cycle.stage !== "string")) {
@@ -24,13 +24,16 @@
             }
 
             term.textContent = `${cycle.term} ${cycle.year}`;
-            status.textContent = cycle.stage === "hr_review" ? "HR review is open." : "HR review is closed.";
+            const isOpen = cycle.stage === "hr_review";
+            status.textContent = isOpen ? "HR review is open." : "HR review is closed.";
+            return isOpen;
         } catch {
             status.textContent = "The current application cycle could not be loaded. Reload the page to try again.";
+            return false;
         }
     }
 
-    function initializeHRPortal() {
+    async function initializeHRPortal() {
 
         const container = document.querySelector(
             ".hr-portal-container"
@@ -46,12 +49,21 @@
             return;
         }
 
+        container.dataset.initialized = "true";
+
+        const review = container.querySelector("[data-hr-review]");
         const cycleTerm = container.querySelector("[data-hr-cycle-term]");
         const cycleStatus = container.querySelector("[data-hr-cycle]");
-        if (cycleTerm && cycleStatus) {
-            loadCycle(cycleTerm, cycleStatus);
+        if (!review || !cycleTerm || !cycleStatus) {
+            return;
         }
 
+        if (await loadCycle(cycleTerm, cycleStatus)) {
+            initializeReview(review);
+        }
+    }
+
+    function initializeReview(container) {
         const table = container.querySelector(
             ".hr-applicant-table"
         );
@@ -104,8 +116,6 @@
             );
             return;
         }
-
-        container.dataset.initialized = "true";
 
         const studentRows = table.querySelectorAll(
             ".student-row"
@@ -358,6 +368,7 @@
            INITIALIZE PAGE
         ===================================== */
 
+        container.hidden = false;
         filterStudents();
 
         updateProgress();
