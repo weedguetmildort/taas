@@ -49,6 +49,7 @@ Paths are relative to the base path, `/wp-json/taas/v1`.
 | GET | `/matching/students` | Admin | [admin.md](admin.md#get-current-matches-by-student) |
 | GET | `/matching/students/{student_ufid}` | Admin | [admin.md](admin.md#get-current-matches-for-one-student) |
 | GET | `/matching/progress` | Admin | [admin.md](admin.md#get-matching-progress) |
+| POST | `/matching/run` | Admin | [admin.md](admin.md#post-run-the-matching-algorithm) |
 | POST | `/matching/finalize` | Admin | [admin.md](admin.md#post-finalize-matches) |
 | GET | `/professor/courses` | Professor | [professor.md](professor.md#get-a-professors-courses) |
 | GET | `/professor/courses/{course_id}/applications` | Professor | [professor.md](professor.md#get-applicants-for-a-course) |

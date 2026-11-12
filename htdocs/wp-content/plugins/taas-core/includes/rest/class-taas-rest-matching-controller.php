@@ -19,11 +19,11 @@ defined( 'ABSPATH' ) || exit;
  *   GET  /matching/students                            current matches by student
  *   GET  /matching/students/{student_ufid}             current matches for one student
  *   GET  /matching/progress                            a term's totals
+ *   POST /matching/run                                 run the matching algorithm for a term
  *   POST /matching/finalize                            reject everything still Pending
  *
- * The admin makes each match with PATCH /applications/{application_id}. Nothing
- * here runs the matching algorithm: the recommendation routes read what its
- * last run saved to match_recommendations.
+ * The admin makes each match with PATCH /applications/{application_id}. The
+ * recommendation routes read what the last POST /matching/run saved to match_recommendations.
  */
 final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 
@@ -92,6 +92,19 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 				)
 			);
 		}
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/run',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'run' ),
+					'permission_callback' => TAAS_Auth::require_role( TAAS_Auth::ROLE_ADMIN ),
+					'args'                => $this->term_args(),
+				),
+			)
+		);
 
 		register_rest_route(
 			$this->namespace,
@@ -293,6 +306,57 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 
 				return $this->applications->progress_for_term( $semester, $year ) + array(
 					'hours_required' => $this->courses->total_weekly_hours( $semester, $year ),
+				);
+			}
+		);
+	}
+
+	/**
+	 * POST /matching/run: run the matching algorithm for a term.
+	 *
+	 * Considers every Pending or Matched application in the term. The algorithm
+	 * replaces every saved recommendation with this run's; it changes no application.
+	 *
+	 * @param WP_REST_Request $request Current request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function run( $request ) {
+		return $this->respond(
+			function () use ( $request ) {
+				$term = $this->requested_term( $request );
+
+				if ( is_wp_error( $term ) ) {
+					return $term;
+				}
+
+				list( $semester, $year ) = $term;
+
+				try {
+					$result = taas_run_matching(
+						$this->courses->find_by_term( $semester, $year ),
+						$this->applications->find_for_matching( $semester, $year ),
+						( new TAAS_Student_Profile_Repository() )->find_for_matching( $semester, $year )
+					);
+				} catch ( InvalidArgumentException $e ) {
+					// A course whose TA hours cannot be calculated, e.g. enrollment under 10
+					return $this->conflict( 'taas_matching_failed', $e->getMessage() );
+				}
+
+				$students_with_hours_left = array();
+
+				foreach ( $result['students_with_hours_left'] as $student_ufid => $hours ) {
+					$students_with_hours_left[] = array(
+						'student_ufid' => (string) $student_ufid,
+						'hours'        => $hours,
+					);
+				}
+
+				return array(
+					'term'                     => $semester->label(),
+					'year'                     => $year,
+					'recommendations_made'     => array_sum( array_map( 'count', $result['matches'] ) ),
+					'unfilled_hours'           => array_sum( $result['unfilled_hours'] ),
+					'students_with_hours_left' => $students_with_hours_left,
 				);
 			}
 		);

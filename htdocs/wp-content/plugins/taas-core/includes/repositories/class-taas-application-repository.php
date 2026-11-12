@@ -539,6 +539,34 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	}
 
 	/**
+	 * Every application in a term the matching algorithm should consider: those still Pending or already Matched.
+	 *
+	 * @param TAAS_Semester $semester Semester to match.
+	 * @param int           $year     Year to match.
+	 * @return TAAS_Application[]
+	 * @throws RuntimeException If the query fails.
+	 */
+	public function find_for_matching( TAAS_Semester $semester, int $year ): array {
+		global $wpdb;
+
+		$rows = $this->select_rows(
+			$wpdb->prepare(
+				'SELECT a.* FROM %i a INNER JOIN %i c ON c.course_id = a.applied_course_id'
+				. ' WHERE c.course_semester = %d AND c.course_year = %d AND a.match_status IN (%d, %d)'
+				. ' ORDER BY a.application_id',
+				$this->table(),
+				TAAS_Schema::table( 'courses' ),
+				$semester->value,
+				$year,
+				TAAS_Match_Status::Pending->value,
+				TAAS_Match_Status::Matched->value
+			)
+		);
+
+		return array_map( array( TAAS_Application::class, 'from_row' ), $rows );
+	}
+
+	/**
 	 * Reject every pending application in a term.
 	 *
 	 * One statement, so it applies to all of them or none.

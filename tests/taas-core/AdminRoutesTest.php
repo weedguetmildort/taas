@@ -449,6 +449,74 @@ class AdminRoutesTest extends TestCase {
 		$this->assertStringContainsString( 'ORDER BY r.recommendation_id', $this->db->sql );
 	}
 
+	/**
+	 * The fake returns the same rows for every read, so one row stands in for the
+	 * course, the application and the applicant's profile
+	 */
+	private function run_matching_with_enrollment( int $enrollment ) {
+		$this->db->insert_id = 1;
+		$this->db->rows      = array(
+			array(
+				'course_id'               => '101',
+				'course_code'             => 'COP3502C',
+				'course_name'             => 'Programming Fundamentals 1',
+				'professor_id'            => '1',
+				'course_semester'         => '2',
+				'course_year'             => '2027',
+				'enrollment'              => (string) $enrollment,
+				'lab_hours'               => '2',
+				'application_id'          => '7',
+				'student_ufid'            => '12345678',
+				'applied_course_id'       => '101',
+				'student_preference_rank' => '1',
+				'match_status'            => '1',
+				'available_hours'         => '20',
+				'enrollment_status'       => '3',
+			),
+		);
+
+		return ( new TAAS_REST_Matching_Controller() )->run(
+			new WP_REST_Request(
+				array(
+					'term' => 'Spring',
+					'year' => 2027,
+				)
+			)
+		);
+	}
+
+	public function test_run_saves_recommendations_and_reports_what_is_left(): void {
+		// 25 students with a 2-hour lab need 10 TA hours, half the student's 20
+		$data = $this->run_matching_with_enrollment( 25 )->get_data();
+
+		$this->assertSame(
+			array(
+				'term'                     => 'Spring',
+				'year'                     => 2027,
+				'recommendations_made'     => 1,
+				'unfilled_hours'           => 0,
+				'students_with_hours_left' => array(
+					array(
+						'student_ufid' => '12345678',
+						'hours'        => 10,
+					),
+				),
+			),
+			$data
+		);
+		$this->assertSame( array( 'START TRANSACTION', 'DELETE FROM `wp_taas_core_match_recommendations`', 'COMMIT' ), $this->db->queries );
+		$this->assertSame( 'wp_taas_core_match_recommendations', $this->db->write['table'] );
+		$this->assertSame( 10, $this->db->write['data']['recommended_hours'] );
+	}
+
+	public function test_run_with_a_course_under_10_students_is_409_and_saves_nothing(): void {
+		$result = $this->run_matching_with_enrollment( 5 );
+
+		$this->assertSame( 'taas_matching_failed', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->db->queries );
+	}
+
 	public function test_recommendations_are_empty_for_a_term_with_no_courses(): void {
 		$result = ( new TAAS_REST_Matching_Controller() )->get_recommendations(
 			new WP_REST_Request(
