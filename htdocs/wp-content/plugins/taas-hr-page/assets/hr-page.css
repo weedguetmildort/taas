@@ -148,20 +148,93 @@
     accent-color: #2271b1;
 }
 
-/* EXPANDED APPLICATION DETAILS */
+/* APPLICATION DETAILS DIALOG */
 
-.hr-applicant-table .student-details {
-    background: #fafafa;
+.hr-details-dialog {
+    box-sizing: border-box;
+    width: min(42rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    color: #222;
 }
 
-.hr-applicant-table .student-details td {
-    padding: 20px;
-    border-left: 4px solid #2271b1;
+.hr-details-dialog[open] {
+    display: flex;
+    flex-direction: column;
 }
 
-.hr-applicant-table .student-details p {
-    margin: 10px 0 0;
-    font-size: 13px;
+.hr-details-dialog::backdrop {
+    background: rgb(0 0 0 / 55%);
+}
+
+.hr-details-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.hr-details-header h3 {
+    margin: 0;
+    font-size: 20px;
+    overflow-wrap: anywhere;
+}
+
+.hr-details-header button {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f1f1f1;
+    color: #222;
+    cursor: pointer;
+}
+
+.hr-details-body {
+    min-height: 0;
+    padding: 16px 20px;
+    overflow: auto;
+}
+
+.hr-details-dialog [data-details-status]:empty {
+    display: none;
+}
+
+.hr-details-dialog h4 {
+    margin: 16px 0 6px;
+    font-size: 16px;
+}
+
+.hr-details-dialog h4:first-child {
+    margin-top: 0;
+}
+
+.hr-details-dialog dl {
+    display: grid;
+    grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+    gap: 4px 12px;
+    margin: 0;
+}
+
+.hr-details-dialog dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+@media (max-width: 480px) {
+    .hr-details-dialog dl {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hr-details-dialog dd + dt {
+        margin-top: 8px;
+    }
 }
 
 /* HIDE OTHER STUDENT TYPES */
@@ -169,13 +242,6 @@
 .hr-applicant-table tr[hidden],
 .hr-table-wrapper.hide-advisor .phd-only {
     display: none;
-}
-
-/* SELECTED ROW */
-
-.hr-applicant-table .student-row.selected {
-    background: #e8f1f8;
-    box-shadow: inset 4px 0 #1733a5;
 }
 
 /* SAVE BUTTON */

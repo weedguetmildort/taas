@@ -9,6 +9,7 @@ async function run() {
         const origin = process.env.TAAS_TEST_ORIGIN || 'http://localhost:8080';
         const portal = origin + '/?pagename=hr-page&taas_role=hr';
         const review = page.locator('[data-hr-review]');
+        const dialog = review.locator('#hr-application-details');
         const term = page.locator('[data-hr-cycle-term]');
         const stageResponse = stage => ({ json: { term: 'Spring', year: 2026, stage } });
         const scenarios = [
@@ -22,9 +23,50 @@ async function run() {
         const isCycleRequest = url => (url.searchParams.get('rest_route') ?? url.pathname).endsWith('/taas/v1/application-cycle');
         const isApplicantsRequest = url => (url.searchParams.get('rest_route') ?? url.pathname).endsWith('/taas/v1/hr/applicants');
         const applicants = [
-            { name: '<b>PhD applicant</b>', student_type: 'phd', gpa: 3.8, country_code: 'US' },
-            { name: 'Undergraduate applicant', student_type: 'undergrad', gpa: null, country_code: null }
+            { submission_id: '71', name: '<b>PhD applicant</b>', student_type: 'phd', gpa: 3.8, country_code: 'IN' },
+            { submission_id: '72', name: 'Undergraduate applicant', student_type: 'undergrad', gpa: null, country_code: null }
         ];
+        const detailRequests = [];
+        let detailStageClosed = false;
+        let undergraduateDetailsAvailable = false;
+        let releaseDetails;
+        const pendingDetails = new Promise(resolve => { releaseDetails = resolve; });
+        await page.route(url => /\/taas\/v1\/hr\/applicants\/\d+$/.test(url.searchParams.get('rest_route') ?? url.pathname), async route => {
+            const url = new URL(route.request().url());
+            const id = (url.searchParams.get('rest_route') ?? url.pathname).split('/').pop();
+            detailRequests.push(id);
+            await pendingDetails;
+            if (detailStageClosed) {
+                await route.fulfill({ status: 403, json: { code: 'taas_stage_closed' } });
+            } else if (id === '71') {
+                await route.fulfill({ json: { details: {
+                    student_email: 'applicant@example.invalid',
+                    profile: {
+                        enrollment_status: 3,
+                        country_code: 'IN',
+                        phone: '+33123456789',
+                        eap5837_status: 1,
+                        advisor_name: 'Dr. Example',
+                        resume_url: 'https://example.invalid/resume',
+                        fws_eligibility: 'yes',
+                        fws_award_letter_url: 'https://example.invalid/graduate-award',
+                        additional_info: '<b>Submitted note</b>'
+                    },
+                    academic_background: [{ degree_type: 4, major: 'Computer Science' }]
+                } } });
+            } else if (undergraduateDetailsAvailable) {
+                await route.fulfill({ json: { details: {
+                    profile: {
+                        enrollment_status: 1,
+                        fws_eligibility: 'yes',
+                        fws_award_letter_url: 'https://example.invalid/fws-award'
+                    },
+                    academic_background: []
+                } } });
+            } else {
+                await route.fulfill({ status: 404, json: { code: 'taas_not_found' } });
+            }
+        });
         let applicantResponse = { json: { term: 'Spring', year: 2026, applicants } };
         let applicantRequests = 0;
         let releaseApplicants;
@@ -60,19 +102,52 @@ async function run() {
                 await review.getByText(applicants[0].name, { exact: true }).waitFor();
                 const rows = review.locator('tbody .student-row:visible');
                 assert.equal(await rows.count(), 2);
-                assert.ok(await rows.first().getByText('United States').isVisible());
-                await rows.first().getByRole('button', { name: 'View' }).click();
-                assert.ok(await review.getByText('Additional application information will appear here once connected to the backend.').first().isVisible());
+                assert.ok(await rows.first().getByText('India', { exact: true }).isVisible());
+                assert.deepEqual(detailRequests, []);
+                const firstView = rows.first().getByRole('button', { name: 'View' });
+                await firstView.click();
+                await dialog.getByText('Loading application details…').waitFor();
+                assert.ok(await dialog.evaluate(node => node.matches(':modal')));
+                assert.equal(await page.locator(':focus').textContent(), 'Close');
+                assert.ok(await dialog.getByRole('heading', { name: '<b>PhD applicant</b> – Application' }).isVisible());
+                releaseDetails();
+                await dialog.getByText('applicant@example.invalid').waitFor();
+                const country = review.locator('dt').filter({ hasText: /^Country of origin$/ }).locator('xpath=following-sibling::dd[1]');
+                assert.equal(await country.textContent(), 'India');
+                assert.ok(await review.getByText('+33123456789', { exact: true }).isVisible());
+                assert.ok(await review.getByText('Computer Science').isVisible());
+                const advisor = review.locator('dt').filter({ hasText: /^EAP 5837$/ }).locator('xpath=following-sibling::dt[1]');
+                assert.equal(await advisor.textContent(), 'Advisor name');
+                assert.equal(await advisor.locator('xpath=following-sibling::dd[1]').textContent(), 'Dr. Example');
+                assert.ok(await review.getByText('<b>Submitted note</b>', { exact: true }).isVisible());
+                assert.equal(await review.getByText('Federal Work-Study eligibility', { exact: true }).count(), 0);
+                assert.equal(await review.getByText('FWS award letter', { exact: true }).count(), 0);
+                assert.equal(await dialog.getByRole('link').count(), 1);
+                assert.equal(await review.getByRole('link', { name: 'https://example.invalid/resume' }).getAttribute('href'), 'https://example.invalid/resume');
+                await page.keyboard.press('Escape');
+                await dialog.waitFor({ state: 'hidden' });
+                assert.ok(await firstView.evaluate(button => document.activeElement === button));
+                await rows.last().getByRole('button', { name: 'View' }).click();
+                await review.getByText('This application is no longer available in the current cycle. Reload the page to refresh the list.').waitFor();
+                assert.deepEqual(detailRequests, ['71', '72']);
+                assert.ok(await review.getByText('applicant@example.invalid').isHidden());
+                await dialog.getByRole('button', { name: 'Close' }).click();
+                await dialog.waitFor({ state: 'hidden' });
                 await rows.first().getByRole('radio', { name: 'Approve' }).check();
                 const filter = review.getByLabel('Filter Applicants by Student Type');
                 await filter.selectOption('undergrad');
                 assert.equal(await rows.count(), 1);
                 assert.ok(await rows.first().getByText(applicants[1].name).isVisible());
                 assert.ok(await review.locator('th.phd-only').isHidden());
+                undergraduateDetailsAvailable = true;
+                await rows.first().getByRole('button', { name: 'View' }).click();
+                await review.getByText('Federal Work-Study eligibility', { exact: true }).waitFor();
+                assert.ok(await review.getByRole('link', { name: 'https://example.invalid/fws-award' }).isVisible());
+                await dialog.getByRole('button', { name: 'Close' }).click();
                 await filter.selectOption('phd');
                 assert.ok(await review.getByRole('columnheader', { name: 'Advisor Name' }).isVisible());
                 assert.ok(await rows.first().getByRole('radio', { name: 'Approve' }).isChecked());
-                assert.equal(await review.locator('.student-details:visible').count(), 0);
+                assert.ok(await dialog.isHidden());
                 await review.getByRole('button', { name: 'Save Changes' }).click();
                 assert.equal(await review.locator('#hr-reviewed-count').textContent(), '46');
                 assert.match(await review.locator('#hr-save-message').textContent(), /for this demonstration/);
@@ -95,7 +170,14 @@ async function run() {
             assert.equal(await review.isHidden(), Boolean(scenario.closed));
             assert.ok(await review.locator('table').isHidden());
         }
-        console.log('PASS: Applicant filtering, demo review controls, and empty and failure states.');
+        applicantResponse = { json: { term: 'Spring', year: 2026, applicants } };
+        detailStageClosed = true;
+        await page.goto(portal);
+        await review.getByRole('button', { name: 'View' }).first().click();
+        await page.getByText('HR review is closed.', { exact: true }).waitFor();
+        assert.ok(await review.isHidden());
+        assert.equal(await dialog.getAttribute('open'), null);
+        console.log('PASS: Applicant filtering, details modal, demo review controls, and failure states.');
     } finally {
         await browser.close();
     }

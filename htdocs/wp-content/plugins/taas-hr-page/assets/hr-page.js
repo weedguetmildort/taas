@@ -1,7 +1,17 @@
 (function () {
     "use strict";
 
-    async function request(endpoint) {
+    const countryNames = typeof Intl.DisplayNames === "function"
+        ? new Intl.DisplayNames(["en"], { type: "region" })
+        : null;
+
+    function countryName(code) {
+        return countryNames && typeof code === "string" && /^[A-Z]{2}$/.test(code)
+            ? countryNames.of(code)
+            : code;
+    }
+
+    async function request(endpoint, signal) {
         const nonce = window.TAASHrPage?.nonce;
         if (!endpoint || !nonce) {
             throw new Error("Missing HR request configuration.");
@@ -10,6 +20,7 @@
         const response = await fetch(endpoint, {
             credentials: "same-origin",
             cache: "no-store",
+            signal,
             headers: { "X-WP-Nonce": nonce }
         });
         return { response, data: await response.json() };
@@ -77,7 +88,8 @@
         const table = review.querySelector("[data-hr-applicants-table]");
         const rows = table?.querySelector("tbody");
         const template = review.querySelector("[data-hr-applicant-row]");
-        if (!filter || !status || !rows || !template) {
+        const dialog = review.querySelector("#hr-application-details");
+        if (!filter || !status || !rows || !template || !dialog) {
             return;
         }
 
@@ -100,53 +112,48 @@
             }
 
             const types = { undergrad: "Undergraduate", masters: "Master’s", phd: "PhD" };
-            const countryNames = typeof Intl.DisplayNames === "function"
-                ? new Intl.DisplayNames(["en"], { type: "region" })
-                : null;
-
             const entries = data.applicants.map((applicant, index) => {
-                const { name, student_type, gpa, english_test_score, country_code } = applicant;
-                const country = countryNames && /^[A-Z]{2}$/.test(country_code)
-                    ? countryNames.of(country_code)
-                    : country_code;
+                const { submission_id, name, student_type, gpa, english_test_score, country_code } = applicant;
                 const fragment = template.content.cloneNode(true);
-                const [row, details] = fragment.children;
+                const row = fragment.firstElementChild;
                 row.querySelector("[data-name]").textContent = name ?? "—";
                 row.querySelector("[data-student-type]").textContent = types[student_type] ?? "—";
                 row.querySelector("[data-gpa]").textContent = gpa ?? "—";
                 row.querySelector("[data-score]").textContent = english_test_score ?? "—";
-                row.querySelector("[data-country]").textContent = country ?? "—";
-                details.querySelector("[data-details-title]").textContent = name ? `${name} – Application` : "Application";
-                details.id = `hr-applicant-details-${index}`;
-
+                row.querySelector("[data-country]").textContent = countryName(country_code) ?? "—";
                 const button = row.querySelector(".view-button");
-                button.setAttribute("aria-controls", details.id);
                 for (const radio of row.querySelectorAll('input[type="radio"]')) {
                     radio.name = `hr-demo-decision-${index}`;
                 }
                 rows.append(fragment);
-                return { row, details, button, type: student_type };
+                return { row, button, name, type: student_type, submissionId: submission_id };
             });
 
+            const title = dialog.querySelector("h3");
+            let detailsRequest;
+            dialog.addEventListener("close", () => {
+                if (!dialog.open) {
+                    detailsRequest?.abort();
+                    dialog.querySelector("[data-details-content]").replaceChildren();
+                }
+            });
             for (const entry of entries) {
                 entry.button.addEventListener("click", () => {
-                    const wasClosed = entry.details.hidden;
-                    for (const item of entries) {
-                        setDetailsOpen(item, item === entry && wasClosed);
-                    }
+                    detailsRequest?.abort();
+                    detailsRequest = new AbortController();
+                    title.textContent = entry.name ? `${entry.name} – Application` : "Application details";
+                    entry.button.focus();
+                    dialog.showModal();
+                    loadApplicantDetails(entry.submissionId, dialog, review, cycleStatus, detailsRequest.signal);
                 });
             }
 
-            const columnCount = table.querySelectorAll("th").length;
             function filterApplicants() {
                 const hideAdvisor = filter.value === "masters" || filter.value === "undergrad";
-                const visibleColumns = hideAdvisor ? columnCount - 1 : columnCount;
                 table.classList.toggle("hide-advisor", hideAdvisor);
                 let hasMatches = false;
                 for (const entry of entries) {
                     entry.row.hidden = filter.value !== "all" && entry.type !== filter.value;
-                    entry.details.cells[0].colSpan = visibleColumns;
-                    setDetailsOpen(entry, false);
                     hasMatches ||= !entry.row.hidden;
                 }
                 table.hidden = !hasMatches;
@@ -162,11 +169,119 @@
         }
     }
 
-    function setDetailsOpen(entry, isOpen) {
-        entry.details.hidden = !isOpen;
-        entry.row.classList.toggle("selected", isOpen);
-        entry.button.setAttribute("aria-expanded", String(isOpen));
-        entry.button.textContent = isOpen ? "Hide" : "View";
+    async function loadApplicantDetails(submissionId, dialog, review, cycleStatus, signal) {
+        const status = dialog.querySelector("[data-details-status]");
+        const content = dialog.querySelector("[data-details-content]");
+        status.textContent = "Loading application details…";
+        content.replaceChildren();
+
+        try {
+            const template = window.TAASHrPage.applicantEndpoint;
+            if (typeof submissionId !== "string" || !/^[1-9][0-9]*$/.test(submissionId) || !template) {
+                throw new Error("Invalid applicant detail request.");
+            }
+            const endpoint = template.replace("__submission_id__", submissionId);
+            const { response, data } = await request(endpoint, signal);
+            if (signal.aborted) {
+                return;
+            }
+            if (response.status === 403 && data?.code === "taas_stage_closed") {
+                dialog.close();
+                review.hidden = true;
+                cycleStatus.textContent = "HR review is closed.";
+                return;
+            }
+            if (response.status === 404 && data?.code === "taas_not_found") {
+                status.textContent = "This application is no longer available in the current cycle. Reload the page to refresh the list.";
+                return;
+            }
+            if (!response.ok || !data?.details?.profile || !Array.isArray(data.details.academic_background)) {
+                throw new Error("Invalid applicant detail response.");
+            }
+            renderApplicantDetails(content, data.details);
+            status.textContent = content.childElementCount ? "" : "No application details are available.";
+        } catch {
+            if (!signal.aborted) {
+                status.textContent = "Application details could not be loaded. Close and reopen this application to try again.";
+            }
+        }
+    }
+
+    function renderApplicantDetails(content, details) {
+        const { student_name, student_email, profile, academic_background } = details;
+        const enrollment = ["Not enrolled", "Undergraduate", "Master’s", "PhD"];
+        const eap = [null, "Taken", "Currently enrolled", "Not yet taken", "N/A"];
+        const english = [null, "Under 45 SPEAK / Under 23 TOEFL iBT", "45–54 SPEAK / 23–27 TOEFL iBT", "55–60 SPEAK / 28–30 TOEFL iBT", "N/A"];
+        const degrees = [null, "AA", "BS", "MS", "PhD"];
+        const fws = { yes: "Yes", no: "No", not_applicable: "N/A" };
+        const undergraduateFws = profile.enrollment_status === 1 ? [
+            ["Federal Work-Study eligibility", fws[profile.fws_eligibility]],
+            ["FWS award letter", profile.fws_award_letter_url, true]
+        ] : [];
+
+        appendDetailGroup(content, "Student information", [
+            ["Name", student_name],
+            ["Email", student_email],
+            ["Phone", profile.phone],
+            ["Country of origin", countryName(profile.country_code)],
+            ["Admitted semester", profile.admitted_semester],
+            ["Enrollment", enrollment[profile.enrollment_status]],
+            ["Available hours per week", profile.available_hours],
+            ["SPEAK / TOEFL iBT score", english[profile.english_test_score]],
+            ["EAP 5836", eap[profile.eap5836_status]],
+            ["EAP 5837", eap[profile.eap5837_status]],
+            ["Advisor name", profile.enrollment_status === 3 ? profile.advisor_name || "N/A" : null],
+            ...undergraduateFws,
+            ["Résumé", profile.resume_url, true],
+            ["Additional information", profile.additional_info]
+        ]);
+        academic_background.forEach((degree, index) => {
+            appendDetailGroup(content, academic_background.length === 1 ? "Academic background" : `Academic background ${index + 1}`, [
+                ["University", degree.university],
+                ["Degree", degrees[degree.degree_type]],
+                ["Major", degree.major],
+                ["Minor", degree.minor],
+                ["Graduation month", typeof degree.grad_date === "string" ? degree.grad_date.slice(0, 7) : null],
+                ["GPA", degree.gpa]
+            ]);
+        });
+    }
+
+    function appendDetailGroup(content, title, fields) {
+        const list = document.createElement("dl");
+        for (const [label, value, isLink] of fields) {
+            if ((typeof value !== "string" && typeof value !== "number") || value === "") {
+                continue;
+            }
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = value;
+            const url = isLink ? applicationLink(value) : null;
+            if (url) {
+                const link = document.createElement("a");
+                link.href = url.href;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = value;
+                description.replaceChildren(link);
+            }
+            list.append(term, description);
+        }
+        if (list.childElementCount) {
+            const heading = document.createElement("h4");
+            heading.textContent = title;
+            content.append(heading, list);
+        }
+    }
+
+    function applicationLink(value) {
+        try {
+            const url = new URL(value);
+            return url.protocol === "https:" || url.protocol === "http:" ? url : null;
+        } catch {
+            return null;
+        }
     }
 
     function initializeDemoSave(review, entries) {

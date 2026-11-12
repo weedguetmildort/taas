@@ -21,6 +21,7 @@ Paths are relative to the base path, `/wp-json/taas/v1`.
 | GET | `/me` | Signed in, any stage | [common.md](common.md#get-current-user) |
 | GET | `/application-cycle` | Signed in, any stage | [common.md](common.md#get-current-application-cycle) |
 | GET | `/hr/applicants` | HR and admin during HR review | [hr.md](hr.md#get-current-cycle-applicants) |
+| GET | `/hr/applicants/{submission_id}` | HR and admin during HR review | [hr.md](hr.md#get-applicant-details) |
 | GET | `/courses` | Signed in | [common.md](common.md#get-course-listings) |
 | GET | `/courses/{course_id}` | Signed in | [common.md](common.md#get-one-course) |
 | GET | `/status` | Signed in | [common.md](common.md#get-status) |

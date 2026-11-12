@@ -23,6 +23,7 @@ function taas_hr_page_assets(): void {
 	$endpoints = array(
 		'cycleEndpoint'      => rest_url( 'taas/v1/application-cycle' ),
 		'applicantsEndpoint' => rest_url( 'taas/v1/hr/applicants' ),
+		'applicantEndpoint'  => rest_url( 'taas/v1/hr/applicants/__submission_id__' ),
 	);
 	if ( TAAS_Auth::is_local_dev() ) {
 		$role      = substr( TAAS_Auth::local_dev_role(), strlen( 'taas_' ) );
