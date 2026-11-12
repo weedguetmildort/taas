@@ -43,6 +43,22 @@ final class TAAS_Student_Submission_Repository extends TAAS_Repository {
 	}
 
 	/**
+	 * Retrieve the submissions for a single application term.
+	 *
+	 * @param TAAS_Semester $semester Application semester.
+	 * @param int           $year     Application year.
+	 * @return TAAS_Student_Submission[]
+	 */
+	public function find_by_term( TAAS_Semester $semester, int $year ): array {
+		return $this->find_where(
+			array(
+				'semester' => $semester->value,
+				'year'     => $year,
+			)
+		);
+	}
+
+	/**
 	 * List the owner's saved terms without loading every snapshot's JSON.
 	 *
 	 * @param string $student_ufid Verified owner.

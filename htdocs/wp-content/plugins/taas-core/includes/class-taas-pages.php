@@ -22,6 +22,9 @@ class TAAS_Pages {
 	 */
 	private const CONTENT_DIR = 'pages/';
 
+	/** Plain HTML pages imported as a single editable Custom HTML block. */
+	private const RAW_HTML_PAGES = array( 'front-page', 'student-application', 'check-application-status', 'hr-page' );
+
 	/**
 	 * Declare the pages, keyed by slug
 	 *
@@ -96,8 +99,7 @@ class TAAS_Pages {
 
 		if ( false === $contents ) {
 			return ''; }
-		// Raw student HTML imports use WordPress's standard Custom HTML block.
-		if ( in_array( $slug, array( 'front-page', 'student-application', 'check-application-status' ), true ) && ! has_blocks( $contents ) ) {
+		if ( in_array( $slug, self::RAW_HTML_PAGES, true ) && ! has_blocks( $contents ) ) {
 			return "<!-- wp:html -->\n" . $contents . "\n<!-- /wp:html -->";
 		}
 		return $contents;
@@ -248,7 +250,7 @@ class TAAS_Pages {
 	 * Sync managed pages from their repository HTML files.
 	 *
 	 * Pages remain editable in WordPress, but syncing replaces saved content
-	 * with the corresponding HTML file, including student pages.
+	 * with the corresponding HTML file.
 	 *
 	 * @param bool     $force Require administrator access outside local development.
 	 * @param string[] $slugs Optional subset to import.
@@ -390,7 +392,7 @@ class TAAS_Pages {
 			$path    = TAAS_CORE_PATH . self::CONTENT_DIR . $slug . '.html';
 			$current = file_exists( $path ) ? file_get_contents( $path ) : '';
 			$content = $page->post_content;
-			if ( in_array( $slug, array( 'front-page', 'student-application', 'check-application-status' ), true ) ) {
+			if ( in_array( $slug, self::RAW_HTML_PAGES, true ) ) {
 				$blocks = array_values( array_filter( parse_blocks( $content ), static fn( $block ) => null !== $block['blockName'] || '' !== trim( $block['innerHTML'] ) ) );
 				if ( 1 === count( $blocks ) && 'core/html' === $blocks[0]['blockName'] ) {
 					$content = trim( $blocks[0]['innerHTML'] ) . "\n";

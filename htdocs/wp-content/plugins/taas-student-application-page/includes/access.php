@@ -66,6 +66,9 @@ function taas_student_pages_require_student(): void {
 	$home = taas_student_pages_other_home( $user );
 	// The front page is the site root, so staff land there first: send them home.
 	if ( '' !== $home && taas_student_pages_is_page( 'front-page' ) ) {
+		if ( TAAS_Auth::is_local_dev() && TAAS_Auth::ROLE_HR === TAAS_Auth::local_dev_role() ) {
+			$home = add_query_arg( 'taas_role', 'hr', $home );
+		}
 		wp_safe_redirect( $home );
 		exit;
 	}
