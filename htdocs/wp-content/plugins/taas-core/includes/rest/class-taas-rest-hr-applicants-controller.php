@@ -8,7 +8,7 @@
 declare(strict_types=1);
 defined( 'ABSPATH' ) || exit;
 
-/** Serve the HR applicant table and expanded application details. */
+/** Serve applicants and persist HR review decisions for the current cycle. */
 final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 
 	/** Create the controller. */
@@ -16,7 +16,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		parent::__construct( 'hr/applicants' );
 	}
 
-	/** Register the applicant list and detail routes. */
+	/** Register applicant and review routes. */
 	public function register_routes(): void {
 		$require_hr = TAAS_Auth::require_role( TAAS_Auth::ROLE_HR );
 		$permission = static fn() => TAAS_Auth::has_role( TAAS_Auth::ROLE_ADMIN ) ? true : $require_hr();
@@ -38,6 +38,15 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 				'permission_callback' => $permission,
 			)
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/decisions',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'save_decisions' ),
+				'permission_callback' => $permission,
+			)
+		);
 	}
 
 	/**
@@ -49,15 +58,125 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 	public function get_items( $request ) {
 		return $this->with_open_cycle(
 			static function ( TAAS_Application_Cycle $cycle ) {
-				$submissions = ( new TAAS_Student_Submission_Repository() )->find_by_term( $cycle->cycle_semester, $cycle->cycle_year );
+				$rows       = ( new TAAS_HR_Review_Repository() )->applicants_for_cycle( $cycle );
+				$applicants = array();
+				$progress   = array(
+					'total'    => count( $rows ),
+					'reviewed' => 0,
+					'approved' => 0,
+				);
+				foreach ( $rows as $row ) {
+					$applicants[]          = self::summary( $row['submission'], $row['decision'], $row['version'] );
+					$progress['reviewed'] += null !== $row['decision'] ? 1 : 0;
+					$progress['approved'] += 'approve' === $row['decision'] ? 1 : 0;
+				}
 				return self::private_response(
 					array(
 						'term'       => $cycle->cycle_semester->label(),
 						'year'       => $cycle->cycle_year,
-						'applicants' => array_map( array( self::class, 'summary' ), $submissions ),
+						'applicants' => $applicants,
+						'progress'   => $progress,
 					)
 				);
 			}
+		);
+	}
+
+	/**
+	 * Save all submitted decisions or report stale versions without changing any.
+	 *
+	 * @param WP_REST_Request $request Current request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function save_decisions( WP_REST_Request $request ) {
+		$batch = $this->parse_decisions( $request->get_json_params()['decisions'] ?? null );
+		if ( is_wp_error( $batch ) ) {
+			return $batch;
+		}
+
+		return $this->with_open_cycle( fn( TAAS_Application_Cycle $cycle ) => $this->save_batch( $cycle, $batch ), true );
+	}
+
+	/**
+	 * Validate the decision payload and sort it in lock acquisition order.
+	 *
+	 * @param mixed $decisions Submitted list.
+	 * @return array<int, array{decision: string, version: int}>|WP_Error
+	 */
+	private function parse_decisions( mixed $decisions ) {
+		if ( ! is_array( $decisions ) || ! array_is_list( $decisions ) || ! $decisions ) {
+			return $this->invalid_param( 'decisions', __( 'Provide a nonempty list of review decisions.', 'taas-core' ) );
+		}
+		$batch = array();
+		foreach ( $decisions as $entry ) {
+			$id       = $entry['submission_id'] ?? null;
+			$decision = $entry['decision'] ?? null;
+			$version  = $entry['version'] ?? null;
+			if ( ! is_string( $id ) || ! preg_match( '/^[1-9][0-9]*$/D', $id ) || (string) (int) $id !== $id || isset( $batch[ $id ] )
+				|| ! in_array( $decision, array( 'approve', 'reject' ), true ) || ! is_int( $version ) || $version < 0 || $version > 4294967295 ) {
+				return $this->invalid_param( 'decisions', __( 'Each decision needs a unique submission ID, a decision, and the expected version.', 'taas-core' ) );
+			}
+			$batch[ (int) $id ] = array(
+				'decision' => $decision,
+				'version'  => $version,
+			);
+		}
+		ksort( $batch );
+		return $batch;
+	}
+
+	/**
+	 * Lock the submissions and validate the whole batch before writing.
+	 *
+	 * @param TAAS_Application_Cycle                            $cycle Active cycle.
+	 * @param array<int, array{decision: string, version: int}> $batch Validated, sorted decisions.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private function save_batch( TAAS_Application_Cycle $cycle, array $batch ) {
+		$repository = new TAAS_HR_Review_Repository();
+		$reviews    = array();
+		$conflicts  = array();
+		// Take all parent locks before the first consistent read of review rows.
+		foreach ( array_keys( $batch ) as $id ) {
+			if ( ! $repository->lock_submission( $id, $cycle ) ) {
+				return $this->not_found();
+			}
+		}
+		foreach ( $batch as $id => $change ) {
+			$current        = $repository->current_review( $id );
+			$reviews[ $id ] = array( 'submission_id' => (string) $id ) + $current;
+			if ( $change['version'] !== $current['version'] ) {
+				$conflicts[] = $reviews[ $id ];
+			}
+		}
+		$stage = $cycle->active_stage();
+		if ( TAAS_Cycle_Stage::Hr_Review !== $stage ) {
+			return self::review_closed( $stage );
+		}
+		if ( $conflicts ) {
+			return self::private_response(
+				array(
+					'code'      => 'taas_review_conflict',
+					'conflicts' => $conflicts,
+					'progress'  => $repository->progress( $cycle ),
+				),
+				409
+			);
+		}
+		$reviewer_id = TAAS_Auth::current_user()['wp_user_id'] ?? null;
+		foreach ( $batch as $id => $change ) {
+			if ( $change['decision'] === $reviews[ $id ]['decision'] ) {
+				continue;
+			}
+			$repository->save_review( $id, $change['decision'], $change['version'], $reviewer_id );
+			$reviews[ $id ]['decision'] = $change['decision'];
+			++$reviews[ $id ]['version'];
+		}
+		return self::private_response(
+			array(
+				'reviews'  => array_values( $reviews ),
+				'progress' => $repository->progress( $cycle ),
+			)
 		);
 	}
 
@@ -87,47 +206,57 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 	/**
 	 * Enforce the current review stage for both reads, including admin requests.
 	 *
-	 * @param callable $work Callback that receives the current cycle.
+	 * @param callable $work     Callback that receives the current cycle.
+	 * @param bool     $for_save Hold the cycle stable until a write commits.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private function with_open_cycle( callable $work ) {
-		return $this->respond(
-			static function () use ( $work ) {
-				$cycle = ( new TAAS_Application_Cycle_Repository() )->current();
-				$stage = $cycle?->active_stage();
-				if ( TAAS_Cycle_Stage::Hr_Review !== $stage ) {
-					return new WP_Error(
-						'taas_stage_closed',
-						__( 'HR review is closed.', 'taas-core' ),
-						array(
-							'status' => 403,
-							'stage'  => $stage?->label(),
-						)
-					);
-				}
+	private function with_open_cycle( callable $work, bool $for_save = false ) {
+		$check = static function () use ( $work, $for_save ) {
+			$cycles = new TAAS_Application_Cycle_Repository();
+			$cycle  = $for_save ? $cycles->current_for_share() : $cycles->current();
+			$stage  = $cycle?->active_stage();
+			return TAAS_Cycle_Stage::Hr_Review === $stage ? $work( $cycle ) : self::review_closed( $stage );
+		};
+		return $this->respond( static fn() => $for_save ? TAAS_Transaction::run( $check ) : $check() );
+	}
 
-				return $work( $cycle );
-			}
+	/**
+	 * Report the active stage when HR review is closed.
+	 *
+	 * @param TAAS_Cycle_Stage|null $stage Active stage, if any.
+	 * @return WP_Error
+	 */
+	private static function review_closed( ?TAAS_Cycle_Stage $stage ): WP_Error {
+		return new WP_Error(
+			'taas_stage_closed',
+			__( 'HR review is closed.', 'taas-core' ),
+			array(
+				'status' => 403,
+				'stage'  => $stage?->label(),
+			)
 		);
 	}
 
 	/**
 	 * Mark applicant responses as private and non-cacheable.
 	 *
-	 * @param array $data Response body.
+	 * @param array $data   Response body.
+	 * @param int   $status HTTP status.
 	 * @return WP_REST_Response
 	 */
-	private static function private_response( array $data ): WP_REST_Response {
-		return new WP_REST_Response( $data, 200, array( 'Cache-Control' => 'private, no-store' ) );
+	private static function private_response( array $data, int $status = 200 ): WP_REST_Response {
+		return new WP_REST_Response( $data, $status, array( 'Cache-Control' => 'private, no-store' ) );
 	}
 
 	/**
 	 * Project the submitted snapshot onto the applicant table fields.
 	 *
 	 * @param TAAS_Student_Submission $submission Saved term snapshot.
-	 * @return array<string, string|float|null>
+	 * @param string|null             $decision   Saved HR decision.
+	 * @param int                     $version    Saved decision version.
+	 * @return array<string, string|float|int|null>
 	 */
-	private static function summary( TAAS_Student_Submission $submission ): array {
+	private static function summary( TAAS_Student_Submission $submission, ?string $decision, int $version ): array {
 		$details = $submission->submitted_details;
 		$degree  = $details['academic_background'][0] ?? array();
 		$profile = $details['profile'] ?? array();
@@ -135,6 +264,8 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		$score   = TAAS_English_Test_Score::tryFrom( (int) ( $profile['english_test_score'] ?? 0 ) );
 		return array(
 			'submission_id'      => (string) $submission->submission_id,
+			'decision'           => $decision,
+			'version'            => $version,
 			'name'               => $details['student_name'] ?? null,
 			'student_type'       => match ( $type ) {
 				TAAS_Enrollment_Status::Undergraduate => 'undergrad',
@@ -145,6 +276,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 			'gpa'                => TAAS_Cast::float_or_null( $degree['gpa'] ?? null ),
 			'english_test_score' => $score?->label(),
 			'country_code'       => $profile['country_code'] ?? null,
+			'advisor_name'       => TAAS_Enrollment_Status::Phd === $type ? ( $profile['advisor_name'] ?? null ) : null,
 		);
 	}
 

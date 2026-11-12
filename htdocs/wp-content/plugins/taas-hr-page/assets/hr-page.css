@@ -148,6 +148,15 @@
     accent-color: #2271b1;
 }
 
+.hr-applicant-table [data-review-conflict] {
+    margin: 6px 0 0;
+    color: #8a2e00;
+}
+
+.hr-applicant-table [data-review-conflict]:empty {
+    display: none;
+}
+
 /* APPLICATION DETAILS DIALOG */
 
 .hr-details-dialog {
@@ -304,11 +313,6 @@
     font-weight: 600;
     color: #222;
     margin: 0;
-}
-
-.hr-progress-label {
-    font-size: 13px;
-    color: #666;
 }
 
 /* REVIEW COUNT */

@@ -23,9 +23,29 @@ async function run() {
         const isCycleRequest = url => (url.searchParams.get('rest_route') ?? url.pathname).endsWith('/taas/v1/application-cycle');
         const isApplicantsRequest = url => (url.searchParams.get('rest_route') ?? url.pathname).endsWith('/taas/v1/hr/applicants');
         const applicants = [
-            { submission_id: '71', name: '<b>PhD applicant</b>', student_type: 'phd', gpa: 3.8, country_code: 'IN' },
-            { submission_id: '72', name: 'Undergraduate applicant', student_type: 'undergrad', gpa: null, country_code: null }
+            { submission_id: '71', name: '<b>PhD applicant</b>', student_type: 'phd', gpa: 3.8, country_code: 'IN', advisor_name: 'Dr. Example', decision: null, version: 0 },
+            { submission_id: '72', name: 'Undergraduate applicant', student_type: 'undergrad', gpa: null, country_code: null, decision: null, version: 0 }
         ];
+        const applicantList = (rows, reviewed = 0, approved = 0) => ({
+            json: { term: 'Spring', year: 2026, applicants: rows, progress: { total: rows.length, reviewed, approved } }
+        });
+        const saveRequests = [];
+        const isSaveRequest = url => (url.searchParams.get('rest_route') ?? url.pathname).endsWith('/taas/v1/hr/applicants/decisions');
+        await page.route(isSaveRequest, route => {
+            const { decisions } = route.request().postDataJSON();
+            saveRequests.push(decisions);
+            if (saveRequests.length === 1) {
+                return route.fulfill({ status: 409, json: {
+                    code: 'taas_review_conflict',
+                    conflicts: [{ submission_id: '71', decision: 'reject', version: 1 }],
+                    progress: { total: 2, reviewed: 1, approved: 0 }
+                } });
+            }
+            return route.fulfill({ json: {
+                reviews: decisions.map(change => ({ ...change, version: change.version + 1 })),
+                progress: { total: 2, reviewed: 2, approved: 2 }
+            } });
+        });
         const detailRequests = [];
         let detailStageClosed = false;
         let undergraduateDetailsAvailable = false;
@@ -67,7 +87,7 @@ async function run() {
                 await route.fulfill({ status: 404, json: { code: 'taas_not_found' } });
             }
         });
-        let applicantResponse = { json: { term: 'Spring', year: 2026, applicants } };
+        let applicantResponse = applicantList(applicants);
         let applicantRequests = 0;
         let releaseApplicants;
         const pendingApplicants = new Promise(resolve => { releaseApplicants = resolve; });
@@ -102,7 +122,11 @@ async function run() {
                 await review.getByText(applicants[0].name, { exact: true }).waitFor();
                 const rows = review.locator('tbody .student-row:visible');
                 assert.equal(await rows.count(), 2);
+                assert.equal(await review.locator('#hr-reviewed-count').textContent(), '0');
+                assert.equal(await review.locator('#hr-total-applicants').textContent(), '2');
                 assert.ok(await rows.first().getByText('India', { exact: true }).isVisible());
+                assert.equal(await rows.first().locator('.phd-only').textContent(), 'Dr. Example');
+                assert.equal(await rows.last().locator('.phd-only').textContent(), '—');
                 assert.deepEqual(detailRequests, []);
                 const firstView = rows.first().getByRole('button', { name: 'View' });
                 await firstView.click();
@@ -133,7 +157,11 @@ async function run() {
                 assert.ok(await review.getByText('applicant@example.invalid').isHidden());
                 await dialog.getByRole('button', { name: 'Close' }).click();
                 await dialog.waitFor({ state: 'hidden' });
+                const save = review.getByRole('button', { name: /^Submit (Decision|\d+ Applications)$/ });
+                assert.ok(await save.isDisabled());
                 await rows.first().getByRole('radio', { name: 'Approve' }).check();
+                assert.equal(await save.textContent(), 'Submit Decision');
+                assert.ok(await save.isEnabled());
                 const filter = review.getByLabel('Filter Applicants by Student Type');
                 await filter.selectOption('undergrad');
                 assert.equal(await rows.count(), 1);
@@ -144,13 +172,30 @@ async function run() {
                 await review.getByText('Federal Work-Study eligibility', { exact: true }).waitFor();
                 assert.ok(await review.getByRole('link', { name: 'https://example.invalid/fws-award' }).isVisible());
                 await dialog.getByRole('button', { name: 'Close' }).click();
+                await rows.first().getByRole('radio', { name: 'Approve' }).check();
                 await filter.selectOption('phd');
                 assert.ok(await review.getByRole('columnheader', { name: 'Advisor Name' }).isVisible());
                 assert.ok(await rows.first().getByRole('radio', { name: 'Approve' }).isChecked());
                 assert.ok(await dialog.isHidden());
-                await review.getByRole('button', { name: 'Save Changes' }).click();
-                assert.equal(await review.locator('#hr-reviewed-count').textContent(), '46');
-                assert.match(await review.locator('#hr-save-message').textContent(), /for this demonstration/);
+                assert.equal(await save.textContent(), 'Submit 2 Applications');
+                await save.click();
+                await review.getByText('Current saved decision: Rejected.', { exact: false }).waitFor();
+                assert.ok(await rows.first().getByRole('radio', { name: 'Reject' }).isChecked());
+                assert.equal(await review.locator('#hr-reviewed-count').textContent(), '1');
+                assert.equal(await save.textContent(), 'Submit Decision');
+                await filter.selectOption('all');
+                assert.ok(await rows.last().getByRole('radio', { name: 'Approve' }).isChecked());
+                await rows.first().getByRole('radio', { name: 'Approve' }).check();
+                await save.click();
+                await review.getByText('2 decisions saved.', { exact: true }).waitFor();
+                assert.equal(await save.textContent(), 'Submit Decision');
+                assert.ok(await save.isDisabled());
+                assert.deepEqual(saveRequests.map(batch => batch.map(change => [change.submission_id, change.version])), [
+                    [['71', 0], ['72', 0]], [['71', 1], ['72', 0]]
+                ]);
+                assert.equal(await review.locator('#hr-reviewed-count').textContent(), '2');
+                assert.equal(await review.locator('#hr-approved-count').textContent(), '2');
+                assert.equal(await review.getByRole('progressbar').getAttribute('aria-valuenow'), '100.0');
                 await filter.selectOption('masters');
                 assert.ok(await review.getByText('No applicants match this student type.').isVisible());
             }
@@ -159,8 +204,13 @@ async function run() {
         assert.equal(applicantRequests, 1);
 
         await page.route(isCycleRequest, route => route.fulfill(stageResponse('hr_review')));
+        applicantResponse = applicantList(applicants.map((row, index) => ({ ...row, decision: 'approve', version: index === 0 ? 2 : 1 })), 2, 2);
+        await page.goto(portal);
+        await review.getByRole('radio', { name: 'Approve' }).first().waitFor();
+        assert.ok(await review.getByRole('radio', { name: 'Approve' }).first().isChecked());
+        assert.equal(await review.locator('#hr-approved-count').textContent(), '2');
         for (const scenario of [
-            { response: { json: { term: 'Spring', year: 2026, applicants: [] } }, message: 'No applications have been submitted for this cycle.' },
+            { response: applicantList([]), message: 'No applications have been submitted for this cycle.' },
             { response: { status: 503, body: 'Unavailable' }, message: 'The applicant list could not be loaded. Reload the page to try again.' },
             { response: { status: 403, json: { code: 'taas_stage_closed' } }, message: 'HR review is closed.', closed: true }
         ]) {
@@ -170,14 +220,30 @@ async function run() {
             assert.equal(await review.isHidden(), Boolean(scenario.closed));
             assert.ok(await review.locator('table').isHidden());
         }
-        applicantResponse = { json: { term: 'Spring', year: 2026, applicants } };
+        applicantResponse = applicantList(applicants);
         detailStageClosed = true;
         await page.goto(portal);
         await review.getByRole('button', { name: 'View' }).first().click();
         await page.getByText('HR review is closed.', { exact: true }).waitFor();
         assert.ok(await review.isHidden());
         assert.equal(await dialog.getAttribute('open'), null);
-        console.log('PASS: Applicant filtering, details modal, demo review controls, and failure states.');
+
+        await page.unroute(isSaveRequest);
+        await page.route(isSaveRequest, () => {});
+        await page.clock.install();
+        await page.goto(portal, { waitUntil: 'domcontentloaded' });
+        const approve = review.getByRole('radio', { name: 'Approve' }).first();
+        const save = review.getByRole('button', { name: 'Submit Decision' });
+        await approve.check();
+        await save.click();
+        assert.ok(await save.isDisabled());
+        assert.ok(await approve.isDisabled());
+        await page.clock.fastForward(30000);
+        await review.getByText('The save could not be confirmed. Try again to check the latest decisions.', { exact: true }).waitFor();
+        assert.ok(await save.isEnabled());
+        assert.ok(await approve.isEnabled());
+        assert.ok(await approve.isChecked());
+        console.log('PASS: Applicant details, advisor names, decision conflicts, saved progress, and stalled save recovery.');
     } finally {
         await browser.close();
     }

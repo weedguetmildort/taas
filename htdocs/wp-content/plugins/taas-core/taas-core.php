@@ -51,6 +51,7 @@ require_once TAAS_CORE_PATH . 'includes/types/class-taas-academic-background.php
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-course.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application-cycle.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-hr-review.php';
 
 /*
  * Repositories layer for direct DB access.
@@ -61,6 +62,7 @@ require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-professor-reposi
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-profile-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-submission-repository.php';
+require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-hr-review-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-academic-background-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-course-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-repository.php';

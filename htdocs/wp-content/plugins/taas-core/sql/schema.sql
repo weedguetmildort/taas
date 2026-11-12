@@ -81,6 +81,16 @@ CREATE TABLE {prefix}student_submissions (
 	UNIQUE KEY student_term (student_ufid,semester,year)
 );
 
+-- Latest HR decision for a submitted application. No row means unreviewed.
+CREATE TABLE {prefix}hr_reviews (
+	submission_id bigint(20) unsigned NOT NULL,
+	decision varchar(7) NOT NULL,
+	version int unsigned NOT NULL,
+	reviewed_by bigint(20) unsigned DEFAULT NULL,
+	reviewed_at datetime DEFAULT NULL,
+	PRIMARY KEY  (submission_id)
+);
+
 -- Courses: identification, owned by a professor
 CREATE TABLE {prefix}courses (
 	course_id bigint(20) unsigned NOT NULL AUTO_INCREMENT, -- one offering of a course in one term

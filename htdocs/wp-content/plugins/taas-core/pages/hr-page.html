@@ -10,17 +10,12 @@
     </div>
 
     <div data-hr-review hidden>
-        <p>Review totals and decisions are for demonstration only.</p>
-
         <!-- HR APPLICATION REVIEW PROGRESS -->
         <div class="hr-review-progress">
 
             <div class="hr-progress-header">
                 <h3>HR Application Review Progress</h3>
 
-                <span class="hr-progress-label">
-                    Demo data
-                </span>
             </div>
 
             <!-- REVIEWED AND APPROVED COUNTS -->
@@ -28,9 +23,9 @@
 
                 <div class="hr-reviewed-stat">
                     <div class="hr-progress-count">
-                        <span id="hr-reviewed-count">45</span>
+                        <span id="hr-reviewed-count">—</span>
                         <span class="hr-progress-divider">/</span>
-                        <span id="hr-total-applicants">200</span>
+                        <span id="hr-total-applicants">—</span>
                     </div>
 
                     <span class="hr-progress-description">
@@ -44,28 +39,28 @@
                         Total Approved
                     </span>
 
-                    <span id="hr-approved-count">22</span>
+                    <span id="hr-approved-count">—</span>
                 </div>
 
             </div>
 
             <!-- PROGRESS BAR -->
-            <div class="hr-progress-bar">
+            <div class="hr-progress-bar" role="progressbar" aria-label="HR review completion">
                 <div
                     id="hr-progress-fill"
                     class="hr-progress-fill"
-                    style="width: 22.5%;">
+                    style="width: 0%;">
                 </div>
             </div>
 
             <!-- PROGRESS FOOTER -->
             <div class="hr-progress-footer">
                 <span id="hr-progress-percentage">
-                    22.5% Completed
+                    — Completed
                 </span>
 
                 <span id="hr-remaining-count">
-                    155 Remaining
+                    — Remaining
                 </span>
             </div>
 
@@ -115,6 +110,7 @@
                             <label><input type="radio" value="approve"> Approve</label>
                             <label><input type="radio" value="reject"> Reject</label>
                         </div>
+                        <p data-review-conflict></p>
                     </td>
                 </tr>
             </template>
@@ -131,7 +127,7 @@
                 </div>
             </dialog>
             <div class="save-section">
-                <button type="button" class="save-button" disabled>Save Changes</button>
+                <button type="button" class="save-button" disabled>Submit Decision</button>
                 <p id="hr-save-message" role="status"></p>
             </div>
         </div>

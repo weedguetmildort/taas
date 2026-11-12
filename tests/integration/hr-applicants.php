@@ -92,11 +92,14 @@ try {
 	$cycles->save( new TAAS_Application_Cycle( TAAS_Semester::Spring, 2026, $open ) );
 	$expected = array(
 		'submission_id'      => (string) $spring_id,
+		'decision'           => null,
+		'version'            => 0,
 		'name'               => 'Submitted Spring name',
 		'student_type'       => 'phd',
 		'gpa'                => 3.5,
 		'english_test_score' => null,
 		'country_code'       => 'US',
+		'advisor_name'       => 'Dr. Example',
 	);
 	foreach ( array( 'hr', 'admin' ) as $role ) {
 		$response = taas_hr_applicants_get( $role );
@@ -124,6 +127,8 @@ try {
 	$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details );
 	$undergraduate = taas_hr_applicants_get( 'hr', $spring_id )->get_data()['details']['profile'];
 	taas_hr_applicants_check( 'yes' === $undergraduate->fws_eligibility && 'https://example.invalid/fws-award' === $undergraduate->fws_award_letter_url, 'Undergraduate details must include the submitted FWS information.' );
+	$rows = array_column( taas_hr_applicants_get( 'hr' )->get_data()['applicants'], null, 'submission_id' );
+	taas_hr_applicants_check( null === $rows[ $spring_id ]['advisor_name'], 'The list must omit the advisor name for an undergraduate.' );
 	$details['profile']['enrollment_status'] = TAAS_Enrollment_Status::Masters->value;
 	$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details );
 	$masters = taas_hr_applicants_get( 'hr', $spring_id )->get_data()['details']['profile'];

@@ -30,7 +30,7 @@ This is not intended to replace project management and tickets, but rather to no
 - **PhD applications:** create all of a PhD student's applications on their behalf, as part of the student layer.
 - **Re-adding a ranked course:** decide whether a professor's rank is cleared or kept when a student re-adds a course they withdrew from. Until then the edit returns 409 and says the admin must review it, but no admin route can do that, since `PATCH /applications/{application_id}` rejects withdrawn applications.
 - **Already applied:** decide what a second submission for the same term should do. It currently returns 409, and students edit through their status page instead, which only works during `student_application`.
-- **HR decisions:** add somewhere to store them. The HR page collects approve and reject decisions, and the matching algorithm assumes them, but the schema has no field for them.
+- **Use HR decisions in matching:** the HR page saves decisions per term submission. Apply those decisions when selecting matching inputs.
 
 ## Auth
 
