@@ -239,15 +239,6 @@
       "assigned_hours": 0
     },
     {
-      "student_ufid": "20000003",
-      "applied_course_id": 54321,
-      "has_taken_course": 0,
-      "has_ta_for_course": 0,
-      "student_preference_rank": 3,
-      "match_status": 4,
-      "assigned_hours": 0
-    },
-    {
       "student_ufid": "20000002",
       "applied_course_id": 18238,
       "has_taken_course": 0,

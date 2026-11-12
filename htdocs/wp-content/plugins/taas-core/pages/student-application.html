@@ -178,6 +178,12 @@
                     </select>
                   </label>
                 </div>
+                <div class="wp-block-taas-application-field" data-advisor-section hidden>
+                  <label>Advisor Name (optional)
+                    <input name="advisorName" type="text" maxlength="255" aria-describedby="advisor-name-help">
+                    <small id="advisor-name-help">Leave blank if you don’t know your advisor’s name.</small>
+                  </label>
+                </div>
                 <div class="wp-block-group full-width">
                   <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
                     <div class="wp-block-taas-application-field">
@@ -266,7 +272,7 @@
     </form>
     <dialog class="application-dialog" id="application-success" data-application-ui="dialog" aria-labelledby="application-success-title" aria-describedby="application-success-description">
       <h2 id="application-success-title">Application submitted</h2>
-      <p id="application-success-description">Your application was successfully submitted. Open Check Application Status to view your application. While applications are open, you can edit your course choices or withdraw from individual courses or all courses.</p>
+      <p id="application-success-description">Your application was successfully submitted. Open Check Application Status to view your application. While applications are open, you can edit your course choices.</p>
       <div class="dialog-actions"><a class="action-link" id="success-status-link" data-application-ui="statusLink">Check Application Status</a><a class="action-link" id="success-home-link" data-application-ui="homeLink">Back to homepage</a></div>
     </dialog>
   </div>

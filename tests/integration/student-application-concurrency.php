@@ -48,7 +48,7 @@ if ( '--worker' === ( $argv[1] ?? '' ) ) {
 		}
 	);
 	try {
-		$input = TAAS_Student_Application_Input::parse( $job['body'], 'update' === $job['operation'] );
+		$input = TAAS_Student_Application_Input::parse( $job['body'] );
 		$result = 'update' === $job['operation']
 			? TAAS_Student_Application_Service::update( $job['owner'], $input, $job['revision'] )
 			: TAAS_Student_Application_Service::submit( $job['owner'], $input );
@@ -281,7 +281,7 @@ try {
 	$winner = $results[0]['ok'] ? 0 : 1;
 	concurrency_check( $results[ $winner ]['ok'] && ! $results[ 1 - $winner ]['ok'] && 409 === $results[ 1 - $winner ]['status'], 'Concurrent edits with one revision allow exactly one winner' );
 	$state = owner_state( $owner );
-	$expected = TAAS_Student_Application_Input::parse( $edits[ $winner ], true );
+	$expected = TAAS_Student_Application_Input::parse( $edits[ $winner ] );
 	$saved = $submissions->find_application_for_term( $owner, TAAS_Semester::Summer_C, 2155 );
 	$active = array_values( array_filter( $state['applications'], static fn( $row ) => 1 === (int) $row['match_status'] ) );
 	concurrency_check(
@@ -297,7 +297,7 @@ try {
 	// Force failure at the final snapshot write after a replacement deletes the old choice.
 	$before = owner_state( $owner );
 	$failed = $edits[ 1 - $winner ];
-	$input = TAAS_Student_Application_Input::parse( $failed, true );
+	$input = TAAS_Student_Application_Input::parse( $failed );
 	$fail = static fn( $sql ) => str_contains( $sql, TAAS_Schema::table( 'student_submissions' ) ) && preg_match( '/^\\s*INSERT INTO/i', $sql ) ? 'INVALID SQL FOR EDIT ROLLBACK TEST' : $sql;
 	add_filter( 'query', $fail );
 	$previous_errors = $wpdb->suppress_errors( true );

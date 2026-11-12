@@ -88,6 +88,7 @@ Everything the application page needs: the period, the student's identity, their
     "additional_info": ""
   },
   "english_test_score": 2,
+  "advisor_name": null,
   "academic_background": [
     {
       "background_id": 37,
@@ -125,6 +126,7 @@ Everything the application page needs: the period, the student's identity, their
 | `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint`, current `revision`, saved `student_name`, and pending ranked `course_preferences`. For a saved PhD application, `reset_prior_ta: true` tells the form to clear the prior TA checkboxes while prefilling the ranks and course completion answers. Submit to this endpoint with `replace_existing: true` after the student chooses Start a new form. |
 | `profile` | object, *nullable* | The student's shared profile as stored, which every submission or edit replaces. `null` if they have no profile yet. `has_ta_experience` is `0` or `1` here, not a boolean |
 | `english_test_score` | integer, *nullable* | Latest application category (1–4), or null if unanswered |
+| `advisor_name` | string, *nullable* | Advisor name from the current term’s saved application or, for a new application, the latest saved term. `null` if no name has been recorded |
 | `academic_background` | array | The student's shared degrees, in the order they last submitted them. `[]` if they have none. `minor` is *nullable* |
 | `courses` | array | Every course in the period's term, ordered by `course_code`, then `course_id` |
 
@@ -207,6 +209,7 @@ Submits the student's first application for the period's term. Edits to an exist
 | `fws_eligibility` | undergraduates | `yes`, `no`, or `not_applicable`; an explicit answer is required. Graduate saves normalize this to `no`. The profile column is non-nullable and defaults to `no`. |
 | `fws_award_letter_url` | when FWS is `yes` | Separate FWS award letter link: complete HTTP/HTTPS URL, maximum 255 characters. The column is nullable; omitted, `null`, and empty values become `null` unless eligibility is `yes`. Graduate saves always clear it to `null`. |
 | `additional_info` | no | Up to 1000 characters. Saved as `""` when omitted |
+| `advisor_name` | no | PhD advisor’s name, up to 255 characters. Blank or omitted names and submissions for other programs are saved as `"N/A"` in the term snapshot |
 | `english_test_score` | yes | Integer category 1–4; see the labels below |
 
 FWS fields are stored in both the shared student profile and the submitted term snapshot. Saving graduate status sets eligibility to `no` and clears the award letter URL for that profile and term only; earlier terms remain unchanged. Existing snapshots without FWS fields remain readable, but undergraduates must answer eligibility when saving edits. The form preserves FWS entries while toggling college status before saving; a successful graduate save clears those entries.
@@ -369,18 +372,6 @@ The student's saved application for one term, with each course's status. Use it 
   ],
   "course_preferences": [
     {
-      "application_id": 21,
-      "course_id": "1234",
-      "course_code": "COP3502",
-      "course_name": "Programming Fundamentals 1",
-      "rank": 1,
-      "match_status": 4,
-      "status_label": "Withdrawn",
-      "has_completed_course": true,
-      "course_completion": 1,
-      "has_ta_for_course": false
-    },
-    {
       "application_id": 22,
       "course_id": "5678",
       "course_code": "CDA3101",
@@ -403,15 +394,15 @@ The student's saved application for one term, with each course's status. Use it 
 | `can_edit` | boolean | Whether PATCH: edit an application will be accepted. See below |
 | `revision` | string | 64 hex characters. Send it back with an edit |
 | `courses` | array | Every course in this term, in the same shape and order as GET: application form |
-| `course_preferences` | array | All remaining course applications for the term, including rows withdrawn through ordinary edits, ordered by `rank` then `application_id` |
-| `course_preferences[].rank` | integer, *nullable* | The student's preference. Null means unranked. A withdrawn application keeps its last rank |
-| `course_preferences[].match_status` | integer | `1` Pending, `2` Matched, `3` Rejected, `4` Withdrawn. `status_label` has the label |
+| `course_preferences` | array | Saved course applications for the term, ordered by `rank` then `application_id` |
+| `course_preferences[].rank` | integer, *nullable* | The student's preference. Null means unranked |
+| `course_preferences[].match_status` | integer | `1` Pending, `2` Matched, `3` Rejected. `status_label` has the label |
 
 `can_edit` is `true` only when all of these hold:
 
 - the term is the period's term
 - `student_application` is the active stage
-- every application is `Pending` or `Withdrawn`, so none has been matched or rejected yet
+- every application is `Pending`, so none has been matched or rejected yet
 
 | Status | `code` | When |
 | --- | --- | --- |
@@ -440,19 +431,18 @@ The student's saved application for one term, with each course's status. Use it 
 The rules are the same as POST, except:
 
 - `term` must match `{semester}` and `{year}` in the path.
-- PhD edits require exactly five distinct ranks from 1 to 5 and allow additional active courses with `rank: null`. Other students can rank one to five courses. An ordinary edit withdraws omitted courses.
+- PhD edits require exactly five courses ranked from 1 to 5. Other students can rank one to five courses.
 - A replacement (`replace_existing: true`) accepts only ranked choices and starts a new set of preferences. PhD replacements add every remaining course back as pending with the default course-history answers. For other students, omitted course applications are deleted.
 - Switching to PhD requires five ranked choices and adds any remaining courses. Switching away from PhD deletes omitted course applications.
-- To withdraw from all courses without updating the profile, send only `term`, `revision`, and `withdraw_all: true`. An empty `course_preferences` list on an ordinary edit is also accepted.
 - `revision` is required. If the application has changed since it was read, for example in another tab, the edit returns 409. Read it again before retrying.
 
 **What changes:** all course and application details are saved in one transaction.
 
 | Course | Result |
 | --- | --- |
-| In the list, and the student already had an application for it | Set to `Pending` with the submitted rank, completion answer, and prior TA declaration. An eligible withdrawn application can be reactivated this way |
+| In the list, and the student already had an application for it | Update the submitted rank, completion answer, and prior TA declaration |
 | In the list, and new | A new `Pending` application |
-| Omitted from an ordinary edit | A `Pending` application becomes `Withdrawn`. Its last rank and declarations are kept |
+| Omitted from an ordinary edit | For PhD students, the existing row stays pending and its rank becomes `null` (No Preference). For other students, the course application row is deleted |
 | Omitted from a replacement | A PhD application gets a pending unranked row with default history. For other students, the course application row is deleted |
 
 `details` replaces this term's saved details and the shared profile and degrees, in the same way as POST. Other terms' saved details don't change.
