@@ -1,6 +1,35 @@
 (function () {
     "use strict";
 
+    async function loadCycle(term, status) {
+        const { cycleEndpoint, nonce } = window.TAASHrPage || {};
+        try {
+            if (!cycleEndpoint || !nonce) {
+                throw new Error("Missing cycle configuration.");
+            }
+
+            const response = await fetch(cycleEndpoint, {
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: { "X-WP-Nonce": nonce }
+            });
+            const cycle = await response.json();
+            if (response.status === 404 && cycle?.code === "taas_no_current_cycle") {
+                status.textContent = "No application cycle has been set.";
+                return;
+            }
+            if (!response.ok || typeof cycle?.term !== "string" || !cycle.term.trim() || !Number.isInteger(cycle.year) ||
+                (cycle.stage !== null && typeof cycle.stage !== "string")) {
+                throw new Error("Invalid cycle response.");
+            }
+
+            term.textContent = `${cycle.term} ${cycle.year}`;
+            status.textContent = cycle.stage === "hr_review" ? "HR review is open." : "HR review is closed.";
+        } catch {
+            status.textContent = "The current application cycle could not be loaded. Reload the page to try again.";
+        }
+    }
+
     function initializeHRPortal() {
 
         const container = document.querySelector(
@@ -15,6 +44,12 @@
         // Prevent duplicate initialization
         if (container.dataset.initialized === "true") {
             return;
+        }
+
+        const cycleTerm = container.querySelector("[data-hr-cycle-term]");
+        const cycleStatus = container.querySelector("[data-hr-cycle]");
+        if (cycleTerm && cycleStatus) {
+            loadCycle(cycleTerm, cycleStatus);
         }
 
         const table = container.querySelector(

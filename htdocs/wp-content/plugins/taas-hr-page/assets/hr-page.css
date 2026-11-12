@@ -30,6 +30,15 @@
     line-height: 1.5;
 }
 
+.hr-cycle-term:not(:empty) {
+    display: block;
+    margin-bottom: 4px;
+    color: #0021a5;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 /* FILTER DROPDOWN */
 
 .student-filter-section {
