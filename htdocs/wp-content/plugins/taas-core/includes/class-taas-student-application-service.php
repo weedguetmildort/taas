@@ -91,10 +91,10 @@ final class TAAS_Student_Application_Service {
 	 * @param string $ufid Verified owner.
 	 * @param array  $input Normalized application input; see the detailed shape below.
 	 * @param string $revision Token from the saved term read.
-	 * @param bool   $replacement Whether to delete omitted course applications.
+	 * @param bool   $replacement Whether to repopulate unranked courses for a PhD replacement.
 	 * @phpstan-param array{
 	 *     term: array{semester: int, year: int},
-	 *     details?: array{
+	 *     details: array{
 	 *         student_name: string, student_email: string,
 	 *         profile: array{
 	 *             phone: string, country_code: string, admitted_semester: string,
@@ -109,8 +109,8 @@ final class TAAS_Student_Application_Service {
 	 *             degree_type: int, grad_date: string, gpa: float|null
 	 *         }>
 	 *     },
-	 *     course_preferences: list<array{course_id: string, rank: int|null, course_completion: int, has_ta_for_course: bool}>
-	 * } $input Validated application; zero choices withdraws all.
+	 *     course_preferences: list<array{course_id: string, rank: int, course_completion: int, has_ta_for_course: bool}>
+	 * } $input Validated application.
 	 * @return array{submission_id: int, revision: string}
 	 * @throws DomainException If the application changed, closed or is not editable.
 	 */
@@ -133,7 +133,7 @@ final class TAAS_Student_Application_Service {
 		}
 		// Matching/rejection follow closure; also guard finalized results defensively.
 		foreach ( $choices as $choice ) {
-			if ( ! in_array( (int) $choice['match_status'], array( TAAS_Match_Status::Pending->value, TAAS_Match_Status::Withdrawn->value ), true ) ) {
+			if ( TAAS_Match_Status::Pending->value !== (int) $choice['match_status'] ) {
 				return false;
 			}
 		}
@@ -201,7 +201,7 @@ final class TAAS_Student_Application_Service {
 				$this->validate_preferences( $input['course_preferences'], $semester, $year );
 
 				$this->save_details( $ufid, $details );
-				$this->save_choices( $ufid, array(), $preferences, false );
+				$this->save_choices( $ufid, array(), $preferences );
 				$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
 				return array(
 					'submission_id' => $submission_id,
@@ -217,21 +217,17 @@ final class TAAS_Student_Application_Service {
 	 * @param string $ufid Verified authenticated owner.
 	 * @param array  $input Normalized application input.
 	 * @param string $revision Expected saved revision token.
-	 * @param bool   $replacement Whether to delete omitted course applications.
+	 * @param bool   $replacement Whether to repopulate unranked courses for a PhD replacement.
 	 */
 	private function update_application( string $ufid, array $input, string $revision, bool $replacement ): array {
 		return TAAS_Transaction::run(
 			function () use ( $ufid, $input, $revision, $replacement ) {
-				$details      = $input['details'] ?? null;
+				$details      = $input['details'];
 				$semester     = TAAS_Semester::from( $input['term']['semester'] );
 				$year         = $input['term']['year'];
 
 				// Serialize with initial submission and other edits by this owner.
-				if ( null === $details ) {
-					$this->students->lock( $ufid );
-				} else {
-					$this->students->save_identity( new TAAS_Student( $ufid, $details['student_name'], $details['student_email'] ) );
-				}
+				$this->students->save_identity( new TAAS_Student( $ufid, $details['student_name'], $details['student_email'] ) );
 				$existing_submission = $this->submissions->find_by_student_and_term( $ufid, $semester, $year );
 				if ( null === $existing_submission ) {
 					throw new DomainException( 'No application was found for this term.', 404 );
@@ -247,17 +243,13 @@ final class TAAS_Student_Application_Service {
 				$this->validate_preferences( $input['course_preferences'], $semester, $year );
 				$selected_preferences = array_column( $input['course_preferences'], null, 'course_id' );
 				$was_phd = self::is_phd( $existing_submission->submitted_details );
-				$is_phd = null !== $details && self::is_phd( $details );
-				if ( $selected_preferences && $is_phd && ( $replacement || ! $was_phd ) ) {
+				$is_phd = self::is_phd( $details );
+				if ( $is_phd && ( $replacement || ! $was_phd ) ) {
 					$selected_preferences = $this->include_unranked_courses( $selected_preferences, $semester, $year );
 				}
-				$delete_omitted = $replacement || ( $selected_preferences && $was_phd && ! $is_phd );
-				$this->save_choices( $ufid, $previous_choices_by_course, $selected_preferences, $delete_omitted );
-				$submission_id = $existing_submission->submission_id;
-				if ( null !== $details ) {
-					$this->save_details( $ufid, $details );
-					$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
-				}
+				$this->save_choices( $ufid, $previous_choices_by_course, $selected_preferences, $is_phd );
+				$this->save_details( $ufid, $details );
+				$submission_id = $this->submissions->save_for_term( $ufid, $semester, $year, $details );
 
 				$saved_snapshot = $this->submissions->find_by_student_and_term( $ufid, $semester, $year );
 				$saved_choices = $this->applications->find_by_student_and_term( $ufid, $semester, $year );
@@ -381,9 +373,9 @@ final class TAAS_Student_Application_Service {
 	 * @param string                                  $ufid Verified authenticated owner.
 	 * @param array<string|int, array<string, mixed>> $previous_choices Course ID to database row.
 	 * @param array<string|int, array>                $selected_preferences Validated selections keyed by course ID.
-	 * @param bool                                    $delete_omitted Whether to delete omitted course applications.
+	 * @param bool                                    $keep_unranked Whether omitted courses stay on a PhD application.
 	 */
-	private function save_choices( string $ufid, array $previous_choices, array $selected_preferences, bool $delete_omitted ): void {
+	private function save_choices( string $ufid, array $previous_choices, array $selected_preferences, bool $keep_unranked = false ): void {
 		foreach ( $previous_choices as $course_id => $choice ) {
 			if ( array_key_exists( $course_id, $selected_preferences ) ) {
 				$preference = $selected_preferences[ $course_id ];
@@ -395,10 +387,10 @@ final class TAAS_Student_Application_Service {
 					has_ta_for_course: $preference['has_ta_for_course'],
 					has_taken_course: $preference['course_completion']
 				);
-			} elseif ( $delete_omitted ) {
+			} elseif ( ! $keep_unranked ) {
 				$this->applications->delete( (int) $choice['application_id'] );
-			} elseif ( TAAS_Match_Status::Pending->value === (int) $choice['match_status'] ) {
-				$this->applications->save_student_choice( $ufid, (int) $choice['application_id'], null, TAAS_Match_Status::Withdrawn );
+			} elseif ( null !== $choice['student_preference_rank'] ) {
+				$this->applications->save_student_choice( $ufid, (int) $choice['application_id'], null, TAAS_Match_Status::Pending );
 			}
 		}
 		foreach ( $selected_preferences as $course_id => $preference ) {

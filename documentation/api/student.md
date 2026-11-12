@@ -369,18 +369,6 @@ The student's saved application for one term, with each course's status. Use it 
   ],
   "course_preferences": [
     {
-      "application_id": 21,
-      "course_id": "1234",
-      "course_code": "COP3502",
-      "course_name": "Programming Fundamentals 1",
-      "rank": 1,
-      "match_status": 4,
-      "status_label": "Withdrawn",
-      "has_completed_course": true,
-      "course_completion": 1,
-      "has_ta_for_course": false
-    },
-    {
       "application_id": 22,
       "course_id": "5678",
       "course_code": "CDA3101",
@@ -403,15 +391,15 @@ The student's saved application for one term, with each course's status. Use it 
 | `can_edit` | boolean | Whether PATCH: edit an application will be accepted. See below |
 | `revision` | string | 64 hex characters. Send it back with an edit |
 | `courses` | array | Every course in this term, in the same shape and order as GET: application form |
-| `course_preferences` | array | All remaining course applications for the term, including rows withdrawn through ordinary edits, ordered by `rank` then `application_id` |
-| `course_preferences[].rank` | integer, *nullable* | The student's preference. Null means unranked. A withdrawn application keeps its last rank |
-| `course_preferences[].match_status` | integer | `1` Pending, `2` Matched, `3` Rejected, `4` Withdrawn. `status_label` has the label |
+| `course_preferences` | array | Saved course applications for the term, ordered by `rank` then `application_id` |
+| `course_preferences[].rank` | integer, *nullable* | The student's preference. Null means unranked |
+| `course_preferences[].match_status` | integer | `1` Pending, `2` Matched, `3` Rejected. `status_label` has the label |
 
 `can_edit` is `true` only when all of these hold:
 
 - the term is the period's term
 - `student_application` is the active stage
-- every application is `Pending` or `Withdrawn`, so none has been matched or rejected yet
+- every application is `Pending`, so none has been matched or rejected yet
 
 | Status | `code` | When |
 | --- | --- | --- |
@@ -440,19 +428,18 @@ The student's saved application for one term, with each course's status. Use it 
 The rules are the same as POST, except:
 
 - `term` must match `{semester}` and `{year}` in the path.
-- PhD edits require exactly five distinct ranks from 1 to 5 and allow additional active courses with `rank: null`. Other students can rank one to five courses. An ordinary edit withdraws omitted courses.
+- PhD edits require exactly five courses ranked from 1 to 5. Other students can rank one to five courses.
 - A replacement (`replace_existing: true`) accepts only ranked choices and starts a new set of preferences. PhD replacements add every remaining course back as pending with the default course-history answers. For other students, omitted course applications are deleted.
 - Switching to PhD requires five ranked choices and adds any remaining courses. Switching away from PhD deletes omitted course applications.
-- To withdraw from all courses without updating the profile, send only `term`, `revision`, and `withdraw_all: true`. An empty `course_preferences` list on an ordinary edit is also accepted.
 - `revision` is required. If the application has changed since it was read, for example in another tab, the edit returns 409. Read it again before retrying.
 
 **What changes:** all course and application details are saved in one transaction.
 
 | Course | Result |
 | --- | --- |
-| In the list, and the student already had an application for it | Set to `Pending` with the submitted rank, completion answer, and prior TA declaration. An eligible withdrawn application can be reactivated this way |
+| In the list, and the student already had an application for it | Update the submitted rank, completion answer, and prior TA declaration |
 | In the list, and new | A new `Pending` application |
-| Omitted from an ordinary edit | A `Pending` application becomes `Withdrawn`. Its last rank and declarations are kept |
+| Omitted from an ordinary edit | For PhD students, the existing row stays pending and its rank becomes `null` (No Preference). For other students, the course application row is deleted |
 | Omitted from a replacement | A PhD application gets a pending unranked row with default history. For other students, the course application row is deleted |
 
 `details` replaces this term's saved details and the shared profile and degrees, in the same way as POST. Other terms' saved details don't change.

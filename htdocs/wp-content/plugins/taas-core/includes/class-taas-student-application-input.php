@@ -31,10 +31,9 @@ final class TAAS_Student_Application_Input {
 	 * Owner and term metadata and course preferences are persisted separately.
 	 *
 	 * @param array $body Decoded JSON body.
-	 * @param bool  $allow_empty_courses Whether existing choices may all be withdrawn.
 	 * @return array{
 	 *   term: array{semester: int, year: int},
-	 *   details?: array{
+	 *   details: array{
 	 *     student_name: string,
 	 *     student_email: string,
 	 *     profile: array{
@@ -50,18 +49,11 @@ final class TAAS_Student_Application_Input {
 	 *       grad_date: string, gpa: float|null
 	 *     }>
 	 *   },
-	 *   course_preferences: list<array{course_id: string, rank: int|null, course_completion: int, has_ta_for_course: bool}>
+	 *   course_preferences: list<array{course_id: string, rank: int, course_completion: int, has_ta_for_course: bool}>
 	 * } Normalized values ready for the application service.
 	 * @throws InvalidArgumentException If any input fails validation.
 	 */
-	public static function parse( array $body, bool $allow_empty_courses = false ): array {
-		if ( $allow_empty_courses && true === ( $body['withdraw_all'] ?? false ) ) {
-			self::allow_only_fields( $body, array( 'term', 'withdraw_all' ) );
-			return array(
-				'term'               => self::parse_term( self::require_object( $body, 'term' ) ),
-				'course_preferences' => array(),
-			);
-		}
+	public static function parse( array $body ): array {
 		self::allow_only_fields( $body, array( 'term', 'details', 'course_preferences' ) );
 		$term = self::parse_term( self::require_object( $body, 'term' ) );
 		$details = self::parse_details( self::require_object( $body, 'details' ) );
@@ -69,7 +61,7 @@ final class TAAS_Student_Application_Input {
 		return array(
 			'term'               => $term,
 			'details'            => $details,
-			'course_preferences' => self::parse_preferences( $body['course_preferences'] ?? null, $allow_empty_courses, $is_phd ),
+			'course_preferences' => self::parse_preferences( $body['course_preferences'] ?? null, $is_phd ),
 		);
 	}
 
@@ -260,18 +252,13 @@ final class TAAS_Student_Application_Input {
 	 * Validate course uniqueness/completion and normalize rank order.
 	 *
 	 * @param mixed $course_choices Submitted course preferences.
-	 * @param bool  $allow_empty_courses Whether all preferences may be withdrawn.
 	 * @param bool  $is_phd Whether five ranked courses are required.
 	 * @throws InvalidArgumentException If input validation fails.
 	 */
-	private static function parse_preferences( mixed $course_choices, bool $allow_empty_courses, bool $is_phd ): array {
-		if ( $allow_empty_courses && array() === $course_choices ) {
-			return array();
-		}
+	private static function parse_preferences( mixed $course_choices, bool $is_phd ): array {
 		if ( ! is_array( $course_choices ) || ! array_is_list( $course_choices ) ) {
 			throw new InvalidArgumentException( 'Submit a list of course preferences.' );
 		}
-		$allow_unranked = $allow_empty_courses && $is_phd;
 		$preferences = array();
 		$course_ids         = array();
 		$used_ranks       = array();
@@ -289,10 +276,8 @@ final class TAAS_Student_Application_Input {
 				|| false === filter_var( $course_id, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) ) {
 				throw new InvalidArgumentException( 'Select a valid numeric course ID.' );
 			}
-			$rank = $allow_unranked && array_key_exists( 'rank', $choice ) && null === $choice['rank']
-				? null
-				: self::read_integer( $choice, 'rank', 1, 5 );
-			$duplicate = isset( $course_ids[ $course_id ] ) || ( null !== $rank && isset( $used_ranks[ $rank ] ) );
+			$rank = self::read_integer( $choice, 'rank', 1, 5 );
+			$duplicate = isset( $course_ids[ $course_id ] ) || isset( $used_ranks[ $rank ] );
 			$completed = $choice['has_completed_course'] ?? null;
 			if ( $duplicate || ! is_bool( $completed ) ) {
 				throw new InvalidArgumentException( 'Choose distinct courses and ranks, and answer whether you completed each course.' );
@@ -304,9 +289,7 @@ final class TAAS_Student_Application_Input {
 				throw new InvalidArgumentException( 'Course completion answers must agree.' );
 			}
 			$course_ids[ $course_id ] = true;
-			if ( null !== $rank ) {
-				$used_ranks[ $rank ] = true;
-			}
+			$used_ranks[ $rank ] = true;
 			$preferences[] = array(
 				'course_id'         => $course_id,
 				'rank'              => $rank,
@@ -318,7 +301,7 @@ final class TAAS_Student_Application_Input {
 		if ( $rank_count < ( $is_phd ? 5 : 1 ) || max( array_keys( $used_ranks ) ) !== $rank_count ) {
 			throw new InvalidArgumentException( $is_phd ? 'PhD students must rank exactly five courses.' : 'Rank between one and five courses consecutively starting at 1.' );
 		}
-		usort( $preferences, static fn( array $a, array $b ) => ( $a['rank'] ?? PHP_INT_MAX ) <=> ( $b['rank'] ?? PHP_INT_MAX ) );
+		usort( $preferences, static fn( array $a, array $b ) => $a['rank'] <=> $b['rank'] );
 		return $preferences;
 	}
 

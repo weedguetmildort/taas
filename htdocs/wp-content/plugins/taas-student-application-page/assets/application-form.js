@@ -55,11 +55,9 @@
     const disabledControls = new Map();
     const loadingLocks = new Set(form.querySelectorAll('[data-application-loading-lock]'));
     const submitButtons = () => form.querySelectorAll('[type="submit"]');
-    const withdrawButton = form.querySelector('[data-withdraw-all]');
-    let hasPendingCourses = false;
 
     if (editing) {
-      form.elements.namedItem('collegeStatus').addEventListener('change', () => courses.setAllowUnranked(fields.isPhd()));
+      form.elements.namedItem('collegeStatus').addEventListener('change', () => courses.setPhdEdit(fields.isPhd()));
     }
 
     function showMessage(text, state = '') {
@@ -72,7 +70,7 @@
       degrees.prefill(data.academic_background);
       courses.prefill(data.courses, data.course_preferences, {
         canEdit: data.can_edit ?? data.period?.is_open,
-        unranked: editing && fields.isPhd(),
+        isPhdEdit: editing && fields.isPhd(),
         resetPriorTa: data.replacement?.reset_prior_ta
       });
     }
@@ -112,7 +110,6 @@
     }
 
     function showSaved(data) {
-      hasPendingCourses = data.course_preferences?.some(choice => choice.match_status === 1) ?? false;
       prefill({
         ...data, ...data.details,
         identity: { ufid: data.identity.ufid, email: data.can_edit ? data.identity.email : data.details.student_email }
@@ -122,7 +119,7 @@
         showMessage('A saved course could not be loaded. Please contact the administrator before editing.', 'error');
       } else {
         showMessage(data.can_edit
-          ? 'Click Submit Changes to save your edits. Use Withdraw from all courses to withdraw your entire application.'
+          ? 'Click Submit Changes to save your edits.'
           : 'This saved application is read-only. Editing is unavailable at this time.');
       }
       form.hidden = false;
@@ -149,7 +146,6 @@
       submitButtons().forEach(button => {
         button.hidden = !!readOnly;
       });
-      if (withdrawButton) withdrawButton.hidden = !!readOnly || !hasPendingCourses;
     }
 
     function setTerm(label) {
@@ -179,7 +175,7 @@
     }
 
     function showSuccess() {
-      showMessage('Your application was successfully submitted. Open Check Application Status to view your application. While applications are open, you can edit your course choices or withdraw from individual courses or all courses.', 'success');
+      showMessage('Your application was successfully submitted. Open Check Application Status to view your application. While applications are open, you can edit your course choices.', 'success');
       submitButtons().forEach(button => {
         button.textContent = button.dataset.savedLabel || 'Application submitted';
       });

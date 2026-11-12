@@ -209,8 +209,7 @@ echo "PASS: Required structure and protected field allowlists\n";
 
 $request = $body;
 $request['course_preferences'] = array();
-taas_input_rejects( $request, 'Creation accepted no courses.' );
-taas_input_check( array() === TAAS_Student_Application_Input::parse( $request, true )['course_preferences'], 'Editing must allow withdrawal of all courses.' );
+taas_input_rejects( $request, 'The parser accepted no courses.' );
 foreach ( array( 'true', 1, null ) as $completed ) {
 	$request = $body;
 	$request['course_preferences'][0]['has_completed_course'] = $completed;
@@ -229,7 +228,7 @@ taas_input_rejects( $request, 'Duplicate ranks were accepted.' );
 $request['course_preferences'][0]['rank'] = 2;
 $request['course_preferences'][0]['course_id'] = '101';
 taas_input_rejects( $request, 'Duplicate courses were accepted.' );
-echo "PASS: Course completion, uniqueness, ordering and withdrawal\n";
+echo "PASS: Course completion, uniqueness, ordering and required selection\n";
 
 $request = $body;
 $request['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Phd->value;

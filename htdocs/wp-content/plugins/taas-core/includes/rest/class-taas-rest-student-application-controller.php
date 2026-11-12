@@ -327,7 +327,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 			return new WP_Error( 'taas_invalid_application', 'Send an application JSON object.', array( 'status' => 400 ) );
 		}
 		try {
-			$input = TAAS_Student_Application_Input::parse( $body, $editing && ! $replacement );
+			$input = TAAS_Student_Application_Input::parse( $body );
 			if ( isset( $input['details'] ) ) {
 				$email = TAAS_Auth::current_user()['email'] ?? '';
 				if ( ! is_string( $email ) || ! is_email( $email ) || ! preg_match( '/@ufl\.edu$/i', $email ) ) {

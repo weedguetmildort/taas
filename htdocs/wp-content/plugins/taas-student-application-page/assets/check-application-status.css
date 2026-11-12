@@ -163,7 +163,6 @@
 .status-message { min-height: 1.5em; }
 .status-message[data-state="error"] { color: #b42318; }
 .status-message[data-state="success"] { color: #18703a; }
-.status-withdrawn { background: #e9ecef; color: #495057; }
 #status-editor { margin-top: 25px; border-top: 1px solid #ddd; padding-top: 20px; }
 #status-editor .taas-application-form-root { width: 100%; padding: 0; }
 #status-editor .form-section { box-shadow: none; }
