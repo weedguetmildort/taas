@@ -531,6 +531,27 @@ class MatchingTest extends TestCase {
 	}
 
 	/**
+	 * Students who are not PhD students are never matched, so they are not reported as having hours left
+	 */
+	public function test_students_with_hours_left_lists_only_phd_students(): void {
+		$result = taas_run_matching(
+			array( $this->course( 1, 10 ) ),
+			array(
+				$this->app( 'MS1', 1, student_rank: 1 ),
+				$this->app( 'UG1', 1, student_rank: 1 ),
+			),
+			array(
+				$this->profile( 'MS1', hours: 20, status: TAAS_Enrollment_Status::Masters ),
+				$this->profile( 'UG1', hours: 10, status: TAAS_Enrollment_Status::Undergraduate ),
+				$this->profile( 'PHD1', hours: 15 ),
+			)
+		);
+
+		$this->assertSame( array(), $result['matches'][1] );
+		$this->assertSame( array( 'PHD1' => 15 ), $result['students_with_hours_left'] );
+	}
+
+	/**
 	 * Each run clears match_recommendations, then saves every match in priority order, in one transaction
 	 */
 	public function test_run_matching_replaces_recommendations(): void {

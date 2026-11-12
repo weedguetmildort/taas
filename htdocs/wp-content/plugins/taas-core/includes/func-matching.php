@@ -303,6 +303,11 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 	$students_with_hours_left = array();
 
 	foreach ( $profiles as $profile ) {
+		// Only PhD students are matched in this version
+		if ( TAAS_Enrollment_Status::Phd !== $profile->enrollment_status ) {
+			continue;
+		}
+
 		$left = $hours_left[ $profile->student_ufid ] ?? $profile->available_hours;
 
 		if ( null !== $left && $left > 0 ) {
