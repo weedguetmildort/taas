@@ -15,7 +15,8 @@ defined( 'ABSPATH' ) || exit;
  * user meta, and the TAAS roles that have a source of truth: student from the
  * affiliations attribute, instructor from the professors table. Those roles are
  * added and removed to match their source; TAAS HR and TAAS admin are left to
- * wp-admin.
+ * wp-admin. Students also get a students row, so they exist in TAAS before
+ * they apply.
  */
 class TAAS_Shibboleth {
 
@@ -101,7 +102,8 @@ class TAAS_Shibboleth {
 
 		update_user_meta( $user->ID, TAAS_Auth::UFID_META_KEY, $ufid );
 
-		$changes = self::role_changes( (array) $user->roles, self::synced_roles( $ufid, self::emails() ) );
+		$wanted  = self::synced_roles( $ufid, self::emails() );
+		$changes = self::role_changes( (array) $user->roles, $wanted );
 
 		foreach ( $changes['add'] as $role ) {
 			$user->add_role( $role );
@@ -115,9 +117,91 @@ class TAAS_Shibboleth {
 			TAAS_Logger::info( 'Synced roles from Shibboleth.', array( 'user_id' => $user->ID ) + $changes );
 		}
 
+		// Only an affiliation that says student adds a row; an empty one decides nothing
+		if ( true === ( $wanted[ TAAS_Auth::ROLE_STUDENT ] ?? null ) ) {
+			self::add_student( $user, $ufid );
+		}
+
 		update_user_meta( $user->ID, self::SYNCED_META_KEY, time() );
 
 		return true;
+	}
+
+	/**
+	 * Give a signed-in student a students row before they apply
+	 *
+	 * The row lets staff see who has signed in and prefills the application.
+	 * A failure is logged and never blocks the sign-in.
+	 *
+	 * @param WP_User $user Account that signed in
+	 * @param string  $ufid Valid UFID of the account
+	 * @return void
+	 */
+	private static function add_student( WP_User $user, string $ufid ): void {
+		$emails = self::emails();
+
+		try {
+			$added = ( new TAAS_Student_Repository() )->add_if_missing(
+				new TAAS_Student(
+					$ufid,
+					self::student_name( (string) $user->display_name, (string) $user->user_login, (string) $user->first_name, (string) $user->last_name ),
+					self::student_email( (string) $user->user_email, $emails )
+				)
+			);
+		} catch ( RuntimeException | InvalidArgumentException $e ) {
+			TAAS_Logger::error( 'Could not add the student row: ' . $e->getMessage(), array( 'user_id' => $user->ID ) );
+			return;
+		}
+
+		if ( $added ) {
+			TAAS_Logger::info( 'Added a student row at sign-in.', array( 'user_id' => $user->ID ) );
+		}
+	}
+
+	/**
+	 * Name to start a student's row with
+	 *
+	 * The display name is what TAAS shows elsewhere. WordPress sets it to the
+	 * login name when no name is known, so that falls back to first and last
+	 * name, then to '' for the student to fill in on the application.
+	 *
+	 * @param string $display_name WordPress display name
+	 * @param string $login        WordPress login name, the GatorLink ID
+	 * @param string $first_name   First name
+	 * @param string $last_name    Last name
+	 * @return string At most 255 characters, the column's width
+	 */
+	public static function student_name( string $display_name, string $login, string $first_name, string $last_name ): string {
+		$display_name = trim( (string) preg_replace( '/\s+/u', ' ', $display_name ) );
+
+		if ( '' === $display_name || 0 === strcasecmp( $display_name, $login ) ) {
+			$display_name = trim( (string) preg_replace( '/\s+/u', ' ', $first_name . ' ' . $last_name ) );
+		}
+
+		return mb_substr( $display_name, 0, 255 );
+	}
+
+	/**
+	 * Email to start a student's row with
+	 *
+	 * The account email comes first, since the application requires the
+	 * submitted email to match it. The Shibboleth emails cover an account
+	 * created without one.
+	 *
+	 * @param string   $account_email WordPress account email
+	 * @param string[] $session_emails Emails from the Shibboleth session, preferred first
+	 * @return string
+	 */
+	public static function student_email( string $account_email, array $session_emails ): string {
+		foreach ( array_merge( array( $account_email ), $session_emails ) as $email ) {
+			$email = trim( (string) $email );
+
+			if ( '' !== $email ) {
+				return $email;
+			}
+		}
+
+		return '';
 	}
 
 	/**

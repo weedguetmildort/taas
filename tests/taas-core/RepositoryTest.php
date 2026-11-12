@@ -578,6 +578,43 @@ class RepositoryTest extends TestCase {
 	}
 
 	/**
+	 * A student who signed in is added without touching an existing row's name or email
+	 */
+	public function test_add_if_missing_never_updates_an_existing_row(): void {
+		$this->db->query_result = 1;
+
+		$added = ( new TAAS_Student_Repository() )->add_if_missing( new TAAS_Student( '12345678', 'Albert Gator', 'albert@ufl.edu' ) );
+
+		$this->assertTrue( $added );
+		$this->assertSame(
+			array(
+				"INSERT INTO `wp_taas_core_students` (student_ufid, student_name, student_email) VALUES ('12345678', 'Albert Gator', 'albert@ufl.edu')"
+				. ' ON DUPLICATE KEY UPDATE student_ufid = student_ufid',
+			),
+			$this->db->queries
+		);
+	}
+
+	/**
+	 * MySQL reports no affected rows when the student already had a row
+	 */
+	public function test_add_if_missing_reports_an_existing_row(): void {
+		$this->assertFalse( ( new TAAS_Student_Repository() )->add_if_missing( new TAAS_Student( '12345678', 'Albert Gator', 'albert@ufl.edu' ) ) );
+	}
+
+	/**
+	 * A failed write is an error, not a quiet no-op
+	 */
+	public function test_add_if_missing_throws_on_failure(): void {
+		$this->db->query_result = false;
+		$this->db->last_error   = 'Table is read only';
+
+		$this->expectException( RuntimeException::class );
+		$this->expectExceptionMessage( 'Table is read only' );
+		( new TAAS_Student_Repository() )->add_if_missing( new TAAS_Student( '12345678', 'Albert Gator', 'albert@ufl.edu' ) );
+	}
+
+	/**
 	 * A professor with no row for their UFID claims the unclaimed row matching one of their emails
 	 */
 	public function test_find_or_claim_links_ufid_by_email(): void {

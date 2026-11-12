@@ -166,6 +166,45 @@ class ShibbolethTest extends TestCase {
 	}
 
 	/**
+	 * A real display name is used as is, with spacing tidied
+	 */
+	public function test_student_name_prefers_the_display_name(): void {
+		$this->assertSame( 'Albert Gator', TAAS_Shibboleth::student_name( '  Albert   Gator ', 'albert.gator', 'Albert', 'Gator-Smith' ) );
+	}
+
+	/**
+	 * WordPress's default display name, the login, falls back to first and last name
+	 */
+	public function test_student_name_skips_a_display_name_that_is_the_login(): void {
+		$this->assertSame( 'Albert Gator', TAAS_Shibboleth::student_name( 'Albert.Gator', 'albert.gator', 'Albert', 'Gator' ) );
+		$this->assertSame( 'Albert Gator', TAAS_Shibboleth::student_name( '', 'albert.gator', 'Albert', 'Gator' ) );
+		$this->assertSame( 'Gator', TAAS_Shibboleth::student_name( '', 'albert.gator', '', 'Gator' ) );
+	}
+
+	/**
+	 * With no name known, the student fills it in on the application
+	 */
+	public function test_student_name_can_be_empty(): void {
+		$this->assertSame( '', TAAS_Shibboleth::student_name( 'albert.gator', 'albert.gator', '', '' ) );
+	}
+
+	/**
+	 * Names longer than the column are cut to fit
+	 */
+	public function test_student_name_fits_the_column(): void {
+		$this->assertSame( 255, mb_strlen( TAAS_Shibboleth::student_name( str_repeat( 'é', 300 ), 'albert.gator', '', '' ) ) );
+	}
+
+	/**
+	 * The account email comes first, since applications must match it
+	 */
+	public function test_student_email_prefers_the_account_email(): void {
+		$this->assertSame( 'albert@ufl.edu', TAAS_Shibboleth::student_email( ' albert@ufl.edu ', array( 'other@ufl.edu' ) ) );
+		$this->assertSame( 'other@ufl.edu', TAAS_Shibboleth::student_email( '', array( '', 'other@ufl.edu' ) ) );
+		$this->assertSame( '', TAAS_Shibboleth::student_email( '', array() ) );
+	}
+
+	/**
 	 * Only the last two digits of a UFID are shown
 	 */
 	public function test_mask_ufid(): void {
