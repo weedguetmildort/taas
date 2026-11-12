@@ -67,3 +67,15 @@ ALTER TABLE {prefix}courses
 ALTER TABLE {prefix}student_profiles
 	ADD CONSTRAINT chk_profiles_english_test_score
 	CHECK (english_test_score IS NULL OR english_test_score IN (1, 2, 3, 4));
+
+-- Recommendations are throwaway proposals, so they follow their course
+ALTER TABLE {prefix}match_recommendations
+	ADD CONSTRAINT fk_recommendations_course
+	FOREIGN KEY (course_id) REFERENCES {prefix}courses(course_id)
+	ON DELETE CASCADE;
+
+-- And their student
+ALTER TABLE {prefix}match_recommendations
+	ADD CONSTRAINT fk_recommendations_student
+	FOREIGN KEY (student_ufid) REFERENCES {prefix}students(student_ufid)
+	ON DELETE CASCADE;

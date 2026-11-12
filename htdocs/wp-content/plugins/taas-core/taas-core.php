@@ -51,6 +51,7 @@ require_once TAAS_CORE_PATH . 'includes/types/class-taas-academic-background.php
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-course.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application-cycle.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-match-recommendation.php';
 
 /*
  * Repositories layer for direct DB access.
@@ -65,6 +66,7 @@ require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-academic-backgro
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-course-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-cycle-repository.php';
+require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-match-recommendation-repository.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-application-period.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-student-application-input.php';
 require_once TAAS_CORE_PATH . 'includes/class-taas-student-application-service.php';
@@ -91,7 +93,7 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-hr-applicants-contr
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
 
 /*
- * Staffing formula for courses. This file also holds the matching algorithm, which nothing here runs.
+ * Staffing formula for courses. This file also holds the matching algorithm, which saves its recommendations when run.
  */
 require_once TAAS_CORE_PATH . 'includes/func-matching.php';
 

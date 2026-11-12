@@ -8,6 +8,7 @@
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-matching.php';
+require_once dirname( __DIR__ ) . '/support/class-taas-fake-wpdb.php';
 
 /**
  * Check TA hour calculation and student/course matching
@@ -18,6 +19,41 @@ class MatchingTest extends TestCase {
 	 * Professor UFID used on every test course
 	 */
 	private const PROFESSOR = 1;
+
+	/**
+	 * Original global, restored after each test
+	 *
+	 * @var mixed
+	 */
+	private $original_wpdb;
+
+	/**
+	 * Fake database taas_run_matching() saves its recommendations to
+	 *
+	 * @var TAAS_Fake_Wpdb
+	 */
+	private TAAS_Fake_Wpdb $db;
+
+	/**
+	 * Swap in the fake $wpdb
+	 */
+	protected function setUp(): void {
+		global $wpdb;
+
+		$this->original_wpdb = $wpdb ?? null;
+		$this->db            = new TAAS_Fake_Wpdb();
+		$this->db->insert_id = 1; // recommendation_id is auto-increment
+		$wpdb                = $this->db;
+	}
+
+	/**
+	 * Put the real global back
+	 */
+	protected function tearDown(): void {
+		global $wpdb;
+
+		$wpdb = $this->original_wpdb;
+	}
 
 	/**
 	 * Build a course that needs the given number of TA hours
@@ -492,5 +528,55 @@ class MatchingTest extends TestCase {
 		);
 		$this->assertSame( array( 1, 2, 3 ), array_keys( $result['matches'] ) );
 		$this->assertSame( array(), $result['matches'][3] );
+	}
+
+	/**
+	 * Each run clears match_recommendations, then saves every match in priority order, in one transaction
+	 */
+	public function test_run_matching_replaces_recommendations(): void {
+		taas_run_matching(
+			array( $this->course( 1, 10 ), $this->course( 2, 20 ) ),
+			array(
+				$this->app( 'S1', 1, student_rank: 1 ),
+				$this->app( 'S1', 2, student_rank: 2 ),
+				$this->app( 'S2', 2, student_rank: 1 ),
+			),
+			array(
+				$this->profile( 'S1', hours: 20 ),
+				$this->profile( 'S2', hours: 10 ),
+			)
+		);
+
+		$this->assertSame(
+			array( 'START TRANSACTION', 'DELETE FROM `wp_taas_core_match_recommendations`', 'COMMIT' ),
+			$this->db->queries
+		);
+		$this->assertSame(
+			array( 'wp_taas_core_match_recommendations' ),
+			array_values( array_unique( array_column( $this->db->writes, 'table' ) ) )
+		);
+		$this->assertSame(
+			array(
+				array(
+					'course_id'         => 1,
+					'student_ufid'      => 'S1',
+					'recommended_hours' => 10,
+					'reason'            => 'student_preference_1',
+				),
+				array(
+					'course_id'         => 2,
+					'student_ufid'      => 'S2',
+					'recommended_hours' => 10,
+					'reason'            => 'student_preference_1',
+				),
+				array(
+					'course_id'         => 2,
+					'student_ufid'      => 'S1',
+					'recommended_hours' => 10,
+					'reason'            => 'student_preference_2',
+				),
+			),
+			array_column( $this->db->writes, 'data' )
+		);
 	}
 }
