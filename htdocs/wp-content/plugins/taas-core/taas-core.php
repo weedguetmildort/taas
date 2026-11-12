@@ -87,6 +87,7 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-course-controller.p
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-page-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-application-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-hr-applicants-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
 
 /*

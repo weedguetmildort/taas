@@ -151,7 +151,6 @@
 /* EXPANDED APPLICATION DETAILS */
 
 .hr-applicant-table .student-details {
-    display: none;
     background: #fafafa;
 }
 
@@ -167,8 +166,8 @@
 
 /* HIDE OTHER STUDENT TYPES */
 
-.hr-applicant-table .student-row.hidden,
-.hr-applicant-table .student-details.hidden {
+.hr-applicant-table tr[hidden],
+.hr-table-wrapper.hide-advisor .phd-only {
     display: none;
 }
 
@@ -176,7 +175,7 @@
 
 .hr-applicant-table .student-row.selected {
     background: #e8f1f8;
-    box-shadow: inset 4px 0 #2271b1;
+    box-shadow: inset 4px 0 #1733a5;
 }
 
 /* SAVE BUTTON */
@@ -210,26 +209,6 @@
     .hr-applicant-table {
         min-width: 800px;
     }
-}
-
-/* Ensure filtered rows are actually hidden */
-
-.hr-applicant-table tr.student-row.hidden,
-.hr-applicant-table tr.student-details.hidden {
-    display: none !important;
-}
-
-/* Keep application details hidden until View is clicked */
-
-.hr-applicant-table tr.student-details {
-    display: none;
-}
-
-/* Highlight the selected applicant */
-
-.hr-applicant-table tr.student-row.selected {
-    background-color: #e8f1f8;
-    box-shadow: inset 4px 0 #1733a5;
 }
 
 /* HR APPLICATION REVIEW PROGRESS */

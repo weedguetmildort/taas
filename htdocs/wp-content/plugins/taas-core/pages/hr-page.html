@@ -9,280 +9,125 @@
         </p>
     </div>
 
-<div data-hr-review hidden>
-    <p>The applicant list, review totals, and decisions below use demo data.</p>
+    <div data-hr-review hidden>
+        <p>Application details are placeholders. Review totals and decisions are for demonstration only.</p>
 
-<!-- HR APPLICATION REVIEW PROGRESS -->
-<div class="hr-review-progress">
+        <!-- HR APPLICATION REVIEW PROGRESS -->
+        <div class="hr-review-progress">
 
-    <div class="hr-progress-header">
-        <h3>HR Application Review Progress</h3>
+            <div class="hr-progress-header">
+                <h3>HR Application Review Progress</h3>
 
-        <span class="hr-progress-label">
-            Demo data
-        </span>
-    </div>
-
-    <!-- REVIEWED AND APPROVED COUNTS -->
-    <div class="hr-progress-stats">
-
-        <div class="hr-reviewed-stat">
-            <div class="hr-progress-count">
-                <span id="hr-reviewed-count">45</span>
-                <span class="hr-progress-divider">/</span>
-                <span id="hr-total-applicants">200</span>
+                <span class="hr-progress-label">
+                    Demo data
+                </span>
             </div>
 
-            <span class="hr-progress-description">
-                Applications Reviewed
-            </span>
+            <!-- REVIEWED AND APPROVED COUNTS -->
+            <div class="hr-progress-stats">
+
+                <div class="hr-reviewed-stat">
+                    <div class="hr-progress-count">
+                        <span id="hr-reviewed-count">45</span>
+                        <span class="hr-progress-divider">/</span>
+                        <span id="hr-total-applicants">200</span>
+                    </div>
+
+                    <span class="hr-progress-description">
+                        Applications Reviewed
+                    </span>
+                </div>
+
+                <!-- TOTAL APPROVED -->
+                <div class="hr-approved-stat">
+                    <span class="hr-approved-label">
+                        Total Approved
+                    </span>
+
+                    <span id="hr-approved-count">22</span>
+                </div>
+
+            </div>
+
+            <!-- PROGRESS BAR -->
+            <div class="hr-progress-bar">
+                <div
+                    id="hr-progress-fill"
+                    class="hr-progress-fill"
+                    style="width: 22.5%;">
+                </div>
+            </div>
+
+            <!-- PROGRESS FOOTER -->
+            <div class="hr-progress-footer">
+                <span id="hr-progress-percentage">
+                    22.5% Completed
+                </span>
+
+                <span id="hr-remaining-count">
+                    155 Remaining
+                </span>
+            </div>
+
+        </div> <!-- END HR REVIEW PROGRESS -->
+
+        <div class="student-filter-section">
+            <label for="student-type-filter">Filter Applicants by Student Type</label>
+            <select id="student-type-filter" disabled>
+                <option value="all">All Student Types</option>
+                <option value="phd">PhD Students</option>
+                <option value="masters">Master’s Students</option>
+                <option value="undergrad">Undergraduate Students</option>
+            </select>
         </div>
 
-        <!-- TOTAL APPROVED -->
-        <div class="hr-approved-stat">
-            <span class="hr-approved-label">
-                Total Approved
-            </span>
-
-            <span id="hr-approved-count">22</span>
+        <div class="applicants-section">
+            <h3>Current Applicants</h3>
+            <p data-hr-applicants-status role="status">Loading applicants…</p>
+            <div class="hr-table-wrapper" data-hr-applicants-table hidden>
+                <table class="hr-applicant-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Applicant Name</th>
+                            <th scope="col">View Application</th>
+                            <th scope="col">Student Type</th>
+                            <th scope="col">GPA</th>
+                            <th scope="col">SPEAK / TOEFL iBT Score</th>
+                            <th scope="col">Country of Origin</th>
+                            <th scope="col" class="phd-only">Advisor Name</th>
+                            <th scope="col">Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <template data-hr-applicant-row>
+                <tr class="student-row">
+                    <td data-name></td>
+                    <td><button type="button" class="view-button" aria-expanded="false">View</button></td>
+                    <td data-student-type></td>
+                    <td data-gpa></td>
+                    <td data-score></td>
+                    <td data-country></td>
+                    <td class="phd-only">—</td>
+                    <td>
+                        <div class="decision-options">
+                            <label><input type="radio" value="approve"> Approve</label>
+                            <label><input type="radio" value="reject"> Reject</label>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="student-details" hidden>
+                    <td colspan="8">
+                        <strong data-details-title></strong>
+                        <p>Additional application information will appear here once connected to the backend.</p>
+                    </td>
+                </tr>
+            </template>
+            <div class="save-section">
+                <button type="button" class="save-button" disabled>Save Changes</button>
+                <p id="hr-save-message" role="status"></p>
+            </div>
         </div>
-
     </div>
-
-    <!-- PROGRESS BAR -->
-    <div class="hr-progress-bar">
-        <div
-            id="hr-progress-fill"
-            class="hr-progress-fill"
-            style="width: 22.5%;">
-        </div>
-    </div>
-
-    <!-- PROGRESS FOOTER -->
-    <div class="hr-progress-footer">
-        <span id="hr-progress-percentage">
-            22.5% Completed
-        </span>
-
-        <span id="hr-remaining-count">
-            155 Remaining
-        </span>
-    </div>
-
-</div> <!-- END HR REVIEW PROGRESS -->
-
-
-    <!-- FILTER SECTION -->
-    <div class="student-filter-section">
-
-        <label for="student-type-filter">
-            Filter Applicants by Student Type
-        </label>
-
-        <select id="student-type-filter">
-    <option value="phd">PhD Students</option>
-    <option value="masters">Master's Students</option>
-    <option value="undergrad">Undergraduate Students</option>
-</select>
-           
-    </div>
-
-    <!-- APPLICANT TABLE -->
-    <div class="applicants-section">
-
-        <h3>Demo Applicants</h3>
-
-        <div class="hr-table-wrapper">
-
-            <table class="hr-applicant-table">
-
-                <thead>
-                    <tr>
-                        <th>Applicant Name</th>
-                        <th>View Application</th>
-                        <th>GPA</th>
-                        <th>SPEAK / TOEFL iBT Score</th>
-                        <th>Country of Origin</th>
-                        <th class="phd-only">
-                            Advisor Name
-                        </th>
-                        <th>Decision</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    <!-- PHD STUDENT -->
-                    <tr class="student-row phd">
-
-                        <td>Jane Doe</td>
-
-                        <td>
-                            <button type="button" class="view-button">
-                                View
-                            </button>
-                        </td>
-
-                        <td>3.9</td>
-                        <td>55–60 SPEAK / 28–30 TOEFL iBT</td>
-                        <td>United States</td>
-
-                        <td class="phd-only">
-                            Dr. Smith
-                        </td>
-
-                        <td>
-                            <div class="decision-options">
-                                <label>
-                                    <input type="radio" name="decision_jane" value="approve">
-                                    Approve
-                                </label>
-
-                                <label>
-                                    <input type="radio" name="decision_jane" value="reject">
-                                    Reject
-                                </label>
-                            </div>
-                        </td>
-
-                    </tr>
-
-                    <tr class="student-details phd">
-                        <td colspan="7">
-
-                            <strong>
-                                Jane Doe - Application
-                            </strong>
-
-                            <p>
-                                Additional application
-                                information will appear
-                                here once connected
-                                to the backend.
-                            </p>
-
-                        </td>
-                    </tr>
-
-                    <!-- MASTERS STUDENT -->
-                    <tr class="student-row masters">
-
-                        <td>John Smith</td>
-
-                        <td>
-                            <button type="button" class="view-button">
-                                View
-                            </button>
-                        </td>
-
-                        <td>3.8</td>
-                        <td>45–54 SPEAK / 23–27 TOEFL iBT</td>
-                        <td>India</td>
-
-                        <td class="phd-only"></td>
-
-                        <td>
-                            <div class="decision-options">
-                                <label>
-                                    <input type="radio" name="decision_john" value="approve">
-                                    Approve
-                                </label>
-
-                                <label>
-                                    <input type="radio" name="decision_john" value="reject">
-                                    Reject
-                                </label>
-                            </div>
-                        </td>
-
-                    </tr>
-
-                    <tr class="student-details masters">
-                        <td colspan="6">
-
-                            <strong>
-                                John Smith - Application
-                            </strong>
-
-                            <p>
-                                Additional application
-                                information will appear
-                                here once connected
-                                to the backend.
-                            </p>
-
-                        </td>
-                    </tr>
-
-                    <!-- UNDERGRADUATE STUDENT -->
-                    <tr class="student-row undergrad">
-
-                        <td>Leonardo Rey</td>
-
-                        <td>
-                            <button type="button" class="view-button">
-                                View
-                            </button>
-                        </td>
-
-                        <td>3.7</td>
-                        <td>Not Applicable</td>
-                        <td>United States</td>
-
-                        <td class="phd-only"></td>
-
-                        <td>
-                            <div class="decision-options">
-                                <label>
-                                    <input type="radio" name="decision_leonardo" value="approve">
-                                    Approve
-                                </label>
-
-                                <label>
-                                    <input type="radio" name="decision_leonardo" value="reject">
-                                    Reject
-                                </label>
-                            </div>
-                        </td>
-
-                    </tr>
-
-                    <tr class="student-details undergrad">
-                        <td colspan="6">
-
-                            <strong>
-                                Leonardo Rey - Application
-                            </strong>
-
-                            <p>
-                                Additional application
-                                information will appear
-                                here once connected
-                                to the backend.
-                            </p>
-
-                        </td>
-                    </tr>
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-        <!-- SAVE BUTTON -->
-        <div class="save-section">
-
-            <button type="button" class="save-button">
-                Save Changes
-            </button>
-
-            <p id="hr-save-message" role="status" aria-live="polite" style="font-size:13px; margin-top:12px;">
-            </p>
-
-        </div>
-
-    </div>
-
-</div>
 </div>
