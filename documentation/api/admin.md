@@ -459,7 +459,7 @@ The admin works in three steps:
 
 `GET /matching/recommendations`
 
-The matching algorithm is not connected to this route yet, so it currently returns `[]`.
+Every course in the term, with what the matching algorithm's last run recommended for it. Each run replaces the previous run's recommendations. A course with no recommendations has `recommendations: []` and `unfilled_hours` equal to `weekly_hours`.
 
 **Paginated:** yes
 

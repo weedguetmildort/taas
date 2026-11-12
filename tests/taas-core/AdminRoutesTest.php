@@ -392,7 +392,64 @@ class AdminRoutesTest extends TestCase {
 		$this->assertStringContainsString( 'a.match_status = 1', $this->db->queries[0] );
 	}
 
-	public function test_recommendations_are_empty_until_the_algorithm_hooks_in(): void {
+	public function test_course_recommendations_come_from_the_table_in_saved_order(): void {
+		$this->db->row  = array(
+			'course_id'       => '101',
+			'course_code'     => 'COP3502C',
+			'course_name'     => 'Programming Fundamentals 1',
+			'professor_id'    => '1',
+			'course_semester' => '2',
+			'course_year'     => '2027',
+			'weekly_hours'    => '50',
+		);
+		$this->db->rows = array(
+			array(
+				'application_id'    => '7',
+				'course_id'         => '101',
+				'student_ufid'      => '12345678',
+				'student_name'      => 'Jane Doe',
+				'recommended_hours' => '20',
+				'reason'            => 'professor_preference_1',
+			),
+			array(
+				'application_id'    => '9',
+				'course_id'         => '101',
+				'student_ufid'      => '23456789',
+				'student_name'      => 'Sam Lee',
+				'recommended_hours' => '10',
+				'reason'            => 'applied',
+			),
+		);
+
+		$data = ( new TAAS_REST_Matching_Controller() )->get_course_recommendations( new WP_REST_Request( array(), array( 'course_id' => '101' ) ) )->get_data();
+
+		$this->assertSame( 101, $data['course_id'] );
+		$this->assertSame( 50, $data['weekly_hours'] );
+		$this->assertSame( 20, $data['unfilled_hours'] );
+		$this->assertSame(
+			array(
+				array(
+					'application_id' => 7,
+					'student_ufid'   => '12345678',
+					'student_name'   => 'Jane Doe',
+					'hours'          => 20,
+					'reason'         => 'professor_preference_1',
+				),
+				array(
+					'application_id' => 9,
+					'student_ufid'   => '23456789',
+					'student_name'   => 'Sam Lee',
+					'hours'          => 10,
+					'reason'         => 'applied',
+				),
+			),
+			$data['recommendations']
+		);
+		$this->assertStringContainsString( 'WHERE r.course_id IN (101)', $this->db->sql );
+		$this->assertStringContainsString( 'ORDER BY r.recommendation_id', $this->db->sql );
+	}
+
+	public function test_recommendations_are_empty_for_a_term_with_no_courses(): void {
 		$result = ( new TAAS_REST_Matching_Controller() )->get_recommendations(
 			new WP_REST_Request(
 				array(

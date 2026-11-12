@@ -22,8 +22,8 @@ defined( 'ABSPATH' ) || exit;
  *   POST /matching/finalize                            reject everything still Pending
  *
  * The admin makes each match with PATCH /applications/{application_id}. Nothing
- * here runs the matching algorithm: it plugs in through the
- * taas_matching_recommendations filter, and until then there are no recommendations.
+ * here runs the matching algorithm: the recommendation routes read what its
+ * last run saved to match_recommendations.
  */
 final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 
@@ -44,13 +44,21 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 	private TAAS_Course_Repository $courses;
 
 	/**
+	 * Match recommendations table.
+	 *
+	 * @var TAAS_Match_Recommendation_Repository
+	 */
+	private TAAS_Match_Recommendation_Repository $recommendations;
+
+	/**
 	 * Create the controller.
 	 */
 	public function __construct() {
 		parent::__construct( 'matching' );
 
-		$this->applications = new TAAS_Application_Repository();
-		$this->courses      = new TAAS_Course_Repository();
+		$this->applications    = new TAAS_Application_Repository();
+		$this->courses         = new TAAS_Course_Repository();
+		$this->recommendations = new TAAS_Match_Recommendation_Repository();
 	}
 
 	/**
@@ -114,7 +122,7 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 					return $term;
 				}
 
-				$items = self::recommendations_for_term( $term[0], $term[1] );
+				$items = $this->course_recommendations( $this->courses->find_by_term( $term[0], $term[1] ) );
 
 				if ( $request->has_param( 'student_ufid' ) ) {
 					$items = self::only_student( $items, (string) $request['student_ufid'] );
@@ -139,24 +147,7 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 			function () use ( $request ) {
 				$course = $this->courses->find( (int) $this->path_param( $request, 'course_id' ) );
 
-				if ( null === $course ) {
-					return $this->not_found();
-				}
-
-				foreach ( self::recommendations_for_term( $course->course_semester, $course->course_year ) as $item ) {
-					if ( (int) $item['course_id'] === $course->course_id ) {
-						return $item;
-					}
-				}
-
-				return array(
-					'course_id'       => $course->course_id,
-					'course_code'     => $course->course_code,
-					'course_name'     => $course->course_name,
-					'weekly_hours'    => $course->weekly_hours,
-					'unfilled_hours'  => $course->weekly_hours,
-					'recommendations' => array(),
-				);
+				return null === $course ? $this->not_found() : $this->course_recommendations( array( $course ) )[0];
 			}
 		);
 	}
@@ -352,28 +343,41 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 	}
 
 	/**
-	 * A term's recommended matches, from whatever has hooked in to provide them.
+	 * Build response data for courses with their recommended matches.
 	 *
-	 * @param TAAS_Semester $semester Semester to look up.
-	 * @param int           $year     Year to look up.
+	 * A course with no recommendations gets an empty list, with all its weekly_hours unfilled.
+	 *
+	 * @param TAAS_Course[] $courses Courses to describe.
 	 * @return array<int, array<string, mixed>>
+	 * @throws RuntimeException If the query fails.
 	 */
-	private static function recommendations_for_term( TAAS_Semester $semester, int $year ): array {
-		/**
-		 * Filter the recommended matches for a term
-		 *
-		 * Lets the matching algorithm provide its recommendations. Return one item
-		 * per course: course_id, course_code, course_name, weekly_hours,
-		 * unfilled_hours, and recommendations, a list of application_id,
-		 * student_ufid, student_name, hours and reason.
-		 *
-		 * @since 0.7.8.8.2
-		 *
-		 * @param array         $recommendations Items, by default none.
-		 * @param TAAS_Semester $semester        Semester of the term.
-		 * @param int           $year            Year of the term.
-		 */
-		return apply_filters( 'taas_matching_recommendations', array(), $semester, $year );
+	private function course_recommendations( array $courses ): array {
+		$by_course = array();
+
+		$course_ids = array_map( static fn( TAAS_Course $course ) => $course->course_id, $courses );
+
+		foreach ( $this->recommendations->for_courses( $course_ids ) as $recommendation ) {
+			$course_id = $recommendation['course_id'];
+			unset( $recommendation['course_id'] );
+
+			$by_course[ $course_id ][] = $recommendation;
+		}
+
+		return array_map(
+			static function ( TAAS_Course $course ) use ( $by_course ) {
+				$recommendations = $by_course[ $course->course_id ] ?? array();
+
+				return array(
+					'course_id'       => $course->course_id,
+					'course_code'     => $course->course_code,
+					'course_name'     => $course->course_name,
+					'weekly_hours'    => $course->weekly_hours,
+					'unfilled_hours'  => null === $course->weekly_hours ? null : $course->weekly_hours - array_sum( array_column( $recommendations, 'hours' ) ),
+					'recommendations' => $recommendations,
+				);
+			},
+			$courses
+		);
 	}
 
 	/**
