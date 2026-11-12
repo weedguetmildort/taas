@@ -20,7 +20,8 @@ final class TAAS_Student_Submission {
 	 * request. Term and owner are separate columns; course choices are separate rows.
 	 * The first degree is current/most recent; subsequent degrees are previous ones.
 	 * Optional request fields are present after normalization: absent resume/test
-	 * values become null, and absent minor/additional_info values become empty strings.
+	 * values become null, absent minor/additional_info values become empty strings,
+	 * and a blank advisor name becomes N/A.
 	 *
 	 * Snapshots store the selected english_test_score category; null means unanswered
 	 * on applications cleared by the score-category migration.
@@ -43,7 +44,7 @@ final class TAAS_Student_Submission {
 	 *     eap5836_status: int, eap5837_status: int,
 	 *     resume_url: string|null, additional_info: string,
 	 *     fws_eligibility?: string|null, fws_award_letter_url?: string|null,
-	 *     english_test_score?: int|null
+	 *     english_test_score?: int|null, advisor_name?: string
 	 *   },
 	 *   academic_background: list<array{
 	 *     university: string, degree_type: int, major: string, minor: string,

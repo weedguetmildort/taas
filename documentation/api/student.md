@@ -88,6 +88,7 @@ Everything the application page needs: the period, the student's identity, their
     "additional_info": ""
   },
   "english_test_score": 2,
+  "advisor_name": null,
   "academic_background": [
     {
       "background_id": 37,
@@ -125,6 +126,7 @@ Everything the application page needs: the period, the student's identity, their
 | `replacement` | object, *nullable* | When the application is editable, contains the term edit `endpoint`, current `revision`, saved `student_name`, and pending ranked `course_preferences`. For a saved PhD application, `reset_prior_ta: true` tells the form to clear the prior TA checkboxes while prefilling the ranks and course completion answers. Submit to this endpoint with `replace_existing: true` after the student chooses Start a new form. |
 | `profile` | object, *nullable* | The student's shared profile as stored, which every submission or edit replaces. `null` if they have no profile yet. `has_ta_experience` is `0` or `1` here, not a boolean |
 | `english_test_score` | integer, *nullable* | Latest application category (1–4), or null if unanswered |
+| `advisor_name` | string, *nullable* | Advisor name from the current term’s saved application or, for a new application, the latest saved term. `null` if no name has been recorded |
 | `academic_background` | array | The student's shared degrees, in the order they last submitted them. `[]` if they have none. `minor` is *nullable* |
 | `courses` | array | Every course in the period's term, ordered by `course_code`, then `course_id` |
 
@@ -207,6 +209,7 @@ Submits the student's first application for the period's term. Edits to an exist
 | `fws_eligibility` | undergraduates | `yes`, `no`, or `not_applicable`; an explicit answer is required. Graduate saves normalize this to `no`. The profile column is non-nullable and defaults to `no`. |
 | `fws_award_letter_url` | when FWS is `yes` | Separate FWS award letter link: complete HTTP/HTTPS URL, maximum 255 characters. The column is nullable; omitted, `null`, and empty values become `null` unless eligibility is `yes`. Graduate saves always clear it to `null`. |
 | `additional_info` | no | Up to 1000 characters. Saved as `""` when omitted |
+| `advisor_name` | no | PhD advisor’s name, up to 255 characters. Blank or omitted names and submissions for other programs are saved as `"N/A"` in the term snapshot |
 | `english_test_score` | yes | Integer category 1–4; see the labels below |
 
 FWS fields are stored in both the shared student profile and the submitted term snapshot. Saving graduate status sets eligibility to `no` and clears the award letter URL for that profile and term only; earlier terms remain unchanged. Existing snapshots without FWS fields remain readable, but undergraduates must answer eligibility when saving edits. The form preserves FWS entries while toggling college status before saving; a successful graduate save clears those entries.

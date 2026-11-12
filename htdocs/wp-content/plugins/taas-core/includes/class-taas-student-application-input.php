@@ -40,7 +40,7 @@ final class TAAS_Student_Application_Input {
 	 *       phone: string, country_code: string, admitted_semester: string,
 	 *       available_hours: int, enrollment_status: int,
 	 *       eap5836_status: int, eap5837_status: int,
-	 *       resume_url: string|null, additional_info: string,
+	 *       resume_url: string|null, additional_info: string, advisor_name: string,
 	 *       fws_eligibility: string, fws_award_letter_url?: string|null,
 	 *       english_test_score: int
 	 *     },
@@ -121,6 +121,7 @@ final class TAAS_Student_Application_Input {
 				'fws_award_letter_url',
 				'english_test_score',
 				'additional_info',
+				'advisor_name',
 			)
 		);
 		$country_code = strtoupper( self::read_text( $profile, 'country_code', 2 ) );
@@ -137,6 +138,9 @@ final class TAAS_Student_Application_Input {
 			throw new InvalidArgumentException( 'Planned TA hours must be 10 or 20.' );
 		}
 		$enrollment_status = self::read_integer( $profile, 'enrollment_status', TAAS_Enrollment_Status::Undergraduate->value, TAAS_Enrollment_Status::Phd->value );
+		$advisor_name = TAAS_Enrollment_Status::Phd->value === $enrollment_status
+			? self::read_text( $profile, 'advisor_name', 255, false )
+			: '';
 		$english_test_score = $profile['english_test_score'] ?? null;
 		if ( ! is_int( $english_test_score ) || null === TAAS_English_Test_Score::tryFrom( $english_test_score ) ) {
 			throw new InvalidArgumentException( 'english_test_score has an invalid value.' );
@@ -159,6 +163,7 @@ final class TAAS_Student_Application_Input {
 			'resume_url'         => '' === $resume_url ? null : $resume_url,
 			'english_test_score' => $english_test_score,
 			'additional_info'    => self::read_text( $profile, 'additional_info', 1000, false ),
+			'advisor_name'       => '' === $advisor_name ? 'N/A' : $advisor_name,
 		) + self::parse_fws( $profile, $enrollment_status );
 	}
 

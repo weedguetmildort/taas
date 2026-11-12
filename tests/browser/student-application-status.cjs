@@ -197,6 +197,7 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     console.log('PASS: FWS prefills and saves separately from the resume; a graduate save clears FWS and requires a new answer on return');
 
     fixture.details.profile.enrollment_status = 3;
+    fixture.details.profile.advisor_name = 'N/A';
     fixture.courses = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(code => ({
       course_id: `fixture-${code}`, course_code: `TEST-${code}`, course_name: `Course ${code}`
     }));
@@ -207,6 +208,10 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
       has_completed_course: true, course_completion: 2, has_ta_for_course: true
     });
     await open();
+    const advisorName = page.locator('[name="advisorName"]');
+    assert(await advisorName.isVisible());
+    assert.equal(await advisorName.inputValue(), '');
+    await advisorName.fill('Dr. Morgan Rivera');
     assert.equal(await page.locator('#status-course-rows [data-status-text="rank"]').filter({ hasText: 'No Preference' }).count(), 2);
     assert.deepEqual(await page.locator('[data-course]').evaluateAll(nodes => nodes.map(node => node.dataset.course)),
       ['fixture-A', 'fixture-B', 'fixture-C', 'fixture-D', 'fixture-E']);
@@ -226,6 +231,8 @@ const { chromium } = require(process.env.TAAS_PLAYWRIGHT_MODULE || 'playwright')
     await page.waitForFunction(() => document.querySelector('#status-message').dataset.state === 'success');
     await page.waitForFunction(() => !document.querySelector('#application-fields').disabled);
     const choices = savedPayloads.at(-1).course_preferences;
+    assert.equal(savedPayloads.at(-1).details.profile.advisor_name, 'Dr. Morgan Rivera');
+    assert.equal(await advisorName.inputValue(), 'Dr. Morgan Rivera');
     assert.equal(choices.length, 5);
     assert.equal(choices.find(choice => choice.course_id === 'fixture-F').rank, 1);
     assert.equal(choices.some(choice => choice.course_id === 'fixture-A'), false);

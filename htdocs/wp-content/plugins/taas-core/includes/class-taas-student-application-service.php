@@ -67,7 +67,7 @@ final class TAAS_Student_Application_Service {
 	 *             phone: string, country_code: string, admitted_semester: string,
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
-	 *             resume_url: ?string, additional_info: string,
+	 *             resume_url: ?string, additional_info: string, advisor_name: string,
 	 *             fws_eligibility: string, fws_award_letter_url?: string|null,
 	 *             english_test_score: int
 	 *         },
@@ -100,7 +100,7 @@ final class TAAS_Student_Application_Service {
 	 *             phone: string, country_code: string, admitted_semester: string,
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
-	 *             resume_url: ?string, additional_info: string,
+	 *             resume_url: ?string, additional_info: string, advisor_name: string,
 	 *             fws_eligibility: string, fws_award_letter_url?: string|null,
 	 *             english_test_score: int
 	 *         },
@@ -270,7 +270,9 @@ final class TAAS_Student_Application_Service {
 	 * @param array                   $expected_choices Expected choices keyed by course ID.
 	 */
 	private static function is_identical_retry( TAAS_Student_Submission $saved_submission, array $saved_choices, array $details, array $expected_choices ): bool {
-		if ( ! self::same_details( $saved_submission->submitted_details, $details ) ) {
+		$saved_details = $saved_submission->submitted_details;
+		$saved_details['profile']['advisor_name'] ??= 'N/A';
+		if ( ! self::same_details( $saved_details, $details ) ) {
 			return false;
 		}
 		foreach ( $saved_choices as $choice ) {

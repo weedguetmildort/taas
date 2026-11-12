@@ -44,7 +44,7 @@
       && Number.isInteger(degree.degree_type) && degree.degree_type >= 1 && degree.degree_type <= 4
       && isText(degree.grad_date) && /^[1-9][0-9]{3}-(0[1-9]|1[0-2])-01$/.test(degree.grad_date)
       && optionalNumber(degree.gpa) && (degree.gpa == null || (degree.gpa >= 0 && degree.gpa <= 4)));
-    return validPeriod && validIdentity && validProfile && validCourses && validDegrees
+    return validPeriod && validIdentity && validProfile && validCourses && validDegrees && optionalText(data.advisor_name)
       && typeof data.already_applied === 'boolean' && validEnglishScore(data.english_test_score)
       && (data.replacement == null || (data.already_applied && isRecord(data.replacement)
         && isText(data.replacement.endpoint) && data.replacement.endpoint.length > 0

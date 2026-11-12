@@ -411,12 +411,14 @@ try {
 			taas_edit_check( 201 === taas_edit_request( 'POST', '/student/application', $phd )->get_status(), 'PhD application is created from five ranked choices' );
 			taas_edit_check( 200 === taas_edit_request( 'POST', '/student/application', $phd )->get_status(), 'PhD creation retries recognize the automatically added rows' );
 			$saved_phd = $read_phd();
+			taas_edit_check( 'N/A' === $saved_phd['details']['profile']['advisor_name'], 'An omitted advisor is saved as N/A in the term application' );
 			$choices = array_column( $saved_phd['course_preferences'], null, 'course_id' );
 			taas_edit_check( 8 === count( $choices ) && 5 === $choices[ $phd_ids[5] ]['rank'], 'PhD submission saves all eight courses with the selected ranks' );
 			$extra = $choices[ $phd_ids[6] ];
 			taas_edit_check( null === $extra['rank'] && 1 === $extra['match_status'] && 0 === $extra['course_completion'] && false === $extra['has_ta_for_course'], 'Automatically added courses are pending with a null rank and default history' );
 
 			$phd_edit = $phd;
+			$phd_edit['details']['profile']['advisor_name'] = 'Dr. Morgan Rivera';
 			$phd_edit['revision'] = $saved_phd['revision'];
 			$demoted = $choices[ $phd_ids[5] ];
 			$phd_edit['course_preferences'][4] = array(
@@ -434,6 +436,8 @@ try {
 			taas_edit_check( 400 === taas_edit_request( 'POST', $phd_route, $invalid_phd_edit )->get_status(), 'PhD edits reject explicit unranked courses' );
 			taas_edit_check( $saved_phd['revision'] === $read_phd()['revision'], 'Rejecting an explicit unranked course preserves the application' );
 			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $phd_edit )->get_status(), 'PhD edits accept five ranked courses' );
+			taas_edit_check( 'Dr. Morgan Rivera' === $read_phd()['details']['profile']['advisor_name'], 'The advisor name is saved and returned in application details' );
+			taas_edit_check( 'Dr. Morgan Rivera' === taas_edit_request( 'GET', '/student/application' )->get_data()['advisor_name'], 'The application form prefills the saved advisor name' );
 			$choices = array_column( $read_phd()['course_preferences'], null, 'course_id' );
 			$demoted['rank'] = null;
 			taas_edit_check( $demoted === $choices[ $phd_ids[5] ] && 5 === $choices[ $phd_ids[6] ]['rank'], 'A PhD course swap keeps the deselected row and clears only its rank' );
@@ -442,7 +446,9 @@ try {
 			taas_edit_check( 5 === count( $replacement_phd['course_preferences'] ) && $replacement_phd['reset_prior_ta'], 'PhD replacement prefills only the five active ranks and resets prior TA answers' );
 			$phd['revision'] = $replacement_phd['revision'];
 			$phd['replace_existing'] = true;
+			$phd['details']['profile']['advisor_name'] = '';
 			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $phd )->get_status(), 'PhD replacement restores full course coverage' );
+			taas_edit_check( 'N/A' === $read_phd()['details']['profile']['advisor_name'], 'Clearing the advisor name saves N/A' );
 			$choices = array_column( $read_phd()['course_preferences'], null, 'course_id' );
 			taas_edit_check( 1 === $choices[ $phd_ids[8] ]['match_status'] && false === $choices[ $phd_ids[6] ]['has_ta_for_course'], 'Replacement retains course coverage and resets unranked history' );
 
