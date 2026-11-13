@@ -209,8 +209,7 @@ echo "PASS: Required structure and protected field allowlists\n";
 
 $request = $body;
 $request['course_preferences'] = array();
-taas_input_rejects( $request, 'Creation accepted no courses.' );
-taas_input_check( array() === TAAS_Student_Application_Input::parse( $request, true )['course_preferences'], 'Editing must allow withdrawal of all courses.' );
+taas_input_rejects( $request, 'The parser accepted no courses.' );
 foreach ( array( 'true', 1, null ) as $completed ) {
 	$request = $body;
 	$request['course_preferences'][0]['has_completed_course'] = $completed;
@@ -229,7 +228,7 @@ taas_input_rejects( $request, 'Duplicate ranks were accepted.' );
 $request['course_preferences'][0]['rank'] = 2;
 $request['course_preferences'][0]['course_id'] = '101';
 taas_input_rejects( $request, 'Duplicate courses were accepted.' );
-echo "PASS: Course completion, uniqueness, ordering and withdrawal\n";
+echo "PASS: Course completion, uniqueness, ordering and required selection\n";
 
 $request = $body;
 $request['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Phd->value;
@@ -239,6 +238,16 @@ foreach ( range( 0, 4 ) as $count ) {
 }
 $request['course_preferences'] = $five_choices;
 taas_input_check( 5 === count( TAAS_Student_Application_Input::parse( $request )['course_preferences'] ), 'PhD applications accept five courses.' );
+$request['details']['profile']['advisor_name'] = '  ';
+taas_input_check( 'N/A' === TAAS_Student_Application_Input::parse( $request )['details']['profile']['advisor_name'], 'Blank advisor names are saved as N/A.' );
+$request['details']['profile']['advisor_name'] = '  Dr. Morgan Rivera  ';
+taas_input_check( 'Dr. Morgan Rivera' === TAAS_Student_Application_Input::parse( $request )['details']['profile']['advisor_name'], 'PhD advisor names are trimmed and retained.' );
+$request['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Masters->value;
+taas_input_check( 'N/A' === TAAS_Student_Application_Input::parse( $request )['details']['profile']['advisor_name'], 'Other programs store N/A for the advisor name.' );
+$request['details']['profile']['enrollment_status'] = TAAS_Enrollment_Status::Phd->value;
+$invalid_advisor = $request;
+$invalid_advisor['details']['profile']['advisor_name'] = str_repeat( 'x', 256 );
+taas_input_rejects( $invalid_advisor, 'An oversized advisor name was accepted.' );
 $request['course_preferences'][] = array(
 	'course_id'            => '106',
 	'rank'                 => 6,

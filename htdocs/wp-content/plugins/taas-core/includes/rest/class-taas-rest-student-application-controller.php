@@ -110,12 +110,14 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 						array_filter(
 							$saved['choices'],
 							static fn( array $choice ) => TAAS_Match_Status::Pending->value === (int) $choice['match_status']
+								&& null !== $choice['student_preference_rank']
 						)
 					);
 					$replacement = array(
 						'endpoint'           => $endpoint,
 						'revision'           => TAAS_Student_Application_Service::revision( $saved['snapshot'], $saved['choices'] ),
 						'student_name'       => $saved['snapshot']->submitted_details['student_name'] ?? '',
+						'reset_prior_ta'     => TAAS_Enrollment_Status::Phd->value === ( $saved['snapshot']->submitted_details['profile']['enrollment_status'] ?? null ),
 						'course_preferences' => $this->format_preferences( $pending, $courses ),
 					);
 				}
@@ -134,6 +136,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 						'replacement'         => $replacement,
 						'profile'             => $profile?->to_row(),
 						'english_test_score'  => $exam_source['english_test_score'] ?? null,
+						'advisor_name'        => ( $saved['snapshot'] ?? $latest )?->submitted_details['profile']['advisor_name'] ?? null,
 						'academic_background' => array_map(
 							static fn( TAAS_Academic_Background $entry ) => $entry->to_row(),
 							( new TAAS_Academic_Background_Repository() )->find_by_student( $ufid )
@@ -325,16 +328,18 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 			return new WP_Error( 'taas_invalid_application', 'Send an application JSON object.', array( 'status' => 400 ) );
 		}
 		try {
-			$input = TAAS_Student_Application_Input::parse( $body, $editing && ! $replacement );
-			$email = TAAS_Auth::current_user()['email'] ?? '';
-			if ( ! is_string( $email ) || ! is_email( $email ) || ! preg_match( '/@ufl\.edu$/i', $email ) ) {
-				return new WP_Error( 'taas_student_email_unavailable', 'Your authenticated university email is unavailable. Please contact the administrator.', array( 'status' => 403 ) );
+			$input = TAAS_Student_Application_Input::parse( $body );
+			if ( isset( $input['details'] ) ) {
+				$email = TAAS_Auth::current_user()['email'] ?? '';
+				if ( ! is_string( $email ) || ! is_email( $email ) || ! preg_match( '/@ufl\.edu$/i', $email ) ) {
+					return new WP_Error( 'taas_student_email_unavailable', 'Your authenticated university email is unavailable. Please contact the administrator.', array( 'status' => 403 ) );
+				}
+				if ( 0 !== strcasecmp( $input['details']['student_email'], $email ) ) {
+					return new WP_Error( 'taas_student_email_mismatch', 'Your email must match your authenticated university account. Reload the page before submitting.', array( 'status' => 400 ) );
+				}
+				// Use the authenticated value for both the shared identity and term snapshot.
+				$input['details']['student_email'] = $email;
 			}
-			if ( 0 !== strcasecmp( $input['details']['student_email'], $email ) ) {
-				return new WP_Error( 'taas_student_email_mismatch', 'Your email must match your authenticated university account. Reload the page before submitting.', array( 'status' => 400 ) );
-			}
-			// Use the authenticated value for both the shared identity and term snapshot.
-			$input['details']['student_email'] = $email;
 			return array(
 				'input'       => $input,
 				'revision'    => $revision,

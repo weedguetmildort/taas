@@ -238,6 +238,12 @@
                           </select>
                         </label>
                       </div>
+                      <div class="wp-block-taas-application-field" data-advisor-section hidden>
+                        <label>Advisor Name (optional)
+                          <input name="advisorName" type="text" maxlength="255" aria-describedby="advisor-name-help">
+                          <small id="advisor-name-help">Leave blank if you don’t know your advisor’s name.</small>
+                        </label>
+                      </div>
                       <div class="wp-block-group full-width">
                         <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
                           <div class="wp-block-taas-application-field">
@@ -262,11 +268,11 @@
               <div class="wp-block-group form-section course-section">
                 <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
                   <h2 class="wp-block-heading">Course Preferences</h2>
-                  <p class="section-help wp-block-paragraph">PhD students must select exactly five courses. All other students must select one to five courses. Rank all selected courses consecutively starting at 1 (highest preference), with no ties or skipped numbers. For example, three selected courses must have ranks 1, 2, and 3. Confirm you have completed each selected course. Completion is self-reported and will be verified by HR. To withdraw all course preferences while editing is available, uncheck every course and click Submit Changes.</p>
+                  <p class="section-help wp-block-paragraph">PhD students must rank exactly five courses. Unchecking a course changes its rank to No Preference. Other students must rank one to five courses and can uncheck a course to withdraw from it. Use consecutive ranks starting at 1 and answer the course-history question for every selected course.</p>
                   <div class="course-selection-layout">
                     <div class="course-chooser">
                       <h3>Available courses</h3>
-                      <p class="course-subhelp">Check the courses you want to rank.</p>
+                      <p class="course-subhelp">Check the courses you want to apply for.</p>
 
 <!-- Course templates: edit layout here; keep input names and data hooks. -->
 <template data-course-template="emptyRankings">
@@ -311,7 +317,7 @@
                     </div>
                     <div class="course-ranking-panel">
                       <h3>Your course rankings</h3>
-                      <p class="course-subhelp">Set a different rank for each course and answer the course-history question.</p>
+                      <p class="course-subhelp">Choose a unique rank for each ranked course and answer the course-history question for every selected course.</p>
                       <div id="student-course-preferences" data-application-ui="rankings" class="preferences-grid"></div>
                     </div>
                   </div>
@@ -321,7 +327,9 @@
             <footer class="form-actions">
               <p class="student-app-message" id="form-message" data-application-ui="message" role="status" aria-live="polite">Loading your application…</p>
               <button type="button" id="retry-application-load" data-application-ui="retry" hidden>Retry loading</button>
-              <button type="submit" data-saved-label="Application submitted" disabled data-application-loading-lock>Submit Changes</button>
+              <div class="form-action-buttons">
+                <button type="submit" data-saved-label="Application submitted" disabled data-application-loading-lock>Submit Changes</button>
+              </div>
             </footer>
           </form>
         </div>

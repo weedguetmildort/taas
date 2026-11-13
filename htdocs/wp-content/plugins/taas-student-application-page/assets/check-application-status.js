@@ -4,8 +4,7 @@
   const STATUSES = {
     1: { style: 'status-pending', label: 'Pending' },
     2: { style: 'status-approved', label: 'Matched' },
-    3: { style: 'status-rejected', label: 'Rejected' },
-    4: { style: 'status-withdrawn', label: 'Withdrawn' }
+    3: { style: 'status-rejected', label: 'Rejected' }
   };
   function initializeStatusPage() {
     const root = document.querySelector('#student-status-page');
@@ -98,7 +97,7 @@
       const values = {
         code: choice.course_code || choice.course_id,
         name: choice.course_name || '',
-        rank: choice.match_status === 4 || choice.rank === null ? '—' : String(choice.rank),
+        rank: choice.rank === null ? 'No Preference' : String(choice.rank),
         status: choice.status_label || statusInfo?.label || 'Status unavailable'
       };
       for (const [field, text] of Object.entries(values)) {
@@ -110,7 +109,10 @@
     }
 
     function renderApplication(data) {
-      const courseRows = data.course_preferences.map(createCourseRow);
+      const visibleRank = choice => choice.rank ?? Number.MAX_SAFE_INTEGER;
+      const courseRows = [...data.course_preferences]
+        .sort((a, b) => visibleRank(a) - visibleRank(b))
+        .map(createCourseRow);
       rows.replaceChildren(...(courseRows.length ? courseRows : [cloneStatusTemplate('empty')]));
       edit.textContent = data.can_edit ? edit.dataset.editLabel || 'Edit Application' : edit.dataset.viewLabel || 'View Application Details';
       table.hidden = false;
@@ -144,7 +146,7 @@
         && isRecord(data.details.profile) && Array.isArray(data.details.academic_background)
         && Array.isArray(data.courses) && data.courses.every(course => isRecord(course) && isId(course.course_id))
         && Array.isArray(data.course_preferences) && data.course_preferences.every(choice =>
-          isRecord(choice) && isId(choice.course_id) && [1, 2, 3, 4].includes(choice.match_status)
+          isRecord(choice) && isId(choice.course_id) && [1, 2, 3].includes(choice.match_status)
           && (choice.rank === null || (Number.isInteger(choice.rank) && choice.rank >= 1))
           && typeof choice.has_completed_course === 'boolean'
           && (!Object.hasOwn(choice, 'course_completion')

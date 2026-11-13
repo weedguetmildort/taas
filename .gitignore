@@ -17,6 +17,7 @@
 !/htdocs/wp-content/plugins/taas-core/
 !/htdocs/wp-content/plugins/taas-student-application-page/
 !/htdocs/wp-content/plugins/taas-admin-page/
+!/htdocs/wp-content/plugins/taas-hr-page/
 
 # Sensitive files
 wp-config.php
@@ -27,6 +28,7 @@ wp-config.php
 /vendor/
 /real-data
 .phpunit.cache/
+/build/
 
 # PHP storm junk files
 .idea/

@@ -52,7 +52,7 @@
       'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone',
       'eap5836Status', 'eap5837Status', 'taHours', 'firstName', 'lastName', 'englishTestScore'
     ];
-    const optional = ['ufid', 'additionalInfo', 'resumeUrl', 'fwsEligibility', 'fwsAwardLetterUrl', 'phoneCallingCode'];
+    const optional = ['ufid', 'additionalInfo', 'advisorName', 'resumeUrl', 'fwsEligibility', 'fwsAwardLetterUrl', 'phoneCallingCode'];
     const inputs = {};
     for (const name of [...required, ...optional]) {
       const matches = [...form.elements].filter(input => input.name === name);
@@ -114,6 +114,8 @@
     const { countryMap, countryNames } = createCountryLookup(inputs.countryOfOrigin);
     populateCallingCodes(inputs.phoneCallingCode, countryNames);
     const phoneCodeDisplay = form.querySelector('[data-phone-code-display]');
+    const advisorSection = form.querySelector('[data-advisor-section]');
+    const isPhd = () => inputs.collegeStatus.value === 'phd';
 
     function updatePhoneCodeDisplay() {
       if (phoneCodeDisplay) phoneCodeDisplay.textContent = inputs.phoneCallingCode?.value || '—';
@@ -146,6 +148,7 @@
       form.reset();
       [...form.elements].forEach(input => input.setCustomValidity?.(''));
       const profile = data.profile || {};
+      const advisorName = data.advisor_name ?? profile.advisor_name ?? '';
       const internationalPhone = splitInternationalPhone(profile.phone || '', inputs.phoneCallingCode);
       // Direct values share one assignment path, including omitted optional fields.
       const values = {
@@ -156,7 +159,8 @@
         resumeUrl: profile.resume_url || '',
         fwsEligibility: profile.enrollment_status === PROGRAMS.undergraduate ? profile.fws_eligibility || '' : '',
         fwsAwardLetterUrl: profile.fws_award_letter_url || '',
-        additionalInfo: profile.additional_info || ''
+        additionalInfo: profile.additional_info || '',
+        advisorName: advisorName === 'N/A' && data.can_edit !== false ? '' : advisorName
       };
       if (editing || typeof data.student_name === 'string') {
         // Only a full name is stored; students can correct this provisional split.
@@ -179,7 +183,7 @@
       inputs.eap5837Status.value = keyForValue(EAP_STATUSES, profile.eap5837_status);
       prefillAdmissionSemester(profile.admitted_semester);
       prefillExamResults(data, profile);
-      updateFws();
+      updateProgramFields();
     }
 
     function updateFws() {
@@ -208,6 +212,13 @@
         setValue('fwsEligibility', '');
         setValue('fwsAwardLetterUrl', '');
       }
+      if (!isPhd()) setValue('advisorName', '');
+    }
+
+    function updateProgramFields() {
+      updateFws();
+      if (advisorSection) advisorSection.hidden = !isPhd();
+      if (inputs.advisorName) inputs.advisorName.disabled = !isPhd();
     }
 
     function validateIdentity() {
@@ -248,7 +259,7 @@
     function collect() {
       const { country, name } = validateIdentity();
       const phone = collectPhone();
-      updateFws();
+      updateProgramFields();
       const awardLetter = inputs.fwsAwardLetterUrl;
       if (inputs.collegeStatus.value === 'undergraduate' && !awardLetter?.disabled && awardLetter?.value.trim()) {
         try {
@@ -277,7 +288,8 @@
           fws_eligibility: read('collegeStatus') === 'undergraduate' ? read('fwsEligibility') || null : 'no',
           fws_award_letter_url: read('collegeStatus') === 'undergraduate' && !['no', 'not_applicable'].includes(read('fwsEligibility')) ? read('fwsAwardLetterUrl') || null : null,
           english_test_score: score('englishTestScore'),
-          additional_info: read('additionalInfo')
+          additional_info: read('additionalInfo'),
+          ...(isPhd() ? { advisor_name: read('advisorName') } : {})
         }
       };
     }
@@ -294,9 +306,9 @@
         nameErrorInput.setCustomValidity('');
       });
     });
-    inputs.collegeStatus.addEventListener('change', updateFws);
+    inputs.collegeStatus.addEventListener('change', updateProgramFields);
     inputs.fwsEligibility?.addEventListener('change', updateFws);
     inputs.fwsAwardLetterUrl?.addEventListener('input', () => inputs.fwsAwardLetterUrl.setCustomValidity(''));
-    return { prefill, collect, updateFws, didSave, isPhd: () => inputs.collegeStatus.value === 'phd' };
+    return { prefill, collect, updateProgramFields, didSave, isPhd };
   };
 })();

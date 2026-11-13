@@ -61,7 +61,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *
 	 * @param string            $student_ufid Verified owner.
 	 * @param int               $application_id Owned application ID.
-	 * @param int|null          $rank Student rank; null retains the previous rank.
+	 * @param int|null          $rank Student rank, or null for an unranked pending application.
 	 * @param TAAS_Match_Status $status Pending or Withdrawn.
 	 * @param bool|null         $has_ta_for_course Previous TA declaration; null preserves it.
 	 * @param int|null          $has_taken_course Course completion code; null preserves it.
@@ -79,7 +79,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 		if ( null !== $has_ta_for_course ) {
 			$data['has_ta_for_course'] = $has_ta_for_course ? 1 : 0;
 		}
-		if ( null !== $rank ) {
+		if ( null !== $rank || TAAS_Match_Status::Pending === $status ) {
 			$data['student_preference_rank'] = $rank;
 		}
 		if ( null !== $has_taken_course ) {

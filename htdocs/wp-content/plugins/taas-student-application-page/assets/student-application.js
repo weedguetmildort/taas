@@ -110,7 +110,7 @@
           applicationForm.showSuccess();
         } catch (error) {
           console.error('TAAS submission confirmation display failed:', error);
-          applicationForm.showMessage('Your application was successfully submitted. You can view it on Check Application Status.', 'success');
+          applicationForm.showMessage('Your application was successfully submitted. Open Check Application Status to view your application. While applications are open, you can edit your course choices.', 'success');
         }
       }
     }

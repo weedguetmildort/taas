@@ -4,10 +4,9 @@
   const student = window.TAASStudent = window.TAASStudent || {};
   const MAX_COURSES = 5;
   const PENDING = 1;
-  const WITHDRAWN = 4;
   const COURSE_HISTORY = ['no', 'yes', 'other'];
 
-  student.createCoursePreferences = ({ form, list, rankings, message }) => {
+  student.createCoursePreferences = ({ form, list, rankings, message, sortByRank = false }) => {
     const templates = new Map(['header', 'row', 'ranking', 'emptyRankings', 'readOnlyEmptyRankings'].map(name => {
       const template = form.querySelector(`template[data-course-template="${name}"]`);
       if (!template?.content.firstElementChild) throw new Error(`Missing course template: ${name}`);
@@ -36,6 +35,8 @@
     }
 
     let coursesById = new Map();
+    let choicesById = new Map();
+    let phdEdit = false;
     let readOnly = false;
     let missingChoices = false;
     function getSelectedCourseIds() {
@@ -51,16 +52,15 @@
 
     function updateRankAvailability() {
       const selects = [...rankings.querySelectorAll('[name="courseRank"]')];
+      const counts = new Map();
+      for (const { value } of selects) {
+        if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+      }
       selects.forEach(select => {
-        const otherRanks = selects
-          .filter(other => other !== select)
-          .map(other => other.value)
-          .filter(Boolean);
-        const used = new Set(otherRanks);
         [...select.options].forEach(option => {
-          option.disabled = !!option.value && used.has(option.value) && option.value !== select.value;
+          option.disabled = option.value !== select.value && counts.has(option.value);
         });
-        select.setCustomValidity(used.has(select.value) ? 'Each course must have a different rank.' : '');
+        select.setCustomValidity(counts.get(select.value) > 1 ? 'Each course must have a different rank.' : '');
       });
     }
 
@@ -77,19 +77,20 @@
       rankings.append(cloneTemplate(readOnly ? 'readOnlyEmptyRankings' : 'emptyRankings'));
     }
 
-    function createRankingEntry(id, old = {}, selectedCount) {
+    function createRankingEntry(id, old = {}, rankLimit) {
       const course = coursesById.get(id);
       const entry = cloneTemplate('ranking', course);
       entry.dataset.course = id;
       const rank = entry.querySelector('[name="courseRank"]');
       const history = entry.querySelector('[name="courseHistory"]');
-      restoreRankingControls(rank, history, old, selectedCount);
+      restoreRankingControls(rank, history, old, rankLimit);
       entry.querySelector('[name="previouslyTA"]').checked = old.previouslyTA === true;
       return entry;
     }
 
-    function restoreRankingControls(rank, history, old, selectedCount) {
-      for (let n = 1; n <= selectedCount; n++) {
+    function restoreRankingControls(rank, history, old, rankLimit) {
+      if (readOnly && phdEdit) rank.options[0].textContent = 'No Preference';
+      for (let n = 1; n <= rankLimit; n++) {
         const suffix = ['th', 'st', 'nd', 'rd'][n] || 'th';
         rank.append(new Option(`${n}${suffix} choice`, String(n)));
       }
@@ -97,22 +98,41 @@
       if (readOnly && old.rank && ![...rank.options].some(option => option.value === old.rank)) {
         rank.append(new Option(old.rank, old.rank));
       }
-      const canKeepRank = readOnly || Number(old.rank) <= selectedCount;
+      const canKeepRank = readOnly || Number(old.rank) <= rankLimit;
       rank.value = canKeepRank ? old.rank || '' : '';
       history.value = old.history || '';
     }
 
-    function renderRanks(savedChoices) {
-      const previous = savedChoices || readCurrentChoices();
+    function rememberChoices() {
+      for (const [id, choice] of readCurrentChoices()) choicesById.set(id, choice);
+    }
+
+    function updateSelectionMessage() {
+      showCourseMessage(`${getSelectedCourseIds().length} of ${MAX_COURSES} courses selected.`);
+    }
+
+    function sortRankingCards() {
+      if (!sortByRank) return;
+      const focused = document.activeElement;
+      const rankOf = entry => Number(entry.querySelector('[name="courseRank"]').value) || Number.MAX_SAFE_INTEGER;
+      const entries = [...rankings.querySelectorAll('[data-course]')];
+      entries.sort((a, b) => rankOf(a) - rankOf(b));
+      entries.forEach(entry => rankings.append(entry));
+      if (rankings.contains(focused)) focused.focus({ preventScroll: true });
+    }
+
+    function renderRanks() {
       const selectedIds = getSelectedCourseIds();
+      const rankLimit = phdEdit ? MAX_COURSES : selectedIds.length;
       rankings.replaceChildren();
       if (!selectedIds.length) showEmptyRankingsMessage();
 
       selectedIds.forEach(id => {
-        rankings.append(createRankingEntry(id, previous.get(id), selectedIds.length));
+        rankings.append(createRankingEntry(id, choicesById.get(id), rankLimit));
       });
+      sortRankingCards();
       updateRankAvailability();
-      showCourseMessage(`${selectedIds.length} of ${MAX_COURSES} courses selected.`);
+      updateSelectionMessage();
     }
 
     function createCourseRow(course, isSelected) {
@@ -144,56 +164,67 @@
         showCourseMessage('Select no more than five courses.', true);
         return;
       }
+      rememberChoices();
       renderRanks();
     }, true);
 
     rankings.addEventListener('change', event => {
       const control = event.target;
-      if (control.matches('[name="courseRank"]')) updateRankAvailability();
+      if (control.matches('[name="courseRank"]')) {
+        sortRankingCards();
+        updateRankAvailability();
+        updateSelectionMessage();
+      }
     }, true);
 
     return {
       hasCourses: () => coursesById.size > 0,
       hasMissingChoices: () => missingChoices,
-      prefill(available, preferences = [], canEdit = true) {
+      prefill(available, preferences = [], { canEdit = true, isPhdEdit = false, resetPriorTa = false } = {}) {
         coursesById = new Map(available.map(course => [course.course_id, course]));
+        choicesById = new Map();
+        phdEdit = isPhdEdit;
         readOnly = !canEdit;
-        const savedChoices = new Map();
+        const activeChoices = new Set();
         missingChoices = false;
         for (const choice of preferences) {
-          const isActive = canEdit
-            ? choice.match_status === PENDING
-            : choice.match_status !== WITHDRAWN;
-          if (!isActive) continue;
-
-          if (!coursesById.has(choice.course_id)) missingChoices = true;
-          savedChoices.set(choice.course_id, {
+          const isActive = !canEdit || choice.match_status === PENDING;
+          if (isActive) {
+            if (!coursesById.has(choice.course_id)) missingChoices = true;
+            if (readOnly || !phdEdit || choice.rank !== null) activeChoices.add(choice.course_id);
+          }
+          choicesById.set(choice.course_id, {
             rank: choice.rank === null ? '' : String(choice.rank),
             history: COURSE_HISTORY[choice.course_completion ?? Number(choice.has_completed_course)],
-            previouslyTA: choice.has_ta_for_course === true
+            previouslyTA: !resetPriorTa && choice.has_ta_for_course === true
           });
         }
-        renderCourses(savedChoices);
-        renderRanks(savedChoices);
+        renderCourses(activeChoices);
+        renderRanks();
+      },
+      setPhdEdit(enabled) {
+        if (phdEdit === enabled) return;
+        rememberChoices();
+        phdEdit = enabled;
+        renderRanks();
       },
       validate() {
         updateRankAvailability();
       },
-      selectionError(allowEmpty, isPhd) {
+      selectionError(isPhd) {
         const count = getSelectedCourseIds().length;
-        if (allowEmpty && count === 0) return '';
         if (isPhd) return count === MAX_COURSES ? '' : 'PhD students must select exactly five courses.';
         return count >= 1 && count <= MAX_COURSES ? '' : 'Select between one and five courses.';
       },
       collect() {
-        return [...rankings.querySelectorAll('[data-course]')].map(entry => {
-          const completion = COURSE_HISTORY.indexOf(entry.querySelector('[name="courseHistory"]').value);
+        return [...readCurrentChoices()].map(([id, choice]) => {
+          const completion = COURSE_HISTORY.indexOf(choice.history);
           return {
-            course_id: entry.dataset.course,
-            rank: Number(entry.querySelector('[name="courseRank"]').value),
+            course_id: id,
+            rank: choice.rank ? Number(choice.rank) : null,
             has_completed_course: completion > 0,
             course_completion: completion,
-            has_ta_for_course: entry.querySelector('[name="previouslyTA"]').checked
+            has_ta_for_course: choice.previouslyTA
           };
         });
       }

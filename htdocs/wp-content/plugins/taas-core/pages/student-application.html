@@ -178,6 +178,12 @@
                     </select>
                   </label>
                 </div>
+                <div class="wp-block-taas-application-field" data-advisor-section hidden>
+                  <label>Advisor Name (optional)
+                    <input name="advisorName" type="text" maxlength="255" aria-describedby="advisor-name-help">
+                    <small id="advisor-name-help">Leave blank if you don’t know your advisor’s name.</small>
+                  </label>
+                </div>
                 <div class="wp-block-group full-width">
                   <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
                     <div class="wp-block-taas-application-field">
@@ -202,7 +208,7 @@
         <div class="wp-block-group form-section course-section">
           <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
             <h2 class="wp-block-heading">Course Preferences</h2>
-            <p class="section-help wp-block-paragraph">PhD students must select exactly five courses. All other students must select one to five courses. Rank all selected courses consecutively starting at 1 (highest preference), with no ties or skipped numbers. For example, three selected courses must have ranks 1, 2, and 3. Confirm you have completed each selected course. Completion is self-reported and will be verified by HR.</p>
+            <p class="section-help wp-block-paragraph">PhD students must select exactly five courses. After submission, PhD students will also be considered for the remaining courses as unranked applicants. All other students must select one to five courses. Rank all selected courses consecutively starting at 1 (highest preference), with no ties or skipped numbers. For example, three selected courses must have ranks 1, 2, and 3. Confirm you have completed each selected course. Completion is self-reported and will be verified by HR.</p>
             <div class="course-selection-layout">
               <div class="course-chooser">
                 <h3>Available courses</h3>
@@ -266,7 +272,7 @@
     </form>
     <dialog class="application-dialog" id="application-success" data-application-ui="dialog" aria-labelledby="application-success-title" aria-describedby="application-success-description">
       <h2 id="application-success-title">Application submitted</h2>
-      <p id="application-success-description">Your form was successfully submitted. You can check your application's status on Check Application Status.</p>
+      <p id="application-success-description">Your application was successfully submitted. Open Check Application Status to view your application. While applications are open, you can edit your course choices.</p>
       <div class="dialog-actions"><a class="action-link" id="success-status-link" data-application-ui="statusLink">Check Application Status</a><a class="action-link" id="success-home-link" data-application-ui="homeLink">Back to homepage</a></div>
     </dialog>
   </div>

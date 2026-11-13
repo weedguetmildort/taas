@@ -1,6 +1,12 @@
 <?php
 /**
- * Move courses from professor UFIDs to stable professor IDs.
+ * Move professors to the professor_id surrogate key and link courses by it.
+ *
+ * WordPress's dbDelta() cannot replace a primary key, so installs created before this change
+ * kept professor_ufid as the key, and courses kept the professor_ufid column
+ * and foreign key alongside an unlinked professor_id. Each step checks the
+ * current state first: MySQL commits DDL immediately, so a partial run must be
+ * safe to repeat, and a fresh install skips every step.
  *
  * @package TAAS_Core
  */
@@ -11,132 +17,98 @@ return function ( wpdb $wpdb ): void {
 	$professors = TAAS_Schema::table( 'professors' );
 	$courses    = TAAS_Schema::table( 'courses' );
 
-	$get_columns = static function ( string $table ) use ( $wpdb ): array {
-		$columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ), ARRAY_A );
-		if ( '' !== $wpdb->last_error ) {
-			throw new RuntimeException( 'Could not inspect a TAAS table before migrating professor IDs.' );
-		}
-
-		return array_column( $columns, 'Field' );
+	$fail = static function ( string $step ) use ( $wpdb ): void {
+		throw new RuntimeException( esc_html( $step . ' failed: ' . $wpdb->last_error ) );
 	};
 
-	$professor_columns = $get_columns( $professors );
-	$course_columns    = $get_columns( $courses );
-
-	if ( ! in_array( 'professor_id', $professor_columns, true )
-		&& ! in_array( 'professor_ufid', $professor_columns, true ) ) {
-		throw new RuntimeException( 'The professors table has no supported identifier to migrate.' );
-	}
-
-	if ( ! in_array( 'professor_ufid', $course_columns, true ) ) {
-		if ( in_array( 'professor_id', $professor_columns, true ) ) {
-			return;
+	$has_column = static function ( string $table, string $column ) use ( $wpdb, $fail ): bool {
+		$found = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i WHERE Field = %s', $table, $column ) );
+		if ( '' !== $wpdb->last_error ) {
+			$fail( 'Inspecting ' . $table );
 		}
-		throw new RuntimeException( 'Courses cannot be linked to professors because their UFID column is missing.' );
-	}
+		return ! empty( $found );
+	};
 
-	if ( ! in_array( 'professor_id', $course_columns, true ) ) {
-		throw new RuntimeException( 'The courses table is missing professor_id; schema installation did not complete.' );
-	}
-
-	$relations = $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT DISTINCT CONSTRAINT_NAME, COLUMN_NAME'
-			. ' FROM information_schema.KEY_COLUMN_USAGE'
-			. ' WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = %s'
-			. ' AND REFERENCED_TABLE_NAME = %s',
-			$courses,
-			$professors
-		),
-		ARRAY_A
-	);
-	if ( '' !== $wpdb->last_error ) {
-		throw new RuntimeException( 'Could not inspect course-to-professor constraints.' );
-	}
-	foreach ( $relations as $relation ) {
-		$wpdb->query(
+	// Column the course foreign key currently uses, or null when it is absent
+	$fk_column = static function () use ( $wpdb, $courses, $fail ): ?string {
+		$column = $wpdb->get_var(
 			$wpdb->prepare(
-				'ALTER TABLE %i DROP FOREIGN KEY %i',
+				'SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE'
+				. ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND CONSTRAINT_NAME = %s',
 				$courses,
-				$relation['CONSTRAINT_NAME']
+				'fk_courses_professor'
 			)
 		);
 		if ( '' !== $wpdb->last_error ) {
-			throw new RuntimeException( 'Could not remove the legacy course-to-professor constraint.' );
+			$fail( 'Inspecting the course foreign key' );
+		}
+		return $column;
+	};
+
+	// The old key blocks changing professors, so it goes first
+	if ( 'professor_ufid' === $fk_column() ) {
+		if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP FOREIGN KEY fk_courses_professor', $courses ) ) ) {
+			$fail( 'Dropping the professor_ufid foreign key' );
 		}
 	}
 
-	if ( ! in_array( 'professor_id', $professor_columns, true ) ) {
-		$indexes = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i', $professors ), ARRAY_A );
-		if ( '' !== $wpdb->last_error ) {
-			throw new RuntimeException( 'Could not inspect professor indexes.' );
-		}
-		$has_ufid_unique = array_reduce(
-			$indexes,
-			static fn( bool $found, array $index ): bool => $found
-				|| ( 'professor_ufid' === $index['Key_name'] && 0 === (int) $index['Non_unique'] ),
-			false
+	// Existing rows are numbered automatically; professor_ufid keeps its unique key
+	if ( ! $has_column( $professors, 'professor_id' ) ) {
+		$sql = $wpdb->prepare(
+			'ALTER TABLE %i DROP PRIMARY KEY,'
+			. ' ADD COLUMN professor_id bigint(20) unsigned NOT NULL AUTO_INCREMENT FIRST,'
+			. ' ADD PRIMARY KEY (professor_id),'
+			. ' MODIFY professor_ufid varchar(8) DEFAULT NULL',
+			$professors
 		);
+		if ( false === $wpdb->query( $sql ) ) {
+			$fail( 'Adding professor_id' );
+		}
+	}
 
-		$alter = 'ALTER TABLE %i DROP PRIMARY KEY, MODIFY %i varchar(8) NULL,'
-			. ' ADD %i bigint(20) unsigned NOT NULL AUTO_INCREMENT FIRST, ADD PRIMARY KEY (%i)';
-		if ( ! $has_ufid_unique ) {
-			$alter .= ', ADD UNIQUE KEY %i (%i)';
+	if ( $has_column( $courses, 'professor_ufid' ) ) {
+		// Link each course to its professor before the old column is dropped
+		$linked = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i c INNER JOIN %i p ON p.professor_ufid = c.professor_ufid SET c.professor_id = p.professor_id',
+				$courses,
+				$professors
+			)
+		);
+		if ( false === $linked ) {
+			$fail( 'Linking courses to professor_id' );
 		}
-		$args = array( $professors, 'professor_ufid', 'professor_id', 'professor_id' );
-		if ( ! $has_ufid_unique ) {
-			$args[] = 'professor_ufid';
-			$args[] = 'professor_ufid';
-		}
-		$wpdb->query( $wpdb->prepare( $alter, ...$args ) );
+
+		$unlinked = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i c LEFT JOIN %i p ON p.professor_id = c.professor_id WHERE p.professor_id IS NULL',
+				$courses,
+				$professors
+			)
+		);
 		if ( '' !== $wpdb->last_error ) {
-			throw new RuntimeException( 'Could not add stable professor IDs.' );
+			$fail( 'Checking course links' );
+		}
+		if ( $unlinked > 0 ) {
+			throw new RuntimeException( esc_html( $unlinked . ' course(s) have no matching professor; professor_ufid was kept. Fix the data and run the installer again.' ) );
+		}
+
+		$index = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $courses, 'professor_ufid' ) );
+		$drop  = empty( $index ) ? 'ALTER TABLE %i DROP COLUMN professor_ufid' : 'ALTER TABLE %i DROP INDEX professor_ufid, DROP COLUMN professor_ufid';
+		if ( false === $wpdb->query( $wpdb->prepare( $drop, $courses ) ) ) {
+			$fail( 'Dropping courses.professor_ufid' );
 		}
 	}
 
-	$wpdb->query(
-		$wpdb->prepare(
-			'UPDATE %i c INNER JOIN %i p ON p.professor_ufid = c.professor_ufid'
-			. ' SET c.professor_id = p.professor_id',
+	// The installer applies constraints before migrations, so it would not re-add this
+	if ( null === $fk_column() ) {
+		$sql = $wpdb->prepare(
+			'ALTER TABLE %i ADD CONSTRAINT fk_courses_professor FOREIGN KEY (professor_id) REFERENCES %i (professor_id)',
 			$courses,
 			$professors
-		)
-	);
-	if ( '' !== $wpdb->last_error ) {
-		throw new RuntimeException( 'Could not map courses to professor IDs.' );
-	}
-
-	$unmatched = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			'SELECT COUNT(*) FROM %i c LEFT JOIN %i p ON p.professor_ufid = c.professor_ufid'
-			. ' WHERE p.professor_id IS NULL',
-			$courses,
-			$professors
-		)
-	);
-	if ( '' !== $wpdb->last_error ) {
-		throw new RuntimeException( 'Could not verify course-to-professor mappings.' );
-	}
-	if ( 0 !== $unmatched ) {
-		throw new RuntimeException( 'Some courses have no matching professor UFID; their links were not changed.' );
-	}
-
-	$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $courses, 'professor_ufid' ) );
-	if ( '' !== $wpdb->last_error ) {
-		throw new RuntimeException( 'Could not remove the legacy course professor UFID.' );
-	}
-
-	$wpdb->query(
-		$wpdb->prepare(
-			'ALTER TABLE %i ADD CONSTRAINT %i FOREIGN KEY (%i) REFERENCES %i (%i)',
-			$courses,
-			'fk_courses_professor',
-			'professor_id',
-			$professors,
-			'professor_id'
-		)
-	);
-	if ( '' !== $wpdb->last_error ) {
-		throw new RuntimeException( 'Could not add the course-to-professor ID constraint.' );
+		);
+		if ( false === $wpdb->query( $sql ) ) {
+			$fail( 'Adding the professor_id foreign key' );
+		}
 	}
 };

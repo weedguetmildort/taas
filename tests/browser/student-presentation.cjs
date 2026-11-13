@@ -361,7 +361,11 @@ function html(editing, redesigned) {
       ...fixture.courses[0], course_id: String(index + 1)
     }));
     assert(await open(false, false, { ...fixture, courses: fiveCourses }));
+    const advisorName = page.locator('[name="advisorName"]');
+    assert(await advisorName.isHidden());
     await page.locator('[name="collegeStatus"]').selectOption('phd');
+    assert(await advisorName.isVisible());
+    assert.equal(await advisorName.inputValue(), '');
     assert.equal(await page.evaluate(() => window.adapter.collect()), null);
     assert.match(await page.locator('#form-message').textContent(), /exactly five courses/);
     for (const choice of await page.locator('[name="selectedCourses"]').all()) await choice.check();
@@ -370,7 +374,28 @@ function html(editing, redesigned) {
     }
     for (const history of await page.locator('[name="courseHistory"]').all()) await history.selectOption('yes');
     assert.equal(await page.evaluate(() => window.adapter.collect().course_preferences.length), 5);
+    await advisorName.fill('Dr. Morgan Rivera');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.advisor_name), 'Dr. Morgan Rivera');
     console.log('PASS: The PhD selection requires five ranked courses');
+
+    const replacementCourses = [...fiveCourses, { ...fixture.courses[0], course_id: '6' }];
+    const rankedChoices = fiveCourses.map((course, index) => ({
+      course_id: course.course_id, rank: index + 1, match_status: 1,
+      course_completion: [1, 0, 1, 1, 2][index], has_ta_for_course: true
+    }));
+    assert(await open(false, false, {
+      ...fixture, profile: { ...fixture.profile, enrollment_status: 3 }, courses: replacementCourses,
+      replacement: { reset_prior_ta: true, course_preferences: rankedChoices }
+    }));
+    assert.equal(await page.locator('[name="selectedCourses"]:checked').count(), 5);
+    assert.equal(await page.locator('[name="selectedCourses"][value="6"]').isChecked(), false);
+    assert.equal(await page.locator('[data-course="5"] [name="courseRank"]').inputValue(), '5');
+    assert.equal(await page.locator('[data-course="2"] [name="courseHistory"]').inputValue(), 'no');
+    assert.equal(await page.locator('[data-course="5"] [name="courseHistory"]').inputValue(), 'other');
+    assert.equal(await page.locator('[data-course="5"] [name="previouslyTA"]').isChecked(), false);
+    const replacementChoices = await page.evaluate(() => window.adapter.collect().course_preferences);
+    assert.deepEqual(replacementChoices.map(choice => choice.course_completion), [1, 0, 1, 1, 2]);
+    console.log('PASS: PhD replacements prefill five ranks and preserve all ranked course completion answers');
 
     for (const name of ['selectedCourses', 'courseRank', 'courseHistory', 'previouslyTA']) {
       for (const defect of ['missing', 'duplicate', 'wrong-type', 'not-required']) {

@@ -35,11 +35,11 @@ $period = array(
 	'closes_at' => null,
 );
 $body = array(
-	'term'               => array(
+	'term'    => array(
 		'semester' => 1,
 		'year'     => 2155,
 	),
-	'details'            => array(
+	'details' => array(
 		'student_name'        => 'Profile verification',
 		'student_email'       => 'profile@ufl.edu',
 		'profile'             => array(
@@ -62,7 +62,6 @@ $body = array(
 			),
 		),
 	),
-	'course_preferences' => array(),
 );
 $sentinel = new RuntimeException( 'Roll back profile verification.' );
 try {
@@ -70,12 +69,22 @@ try {
 		static function () use ( $students, $profiles, $submissions, $owner, $body, $period, $sentinel ): void {
 			global $wpdb;
 			taas_test_set_period( $period );
+			$professor = ( new TAAS_Professor_Repository() )->insert( new TAAS_Professor( null, null, 'Profile test professor', 'profile-professor@example.invalid' ) );
+			$course = ( new TAAS_Course_Repository() )->insert( new TAAS_Course( null, 'PROFILE', 'Profile test course', $professor, TAAS_Semester::Fall, 2155 ) );
+			$body['course_preferences'] = array(
+				array(
+					'course_id'            => (string) $course,
+					'rank'                 => 1,
+					'has_completed_course' => true,
+				),
+			);
 			$students->insert( new TAAS_Student( $owner, 'Profile verification', 'profile@ufl.edu' ) );
 			$profiles->insert( new TAAS_Student_Profile( student_ufid: $owner, english_test_score: TAAS_English_Test_Score::Middle_Range ) );
-			$submissions->save_for_term( $owner, TAAS_Semester::Fall, 2155, TAAS_Student_Application_Input::parse( $body, true )['details'] );
+			$submissions->save_for_term( $owner, TAAS_Semester::Fall, 2155, TAAS_Student_Application_Input::parse( $body )['details'] );
 			$save = static function ( array $request ) use ( $owner, $submissions ): void {
 				$snapshot = $submissions->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
-				TAAS_Student_Application_Service::update( $owner, TAAS_Student_Application_Input::parse( $request, true ), TAAS_Student_Application_Service::revision( $snapshot, array() ) );
+				$choices = ( new TAAS_Application_Repository() )->find_by_student_and_term( $owner, TAAS_Semester::Fall, 2155 );
+				TAAS_Student_Application_Service::update( $owner, TAAS_Student_Application_Input::parse( $request ), TAAS_Student_Application_Service::revision( $snapshot, $choices ) );
 			};
 				$body['details']['profile']['phone'] = '3525550199';
 				$body['details']['academic_background'][] = array(

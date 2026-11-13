@@ -118,10 +118,14 @@ version or the workflow fails.
 - `sql/schema.sql` and `sql/constraints.sql` describe the end state and are
   applied idempotently
 - `migrations/` holds one-time changes those cannot make: renames, drops,
-  narrowing, backfills. See `migrations/README.md`
+  primary keys, foreign-key columns, changed constraints, narrowing,
+  backfills. See `migrations/README.md`
 - No version bump is needed. The installer runs on the next wp-admin load
   whenever the schema files or migration filenames change (the schema
   fingerprint shown by `db-status.php`)
+- `bin/check-schema-upgrade.sh` replays every release, upgrades to your
+  branch, and fails if the result differs from a fresh install or from
+  `snapshots/`. CI runs it; run it before a PR that touches `sql/`
 
 ## Adding a plugin
 
