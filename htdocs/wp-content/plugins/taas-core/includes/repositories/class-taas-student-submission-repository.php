@@ -59,6 +59,28 @@ final class TAAS_Student_Submission_Repository extends TAAS_Repository {
 	}
 
 	/**
+	 * Retrieve a submission only if it belongs to the requested term.
+	 *
+	 * @param int           $submission_id Saved submission ID.
+	 * @param TAAS_Semester $semester      Application semester.
+	 * @param int           $year          Application year.
+	 * @return TAAS_Student_Submission|null
+	 */
+	public function find_by_id_and_term( int $submission_id, TAAS_Semester $semester, int $year ): ?TAAS_Student_Submission {
+		global $wpdb;
+		$rows = $this->select_rows(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE submission_id = %d AND semester = %d AND year = %d',
+				$this->table(),
+				$submission_id,
+				$semester->value,
+				$year
+			)
+		);
+		return $rows ? TAAS_Student_Submission::from_row( $rows[0] ) : null;
+	}
+
+	/**
 	 * List the owner's saved terms without loading every snapshot's JSON.
 	 *
 	 * @param string $student_ufid Verified owner.

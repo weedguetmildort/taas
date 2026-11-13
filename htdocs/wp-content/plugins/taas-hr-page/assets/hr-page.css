@@ -42,12 +42,20 @@
 /* FILTER DROPDOWN */
 
 .student-filter-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
     margin-bottom: 30px;
     padding: 20px;
 
     background: #f7f7f7;
     border: 1px solid #e5e5e5;
     border-radius: 4px;
+}
+
+.student-filter-section > div {
+    flex: 1 1 240px;
+    max-width: 350px;
 }
 
 .student-filter-section label {
@@ -57,7 +65,9 @@
     margin-bottom: 10px;
 }
 
-.student-filter-section select {
+.student-filter-section select,
+.student-filter-section input[type="search"] {
+    box-sizing: border-box;
     width: 100%;
     max-width: 350px;
     height: 38px;
@@ -148,20 +158,170 @@
     accent-color: #2271b1;
 }
 
-/* EXPANDED APPLICATION DETAILS */
-
-.hr-applicant-table .student-details {
-    background: #fafafa;
+.hr-applicant-table .hr-comment-toggle {
+    margin-top: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #005a9c;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
-.hr-applicant-table .student-details td {
-    padding: 20px;
-    border-left: 4px solid #2271b1;
+.hr-applicant-table .hr-comment-toggle:disabled {
+    color: #646970;
+    cursor: not-allowed;
 }
 
-.hr-applicant-table .student-details p {
-    margin: 10px 0 0;
+.hr-applicant-table .hr-comment-row td {
+    padding: 0 10px 12px;
+}
+
+.hr-comment-panel {
+    padding: 12px 16px;
+    border-left: 3px solid #2271b1;
+    background: #f0f6fc;
+}
+
+.hr-comment-panel p {
+    margin: 6px 0 0;
+    color: #4b5563;
+}
+
+.hr-review-comment {
+    display: block;
+}
+
+.hr-review-comment-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #1e293b;
     font-size: 13px;
+    font-weight: 600;
+}
+
+.hr-review-comment-label span {
+    color: #4b5563;
+    font-weight: 400;
+}
+
+.hr-review-comment textarea {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 4.75rem;
+    padding: 8px 10px;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    line-height: 1.45;
+    resize: vertical;
+}
+
+.hr-review-comment textarea::placeholder {
+    color: #4b5563;
+}
+
+.hr-review-comment textarea:disabled {
+    background: #f1f5f9;
+    cursor: not-allowed;
+}
+
+.hr-review-comment textarea:focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+/* APPLICATION DETAILS DIALOG */
+
+.hr-details-dialog {
+    box-sizing: border-box;
+    width: min(42rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    color: #222;
+}
+
+.hr-details-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.hr-details-dialog::backdrop {
+    background: rgb(0 0 0 / 55%);
+}
+
+.hr-details-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.hr-details-header h3 {
+    margin: 0;
+    font-size: 20px;
+    overflow-wrap: anywhere;
+}
+
+.hr-details-header button {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f1f1f1;
+    color: #222;
+    cursor: pointer;
+}
+
+.hr-details-body {
+    min-height: 0;
+    padding: 16px 20px;
+    overflow: auto;
+}
+
+.hr-details-dialog [data-details-status]:empty {
+    display: none;
+}
+
+.hr-details-dialog h4 {
+    margin: 16px 0 6px;
+    font-size: 16px;
+}
+
+.hr-details-dialog h4:first-child {
+    margin-top: 0;
+}
+
+.hr-details-dialog dl {
+    display: grid;
+    grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+    gap: 4px 12px;
+    margin: 0;
+}
+
+.hr-details-dialog dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+@media (max-width: 480px) {
+    .hr-details-dialog dl {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hr-details-dialog dd + dt {
+        margin-top: 8px;
+    }
 }
 
 /* HIDE OTHER STUDENT TYPES */
@@ -171,17 +331,14 @@
     display: none;
 }
 
-/* SELECTED ROW */
-
-.hr-applicant-table .student-row.selected {
-    background: #e8f1f8;
-    box-shadow: inset 4px 0 #1733a5;
-}
-
 /* SAVE BUTTON */
 
 .hr-portal-container .save-section {
     margin-top: 25px;
+}
+
+#hr-hidden-decisions:empty {
+    margin: 0;
 }
 
 .hr-portal-container .save-button {
@@ -238,11 +395,6 @@
     font-weight: 600;
     color: #222;
     margin: 0;
-}
-
-.hr-progress-label {
-    font-size: 13px;
-    color: #666;
 }
 
 /* REVIEW COUNT */
