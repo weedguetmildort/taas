@@ -93,8 +93,7 @@ jobs:
           git tag -a "$TAG" -m "Release ${TAG}"
           git push origin "refs/tags/${TAG}"
 
-      # Prod deploys by checking out the tag, so there is nothing to build or
-      # upload. The release exists to label the tag and record what changed.
+      # Production checks out the tag and installs Composer dependencies in place.
       - name: Create a draft release
         uses: softprops/action-gh-release@v3
         with:
@@ -122,6 +121,7 @@ jobs:
             git fetch --tags
             git status --short    # must print nothing
             git checkout ${{ steps.version.outputs.tag || github.ref_name }}
+            composer install --no-dev --prefer-dist --no-interaction
             ```
 
             Wait about a minute before loading the site, so every web node

@@ -37,10 +37,6 @@ This is not intended to replace project management and tickets, but rather to no
 - **Nonce:** confirm that requests need an `X-WP-Nonce` header in production, and how pages obtain it.
 - **Student affiliation values:** `taas_student` is synced from `eduperson_affiliations`, matching `student` (UF sends `STUDENT$`). Only one student account has been checked. If other students, such as graduate students, arrive with a different value, add it to `TAAS_Shibboleth::STUDENT_AFFILIATIONS`. HR and admin stay assigned in wp-admin.
 
-## Deployment
-
-- **PhpSpreadsheet:** the course import and the XLSX exports need it on the server, but production deploys by git checkout and has no `vendor/` directory. `POST /courses/import` returns 503 `taas_import_unavailable` until it's there. The route loads the autoloader named by `TAAS_COMPOSER_AUTOLOAD`, so production needs that defined in `wp-config.php` too.
-
 ## Course ingestion
 
 - **Professor name format:** decide whether to change how `professor_name` is loaded. The course export gives names as `Lastname, First`, and the import stores them as given (only collapsing whitespace), so imported professors are named differently from the seed data (`Dr. Alice Nguyen`). This affects how names are displayed, sorted and searched. Note that an existing professor's name is never updated by the import, so changing the format later won't fix rows already stored.

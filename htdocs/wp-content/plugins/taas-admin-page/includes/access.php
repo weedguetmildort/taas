@@ -11,8 +11,14 @@ add_action( 'template_redirect', 'taas_admin_pages_require_admin', 1 );
 
 /** Recognize the managed page by its saved ID, with a slug fallback. */
 function taas_admin_pages_is_page(): bool {
-	$id = TAAS_Pages::id( 'admin-page' );
-	return ( $id > 0 && is_page( $id ) ) || is_page( 'admin-page' );
+	foreach ( array( 'admin-page', 'manage-course-listings-admin' ) as $slug ) {
+		$id = TAAS_Pages::id( $slug );
+		if ( ( $id > 0 && is_page( $id ) ) || is_page( $slug ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /** Homepage URL for the caller's highest non-admin role (if available). */

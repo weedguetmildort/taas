@@ -307,7 +307,7 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * A missing or bad value in a field with no default skips the row, reporting every problem
+	 * Missing or invalid required cells skip the row and report each problem
 	 */
 	public function test_parse_course_row_skips_without_default(): void {
 		list( $data, $messages ) = $this->parse(
@@ -326,7 +326,7 @@ class CourseImportTest extends TestCase {
 				),
 				array(
 					'header'  => 'Semester',
-					'message' => 'Type mismatch, row skipped',
+					'message' => 'Invalid value, row skipped',
 				),
 			),
 			$messages
@@ -334,33 +334,37 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * A missing or bad value in a field with a default (or that allows NULL) uses it and says so
+	 * Required fields with database defaults still reject missing or invalid cells
 	 */
-	public function test_parse_course_row_uses_default(): void {
+	public function test_parse_course_row_rejects_invalid_required_values(): void {
 		list( $data, $messages ) = $this->parse(
 			array(
-				'UFO'         => 'Online',
-				'Description' => '',
-				'Lab Hour'    => '',
+				'UFO'                => 'Online',
+				'Description'        => '',
+				'Lab Hour'           => '3',
+				'Current Enrollment' => '-1',
+				'Maximum Enrollment' => '',
 			)
 		);
 
-		$this->assertSame( '0', $data['is_online'] );
-		$this->assertNull( $data['course_description'] );
-		$this->assertSame( '0', $data['lab_hours'] );
+		$this->assertNull( $data );
 		$this->assertSame(
 			array(
 				array(
 					'header'  => 'UFO',
-					'message' => 'Type mismatch, used default',
-				),
-				array(
-					'header'  => 'Description',
-					'message' => 'Missing value, used default',
+					'message' => 'Invalid value, row skipped',
 				),
 				array(
 					'header'  => 'Lab Hour',
-					'message' => 'Missing value, used default',
+					'message' => 'Invalid value, row skipped',
+				),
+				array(
+					'header'  => 'Current Enrollment',
+					'message' => 'Invalid value, row skipped',
+				),
+				array(
+					'header'  => 'Maximum Enrollment',
+					'message' => 'Missing value, row skipped',
 				),
 			),
 			$messages
@@ -385,7 +389,7 @@ class CourseImportTest extends TestCase {
 				array(
 					'row'     => 3,
 					'header'  => 'Year',
-					'message' => 'Type mismatch, row skipped',
+					'message' => 'Invalid value, row skipped',
 				),
 			),
 			$result['messages']
@@ -477,7 +481,7 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * A row differing in any one of term, year, code or name is a new course, with the id left to the database
+	 * Each identity field, including delivery mode, can distinguish a new course.
 	 */
 	public function test_import_inserts_course_differing_in_any_identifying_field(): void {
 		$result = taas_import_courses(
@@ -486,13 +490,14 @@ class CourseImportTest extends TestCase {
 				self::row( array( 'Semester' => 'Spring' ) ),
 				self::row( array( 'Year' => '2027' ) ),
 				self::row( array( 'Prefix' => 'COP3503' ) ),
-				self::row( array( 'Title' => 'Programming 2' ) )
+				self::row( array( 'Title' => 'Programming 2' ) ),
+				self::row( array( 'UFO' => 'UFO' ) )
 			)
 		);
 
-		$this->assertSame( 5, $result['courses'] );
+		$this->assertSame( 6, $result['courses'] );
 		$this->assertSame( 0, $result['replaced'] );
-		$this->assertCount( 5, $this->db->writes );
+		$this->assertCount( 6, $this->db->writes );
 
 		foreach ( $this->db->writes as $write ) {
 			$this->assertArrayNotHasKey( 'where', $write );
@@ -521,14 +526,29 @@ class CourseImportTest extends TestCase {
 	 * A row matching a course already in the database replaces it, keeping its id
 	 */
 	public function test_import_replaces_matching_course_in_database(): void {
-		$this->db->course_ids['1|2026|COP3502|Programming 1'] = '7';
+		$this->db->course_ids['1|2026|COP3502|Programming 1|0'] = '7';
 
-		$result = taas_import_courses( $this->write_courses( self::row() ) );
+		$result = taas_import_courses( $this->write_courses( self::row( array( 'Description' => '' ) ) ) );
 
 		$this->assertSame( 0, $result['courses'] );
 		$this->assertSame( 1, $result['replaced'] );
 		$this->assertCount( 1, $this->db->writes );
 		$this->assertSame( array( 'course_id' => 7 ), $this->db->writes[0]['where'] );
+		$this->assertArrayNotHasKey( 'course_description', $this->db->writes[0]['data'] );
+	}
+
+	/**
+	 * Roll back a row when the course insert fails after creating its professor.
+	 */
+	public function test_import_rolls_back_when_course_insert_fails(): void {
+		$this->db->insert_result = false;
+
+		$result = taas_import_courses( $this->write_courses( self::row() ) );
+
+		$this->assertCount( 1, $this->db->professor_inserts );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->db->queries );
+		$this->assertSame( 0, $result['courses'] );
+		$this->assertSame( 1, $result['skipped'] );
 	}
 
 	/**

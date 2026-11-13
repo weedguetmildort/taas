@@ -133,54 +133,6 @@
     margin: 0;
 }
 
-/* COURSE UPLOAD */
-
-.course-upload-form {
-    padding-top: 25px;
-    border-top: 1px solid #eeeeee;
-}
-
-.course-upload-form label {
-    display: block;
-    margin-bottom: 12px;
-
-    font-size: 17px;
-    font-weight: 600;
-}
-
-.course-upload-form input[type="file"] {
-    display: block;
-    width: 100%;
-    margin-bottom: 20px;
-    padding: 12px;
-
-    border: 1px solid #ccc;
-    border-radius: 4px;
-
-    font-size: 15px;
-    box-sizing: border-box;
-}
-
-/* UPLOAD BUTTON */
-
-.admin-button {
-    padding: 13px 25px;
-
-    background: #ff7f11;
-    color: white;
-
-    border: none;
-    border-radius: 4px;
-
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.admin-button:hover {
-    background: #e66f08;
-}
-
 /* KEYBOARD ACCESSIBILITY */
 
 .admin-portal-container a:focus-visible,
@@ -420,16 +372,6 @@
             <button type="button" id="download-student-data" class="admin-nav-button download-student-button">
                 Download Student Data
             </button>
-
-            <form id="upload-course-xlsx" class="course-upload-form" aria-labelledby="course-xlsx-label">
-                <label id="course-xlsx-label" for="course-xlsx-file">Upload Course Listings XLSX</label>
-                <p id="course-xlsx-help">Include the required course headers: Prefix, Title, Semester, Year, UFO, Lab Hour, Current Enrollment, Maximum Enrollment, Professor Teaching, and GLID. Description is optional.</p>
-                <input type="file" id="course-xlsx-file" name="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-describedby="course-xlsx-help" required>
-                <button type="submit" id="upload-course-xlsx-button" class="admin-nav-button">
-                    Upload Course Listings
-                </button>
-                <div id="course-upload-status" role="status" aria-live="polite"></div>
-            </form>
 
         </div> <!-- END NAVIGATION -->
 

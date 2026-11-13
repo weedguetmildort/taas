@@ -96,8 +96,9 @@ CREATE TABLE {prefix}courses (
 	enrollment int NOT NULL DEFAULT 0,
 	max_enrollment int NOT NULL DEFAULT 0,
 	professor_id bigint(20) unsigned NOT NULL,
+	eligible_student_types tinyint unsigned NOT NULL DEFAULT 7, -- bit mask: undergraduate 1, master's 2, PhD 4
 	PRIMARY KEY  (course_id),
-	UNIQUE KEY course_offering (course_semester,course_year,course_code,course_name), -- code alone is not unique, e.g. CIS4930 covers every special topic
+	UNIQUE KEY course_offering_by_delivery (course_semester,course_year,course_code,course_name,is_online),
 	KEY course_code (course_code),
 	KEY professor_id (professor_id)
 );
