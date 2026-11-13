@@ -33,4 +33,6 @@ While HR review is open, a reviewer may revise an existing decision using its la
 
 Saved decisions live in `hr_reviews`, with one row keyed by `submission_id` per reviewed application.
 
+Each decision can include an optional plain-text `comment` of up to 1,000 characters. Omitting it preserves the saved comment, and sending `null` or blank text clears it. Editing only the comment still requires a decision and advances the version. The HR list, successful saves, and conflict responses return the saved comment to HR and admins.
+
 If any version is stale, the server saves none of the changes and returns HTTP 409 with `code: "taas_review_conflict"`, a `conflicts` array containing the current decisions and versions, and current `progress`. An out-of-cycle or missing submission returns 404. A closed stage returns 403.

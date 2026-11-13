@@ -30,13 +30,13 @@ final class TAAS_HR_Review_Repository extends TAAS_Repository {
 	 * Read the term's submissions and reviews in one database snapshot.
 	 *
 	 * @param TAAS_Application_Cycle $cycle Current cycle.
-	 * @return list<array{submission: TAAS_Student_Submission, decision: ?string, version: int}>
+	 * @return list<array{submission: TAAS_Student_Submission, decision: ?string, version: int, comment: ?string}>
 	 */
 	public function applicants_for_cycle( TAAS_Application_Cycle $cycle ): array {
 		global $wpdb;
 		$rows = $this->select_rows(
 			$wpdb->prepare(
-				'SELECT s.*, r.decision, r.version FROM %i s LEFT JOIN %i r ON r.submission_id = s.submission_id'
+				'SELECT s.*, r.decision, r.version, r.review_comment FROM %i s LEFT JOIN %i r ON r.submission_id = s.submission_id'
 				. ' WHERE s.semester = %d AND s.year = %d ORDER BY s.submission_id',
 				TAAS_Schema::table( 'student_submissions' ),
 				$this->table(),
@@ -49,6 +49,7 @@ final class TAAS_HR_Review_Repository extends TAAS_Repository {
 				'submission' => TAAS_Student_Submission::from_row( $row ),
 				'decision'   => $row['decision'],
 				'version'    => (int) $row['version'],
+				'comment'    => $row['review_comment'],
 			),
 			$rows
 		);
@@ -79,31 +80,33 @@ final class TAAS_HR_Review_Repository extends TAAS_Repository {
 	 * Read the latest decision after locking its parent submission.
 	 *
 	 * @param int $id Submission ID.
-	 * @return array{decision: ?string, version: int}
+	 * @return array{decision: ?string, version: int, comment: ?string}
 	 */
 	public function current_review( int $id ): array {
 		global $wpdb;
 		$rows = $this->select_rows(
-			$wpdb->prepare( 'SELECT decision, version FROM %i WHERE submission_id = %d', $this->table(), $id )
+			$wpdb->prepare( 'SELECT decision, version, review_comment FROM %i WHERE submission_id = %d', $this->table(), $id )
 		);
 		return array(
 			'decision' => $rows[0]['decision'] ?? null,
 			'version'  => (int) ( $rows[0]['version'] ?? 0 ),
+			'comment'  => $rows[0]['review_comment'] ?? null,
 		);
 	}
 
 	/**
 	 * Record the first decision or revise an existing decision under its expected version.
 	 *
-	 * @param int      $id          Submission ID, already locked and term-checked.
-	 * @param string   $decision    Approve or reject.
-	 * @param int      $version     Expected version.
-	 * @param int|null $reviewer_id WordPress user ID, or null for a local mock user.
+	 * @param int         $id          Submission ID, already locked and term-checked.
+	 * @param string      $decision    Approve or reject.
+	 * @param int         $version     Expected version.
+	 * @param int|null    $reviewer_id WordPress user ID, or null for a local mock user.
+	 * @param string|null $comment     Private HR comment.
 	 * @throws RuntimeException If the expected row was not updated.
 	 */
-	public function save_review( int $id, string $decision, int $version, ?int $reviewer_id ): void {
+	public function save_review( int $id, string $decision, int $version, ?int $reviewer_id, ?string $comment ): void {
 		global $wpdb;
-		$review = new TAAS_HR_Review( $id, $decision, $version + 1, $reviewer_id, current_time( 'mysql', true ) );
+		$review = new TAAS_HR_Review( $id, $decision, $version + 1, $reviewer_id, current_time( 'mysql', true ), $comment );
 		if ( 0 === $version ) {
 			$this->insert( $review );
 			return;
@@ -118,7 +121,7 @@ final class TAAS_HR_Review_Repository extends TAAS_Repository {
 				'submission_id' => $id,
 				'version'       => $version,
 			),
-			array( '%s', '%d', '%d', '%s' ),
+			array( '%s', '%d', '%d', '%s', '%s' ),
 			array( '%d', '%d' )
 		);
 		if ( 1 !== $updated ) {

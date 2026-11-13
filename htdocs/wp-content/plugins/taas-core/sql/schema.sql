@@ -88,6 +88,7 @@ CREATE TABLE {prefix}hr_reviews (
 	version int unsigned NOT NULL,
 	reviewed_by bigint(20) unsigned DEFAULT NULL,
 	reviewed_at datetime DEFAULT NULL,
+	review_comment text,
 	PRIMARY KEY  (submission_id)
 );
 

@@ -66,7 +66,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 					'approved' => 0,
 				);
 				foreach ( $rows as $row ) {
-					$applicants[]          = self::summary( $row['submission'], $row['decision'], $row['version'] );
+					$applicants[]          = self::summary( $row['submission'], $row['decision'], $row['version'], $row['comment'] );
 					$progress['reviewed'] += null !== $row['decision'] ? 1 : 0;
 					$progress['approved'] += 'approve' === $row['decision'] ? 1 : 0;
 				}
@@ -101,7 +101,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 	 * Validate the decision payload and sort it in lock acquisition order.
 	 *
 	 * @param mixed $decisions Submitted list.
-	 * @return array<int, array{decision: string, version: int}>|WP_Error
+	 * @return array<int, array{decision: string, version: int, comment?: ?string}>|WP_Error
 	 */
 	private function parse_decisions( mixed $decisions ) {
 		if ( ! is_array( $decisions ) || ! array_is_list( $decisions ) || ! $decisions ) {
@@ -120,6 +120,14 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 				'decision' => $decision,
 				'version'  => $version,
 			);
+			if ( array_key_exists( 'comment', $entry ) ) {
+				$comment = $entry['comment'];
+				if ( null !== $comment && ( ! is_string( $comment ) || ! preg_match( '/\A.{0,1000}\z/us', $comment ) ) ) {
+					return $this->invalid_param( 'decisions', __( 'A review comment must be text of at most 1,000 characters or null.', 'taas-core' ) );
+				}
+				$comment = is_string( $comment ) ? trim( str_replace( array( "\r\n", "\r" ), "\n", $comment ) ) : '';
+				$batch[ (int) $id ]['comment'] = '' === $comment ? null : $comment;
+			}
 		}
 		ksort( $batch );
 		return $batch;
@@ -128,8 +136,8 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 	/**
 	 * Lock the submissions and validate the whole batch before writing.
 	 *
-	 * @param TAAS_Application_Cycle                            $cycle Active cycle.
-	 * @param array<int, array{decision: string, version: int}> $batch Validated, sorted decisions.
+	 * @param TAAS_Application_Cycle                                               $cycle Active cycle.
+	 * @param array<int, array{decision: string, version: int, comment?: ?string}> $batch Validated, sorted decisions.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private function save_batch( TAAS_Application_Cycle $cycle, array $batch ) {
@@ -165,11 +173,13 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		}
 		$reviewer_id = TAAS_Auth::current_user()['wp_user_id'] ?? null;
 		foreach ( $batch as $id => $change ) {
-			if ( $change['decision'] === $reviews[ $id ]['decision'] ) {
+			$comment = array_key_exists( 'comment', $change ) ? $change['comment'] : $reviews[ $id ]['comment'];
+			if ( $change['decision'] === $reviews[ $id ]['decision'] && $comment === $reviews[ $id ]['comment'] ) {
 				continue;
 			}
-			$repository->save_review( $id, $change['decision'], $change['version'], $reviewer_id );
+			$repository->save_review( $id, $change['decision'], $change['version'], $reviewer_id, $comment );
 			$reviews[ $id ]['decision'] = $change['decision'];
+			$reviews[ $id ]['comment']  = $comment;
 			++$reviews[ $id ]['version'];
 		}
 		return self::private_response(
@@ -254,9 +264,10 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 	 * @param TAAS_Student_Submission $submission Saved term snapshot.
 	 * @param string|null             $decision   Saved HR decision.
 	 * @param int                     $version    Saved decision version.
+	 * @param string|null             $comment    Private HR comment.
 	 * @return array<string, string|float|int|null>
 	 */
-	private static function summary( TAAS_Student_Submission $submission, ?string $decision, int $version ): array {
+	private static function summary( TAAS_Student_Submission $submission, ?string $decision, int $version, ?string $comment ): array {
 		$details = $submission->submitted_details;
 		$degree  = $details['academic_background'][0] ?? array();
 		$profile = $details['profile'] ?? array();
@@ -266,6 +277,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 			'submission_id'      => (string) $submission->submission_id,
 			'decision'           => $decision,
 			'version'            => $version,
+			'comment'            => $comment,
 			'name'               => $details['student_name'] ?? null,
 			'student_type'       => match ( $type ) {
 				TAAS_Enrollment_Status::Undergraduate => 'undergrad',

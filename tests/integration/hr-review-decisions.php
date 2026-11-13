@@ -61,19 +61,27 @@ try {
 				'decision'      => $decision,
 				'version'       => $version,
 			);
-			$approve = $change( $ids[1], 'approve', 0 );
+			$comment = array( 'comment' => "First line\nSecond line" );
+			$approve = $change( $ids[1], 'approve', 0 ) + $comment;
 			$saved   = taas_hr_review_post( array( $approve ) );
 			taas_hr_review_check( 200 === $saved->get_status(), 'First reviewer should save successfully.' );
-			taas_hr_review_check( $change( $ids[1], 'approve', 1 ) === $saved->get_data()['reviews'][0], 'First save should return version one.' );
+			taas_hr_review_check( $change( $ids[1], 'approve', 1 ) + $comment === $saved->get_data()['reviews'][0], 'First save should return the saved comment and version one.' );
 			taas_hr_review_check( array( 2, 1, 1 ) === array_values( $saved->get_data()['progress'] ), 'First approval should count once.' );
 
 			$other = $change( $ids[0], 'reject', 0 );
 			$stale = taas_hr_review_post( array( $other, $change( $ids[1], 'reject', 0 ) ), 'admin' );
 			taas_hr_review_check( 409 === $stale->get_status() && 'taas_review_conflict' === $stale->get_data()['code'], 'A stale save must conflict.' );
-			taas_hr_review_check( $change( $ids[1], 'approve', 1 ) === $stale->get_data()['conflicts'][0], 'Conflict should return the latest decision.' );
+			taas_hr_review_check( $change( $ids[1], 'approve', 1 ) + $comment === $stale->get_data()['conflicts'][0], 'Conflict should return the latest decision and comment.' );
 			taas_hr_review_check( array( 2, 1, 1 ) === array_values( $stale->get_data()['progress'] ), 'A stale batch must leave the other applicant unreviewed.' );
 			taas_hr_review_check( 404 === taas_hr_review_post( array( $other, $change( $outside_id, 'approve', 0 ) ) )->get_status(), 'The batch must reject another term.' );
 			taas_hr_review_check( 400 === taas_hr_review_post( array( $other, $other ) )->get_status(), 'The batch must reject duplicate IDs.' );
+			taas_hr_review_check( 400 === taas_hr_review_post( array( $other + array( 'comment' => str_repeat( 'x', 1001 ) ) ) )->get_status(), 'Comments must be limited to 1,000 characters.' );
+			$comment_only = array(
+				'submission_id' => $ids[0],
+				'version'       => 0,
+				'comment'       => 'No decision',
+			);
+			taas_hr_review_check( 400 === taas_hr_review_post( array( $comment_only ) )->get_status(), 'A comment requires a decision.' );
 			taas_hr_review_check( 403 === taas_hr_review_post( array( $other ), 'student' )->get_status(), 'Students cannot save HR decisions.' );
 
 			$revision = taas_hr_review_post( array( $other, $change( $ids[1], 'reject', 1 ) ), 'admin' );
@@ -81,13 +89,16 @@ try {
 			$list = rest_do_request( new WP_REST_Request( 'GET', '/taas/v1/hr/applicants' ) )->get_data();
 			taas_hr_review_check( array( 1, 2 ) === array_column( $list['applicants'], 'version' ) && array( 'reject', 'reject' ) === array_column( $list['applicants'], 'decision' ), 'A fresh list must return both saved decisions.' );
 			taas_hr_review_check( $revision->get_data()['progress'] === $list['progress'], 'A fresh list must return the saved progress.' );
+			taas_hr_review_check( $comment['comment'] === $list['applicants'][1]['comment'], 'A decision update that omits the comment must preserve it.' );
+			$cleared = taas_hr_review_post( array( $change( $ids[1], 'reject', 2 ) + array( 'comment' => null ) ) );
+			taas_hr_review_check( $change( $ids[1], 'reject', 3 ) + array( 'comment' => null ) === $cleared->get_data()['reviews'][0], 'Clearing a comment must advance the version without changing the decision.' );
 
 			$reviews = new TAAS_HR_Review_Repository();
 			$submissions->save_for_term( '99999017', $cycle->cycle_semester, $cycle->cycle_year, array( 'student_name' => 'Updated fixture' ) );
 			$review = $reviews->find( $ids[1] );
-			taas_hr_review_check( $review instanceof TAAS_HR_Review && 'reject' === $review->decision && 2 === $review->version, 'Updating a student snapshot must preserve its separate HR review.' );
+			taas_hr_review_check( $review instanceof TAAS_HR_Review && 'reject' === $review->decision && 3 === $review->version, 'Updating a student snapshot must preserve its separate HR review.' );
 			$cycles->save( new TAAS_Application_Cycle( $cycle->cycle_semester, $cycle->cycle_year, array() ) );
-			taas_hr_review_check( 403 === taas_hr_review_post( array( $change( $ids[1], 'approve', 2 ) ), 'admin' )->get_status(), 'Closed HR review must block revisions.' );
+			taas_hr_review_check( 403 === taas_hr_review_post( array( $change( $ids[1], 'approve', 3 ) ), 'admin' )->get_status(), 'Closed HR review must block revisions.' );
 			$students->delete( '99999017' );
 			taas_hr_review_check( null === $reviews->find( $ids[1] ), 'Deleting a submission must remove its HR review.' );
 			throw $rollback;

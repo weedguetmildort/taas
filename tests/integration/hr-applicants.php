@@ -94,6 +94,7 @@ try {
 		'submission_id'      => (string) $spring_id,
 		'decision'           => null,
 		'version'            => 0,
+		'comment'            => null,
 		'name'               => 'Submitted Spring name',
 		'student_type'       => 'phd',
 		'gpa'                => 3.5,

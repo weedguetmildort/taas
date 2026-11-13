@@ -12,6 +12,10 @@
             : code;
     }
 
+    function normalizeSearch(text) {
+        return text.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
+    }
+
     async function request(endpoint, { signal, decisions } = {}) {
         const nonce = window.TAASHrPage?.nonce;
         if (!endpoint || !nonce) {
@@ -99,12 +103,14 @@
 
     async function loadApplicants(review, cycleTerm, cycleStatus) {
         const filter = review.querySelector("#student-type-filter");
+        const decisionFilter = review.querySelector("#hr-decision-filter");
+        const search = review.querySelector("#hr-applicant-search");
         const status = review.querySelector("[data-hr-applicants-status]");
         const table = review.querySelector("[data-hr-applicants-table]");
         const rows = table?.querySelector("tbody");
         const template = review.querySelector("[data-hr-applicant-row]");
         const dialog = review.querySelector("#hr-application-details");
-        if (!filter || !status || !rows || !template || !dialog) {
+        if (!filter || !decisionFilter || !search || !status || !rows || !template || !dialog) {
             return;
         }
 
@@ -129,9 +135,9 @@
 
             const types = { undergrad: "Undergraduate", masters: "Master’s", phd: "PhD" };
             const entries = data.applicants.map((applicant, index) => {
-                const { submission_id, name, student_type, gpa, english_test_score, country_code, advisor_name, decision, version } = applicant;
+                const { submission_id, name, student_type, gpa, english_test_score, country_code, advisor_name, decision, version, comment } = applicant;
                 const fragment = template.content.cloneNode(true);
-                const row = fragment.firstElementChild;
+                const [row, commentRow] = fragment.children;
                 row.querySelector("[data-name]").textContent = name ?? "—";
                 row.querySelector("[data-student-type]").textContent = types[student_type] ?? "—";
                 row.querySelector("[data-gpa]").textContent = gpa ?? "—";
@@ -140,13 +146,41 @@
                 row.querySelector(".phd-only").textContent = advisor_name || "—";
                 const button = row.querySelector(".view-button");
                 const radios = Array.from(row.querySelectorAll('input[type="radio"]'));
+                const commentToggle = row.querySelector(".hr-comment-toggle");
+                const commentPanel = commentRow.querySelector(".hr-comment-panel");
+                const commentInput = commentPanel.querySelector("textarea");
+                commentPanel.id = `hr-comment-panel-${index}`;
+                commentToggle.setAttribute("aria-controls", commentPanel.id);
+                commentInput.value = comment ?? "";
                 for (const radio of radios) {
                     radio.name = `hr-decision-${index}`;
                     radio.checked = radio.value === decision;
                 }
-                rows.append(fragment);
-                return { row, button, name, type: student_type, submissionId: submission_id, decision, version, radios };
+                const entry = { row, button, name, searchName: normalizeSearch(row.querySelector("[data-name]").textContent), type: student_type, submissionId: submission_id, decision, version, radios, commentRow, commentToggle, commentInput, comment: comment ?? null };
+                commentToggle.addEventListener("click", () => {
+                    setCommentOpen(entry, commentToggle.getAttribute("aria-expanded") === "false");
+                    if (!commentRow.hidden) {
+                        commentInput.focus();
+                    }
+                });
+                setCommentOpen(entry, false);
+                return entry;
             });
+
+            function orderApplicants() {
+                const ordered = [...entries].sort((first, second) =>
+                    Number(first.decision !== null) - Number(second.decision !== null));
+                let next = rows.firstElementChild;
+                for (const { row, commentRow } of ordered) {
+                    for (const item of [row, commentRow]) {
+                        if (item === next) {
+                            next = next.nextElementSibling;
+                        } else {
+                            rows.insertBefore(item, next);
+                        }
+                    }
+                }
+            }
 
             const title = dialog.querySelector("h3");
             let detailsRequest;
@@ -168,21 +202,43 @@
             }
 
             function filterApplicants() {
+                const query = normalizeSearch(search.value);
                 const hideAdvisor = filter.value === "masters" || filter.value === "undergrad";
                 table.classList.toggle("hide-advisor", hideAdvisor);
                 let hasMatches = false;
                 for (const entry of entries) {
-                    entry.row.hidden = filter.value !== "all" && entry.type !== filter.value;
+                    const matchesType = filter.value === "all" || entry.type === filter.value;
+                    const matchesDecision = decisionFilter.value === "all" || (entry.decision ?? "none") === decisionFilter.value;
+                    const matchesName = entry.searchName.includes(query);
+                    entry.row.hidden = !matchesType || !matchesDecision || !matchesName;
+                    entry.commentRow.cells[0].colSpan = hideAdvisor ? 7 : 8;
+                    entry.commentRow.hidden = entry.row.hidden || entry.commentToggle.getAttribute("aria-expanded") === "false";
                     hasMatches ||= !entry.row.hidden;
                 }
                 table.hidden = !hasMatches;
-                status.textContent = hasMatches ? "" : "No applicants match this student type.";
+                status.textContent = hasMatches ? "" : query
+                    ? "No applicants match your search and filters."
+                    : "No applicants match the selected filters.";
             }
 
-            filterApplicants();
+            function refreshApplicants() {
+                orderApplicants();
+                filterApplicants();
+            }
+
+            refreshApplicants();
             filter.disabled = false;
-            filter.addEventListener("change", filterApplicants);
-            initializeReviewSave(review, entries, cycleStatus, dialog);
+            decisionFilter.disabled = false;
+            search.disabled = false;
+            const updateSubmitButton = initializeReviewSave(review, entries, cycleStatus, dialog, refreshApplicants);
+            function onFilterChange() {
+                filterApplicants();
+                updateSubmitButton();
+            }
+
+            filter.addEventListener("change", onFilterChange);
+            decisionFilter.addEventListener("change", onFilterChange);
+            search.addEventListener("input", onFilterChange);
         } catch {
             status.textContent = "The applicant list could not be loaded. Reload the page to try again.";
         }
@@ -319,46 +375,81 @@
         review.querySelector(".hr-progress-bar").setAttribute("aria-valuenow", percent.toFixed(1));
     }
 
+    function setCommentOpen(entry, open) {
+        entry.commentToggle.setAttribute("aria-expanded", String(open));
+        entry.commentToggle.textContent = open ? "Hide Comment" : entry.commentInput.value.trim() ? "Edit Comment" : "Add Comment";
+        entry.commentRow.hidden = entry.row.hidden || !open;
+    }
+
     function applySavedDecision(entry, saved) {
         entry.decision = saved.decision;
         entry.version = saved.version;
+        entry.comment = saved.comment ?? null;
+        entry.commentInput.value = entry.comment ?? "";
+        setCommentOpen(entry, entry.commentToggle.getAttribute("aria-expanded") === "true");
         for (const radio of entry.radios) {
             radio.checked = radio.value === saved.decision;
         }
     }
 
-    function initializeReviewSave(review, entries, cycleStatus, dialog) {
+    function initializeReviewSave(review, entries, cycleStatus, dialog, refreshApplicants) {
         const saveButton = review.querySelector(".save-button");
         const message = review.querySelector("#hr-save-message");
+        const hiddenNotice = review.querySelector("#hr-hidden-decisions");
         const byId = new Map(entries.map(entry => [entry.submissionId, entry]));
         const radios = entries.flatMap(entry => entry.radios);
+        let saving = false;
 
         function pendingDecisions() {
             const decisions = [];
             for (const entry of entries) {
                 const selected = entry.radios.find(radio => radio.checked)?.value;
-                if (selected && selected !== entry.decision) {
-                    decisions.push({ submission_id: entry.submissionId, decision: selected, version: entry.version });
+                const comment = entry.commentInput.value.trim() || null;
+                if (selected && (selected !== entry.decision || comment !== entry.comment)) {
+                    decisions.push({ submission_id: entry.submissionId, decision: selected, version: entry.version, comment });
                 }
             }
             return decisions;
         }
 
+        function warnUnsavedDecisions(event) {
+            event.preventDefault();
+            event.returnValue = true;
+        }
+
         function updateSubmitButton() {
-            const count = pendingDecisions().length;
+            const pending = pendingDecisions();
+            const count = pending.length;
+            const hiddenCount = pending.filter(decision => byId.get(decision.submission_id).row.hidden).length;
             saveButton.textContent = count > 1 ? `Submit ${count} Applications` : "Submit Decision";
-            saveButton.disabled = count === 0;
+            saveButton.disabled = saving || count === 0;
+            for (const entry of entries) {
+                entry.commentInput.disabled = saving || !entry.radios.some(radio => radio.checked);
+                entry.commentToggle.disabled = entry.commentInput.disabled;
+            }
+            if (hiddenNotice) {
+                hiddenNotice.textContent = hiddenCount === 0 ? "" : hiddenCount === 1
+                    ? "1 pending decision is hidden by your search or filters."
+                    : `${hiddenCount} pending decisions are hidden by your search or filters.`;
+            }
+            if (count) {
+                window.addEventListener("beforeunload", warnUnsavedDecisions);
+            } else {
+                window.removeEventListener("beforeunload", warnUnsavedDecisions);
+            }
         }
 
         updateSubmitButton();
         radios.forEach(radio => radio.addEventListener("change", updateSubmitButton));
+        entries.forEach(entry => entry.commentInput.addEventListener("input", updateSubmitButton));
         saveButton.addEventListener("click", async () => {
             const decisions = pendingDecisions();
-            if (!decisions.length) {
+            if (saving || !decisions.length) {
                 return;
             }
 
-            saveButton.disabled = true;
+            saving = true;
+            updateSubmitButton();
             radios.forEach(radio => { radio.disabled = true; });
             message.textContent = "Saving decisions…";
             try {
@@ -373,36 +464,25 @@
                     message.textContent = "An application is no longer available in this cycle. Reload the page to refresh the list.";
                     return;
                 }
-                if (response.status === 409 && data?.code === "taas_review_conflict" && Array.isArray(data.conflicts) && validProgress(data.progress)) {
-                    const names = [];
-                    for (const saved of data.conflicts) {
-                        const entry = byId.get(saved.submission_id);
-                        applySavedDecision(entry, saved);
-                        const label = { approve: "Approved", reject: "Rejected" }[saved.decision] ?? "Unreviewed";
-                        entry.row.querySelector("[data-review-conflict]").textContent = `Current saved decision: ${label}. Review it before making a new selection.`;
-                        names.push(`${entry.name || `Submission ${entry.submissionId}`} (${label})`);
-                    }
-                    renderProgress(review, data.progress);
-                    message.textContent = `No decisions were saved. Review the latest decision for ${names.join(", ")} before saving again.`;
-                    return;
-                }
                 if (!response.ok || !Array.isArray(data?.reviews) || !validProgress(data.progress)) {
                     throw new Error("Invalid review save response.");
                 }
                 for (const saved of data.reviews) {
                     const entry = byId.get(saved.submission_id);
                     applySavedDecision(entry, saved);
-                    entry.row.querySelector("[data-review-conflict]").textContent = "";
                 }
+                refreshApplicants();
                 renderProgress(review, data.progress);
                 message.textContent = decisions.length === 1 ? "Decision saved." : `${decisions.length} decisions saved.`;
             } catch {
-                message.textContent = "The save could not be confirmed. Try again to check the latest decisions.";
+                message.textContent = "The save could not be confirmed.";
             } finally {
+                saving = false;
                 radios.forEach(radio => { radio.disabled = false; });
                 updateSubmitButton();
             }
         });
+        return updateSubmitButton;
     }
 
     // Initialize once DOM is ready

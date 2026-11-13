@@ -67,13 +67,28 @@
         </div> <!-- END HR REVIEW PROGRESS -->
 
         <div class="student-filter-section">
-            <label for="student-type-filter">Filter Applicants by Student Type</label>
-            <select id="student-type-filter" disabled>
-                <option value="all">All Student Types</option>
-                <option value="phd">PhD Students</option>
-                <option value="masters">Master’s Students</option>
-                <option value="undergrad">Undergraduate Students</option>
-            </select>
+            <div>
+                <label for="hr-applicant-search">Search Applicants by Name</label>
+                <input id="hr-applicant-search" type="search" disabled>
+            </div>
+            <div>
+                <label for="student-type-filter">Filter Applicants by Student Type</label>
+                <select id="student-type-filter" disabled>
+                    <option value="all">All Student Types</option>
+                    <option value="phd">PhD Students</option>
+                    <option value="masters">Master’s Students</option>
+                    <option value="undergrad">Undergraduate Students</option>
+                </select>
+            </div>
+            <div>
+                <label for="hr-decision-filter">Filter Applicants by Decision</label>
+                <select id="hr-decision-filter" disabled>
+                    <option value="all">All Decisions</option>
+                    <option value="none">No Decision</option>
+                    <option value="approve">Approved</option>
+                    <option value="reject">Rejected</option>
+                </select>
+            </div>
         </div>
 
         <div class="applicants-section">
@@ -110,7 +125,18 @@
                             <label><input type="radio" value="approve"> Approve</label>
                             <label><input type="radio" value="reject"> Reject</label>
                         </div>
-                        <p data-review-conflict></p>
+                        <button type="button" class="hr-comment-toggle" aria-expanded="false" disabled>Add Comment</button>
+                    </td>
+                </tr>
+                <tr class="hr-comment-row" hidden>
+                    <td colspan="8">
+                        <div class="hr-comment-panel">
+                            <label class="hr-review-comment">
+                                <span class="hr-review-comment-label">Comment <span>(optional)</span></span>
+                                <textarea rows="3" maxlength="1000" placeholder="Add a note about this decision…" disabled></textarea>
+                            </label>
+                            <p>Visible only to HR and admins.</p>
+                        </div>
                     </td>
                 </tr>
             </template>
@@ -127,6 +153,7 @@
                 </div>
             </dialog>
             <div class="save-section">
+                <p id="hr-hidden-decisions" role="status"></p>
                 <button type="button" class="save-button" disabled>Submit Decision</button>
                 <p id="hr-save-message" role="status"></p>
             </div>

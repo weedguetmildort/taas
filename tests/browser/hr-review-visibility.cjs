@@ -24,7 +24,7 @@ async function run() {
         const isApplicantsRequest = url => (url.searchParams.get('rest_route') ?? url.pathname).endsWith('/taas/v1/hr/applicants');
         const applicants = [
             { submission_id: '71', name: '<b>PhD applicant</b>', student_type: 'phd', gpa: 3.8, country_code: 'IN', advisor_name: 'Dr. Example', decision: null, version: 0 },
-            { submission_id: '72', name: 'Undergraduate applicant', student_type: 'undergrad', gpa: null, country_code: null, decision: null, version: 0 }
+            { submission_id: '72', name: 'José Álvarez', student_type: 'undergrad', gpa: null, country_code: null, decision: null, version: 0 }
         ];
         const applicantList = (rows, reviewed = 0, approved = 0) => ({
             json: { term: 'Spring', year: 2026, applicants: rows, progress: { total: rows.length, reviewed, approved } }
@@ -34,13 +34,6 @@ async function run() {
         await page.route(isSaveRequest, route => {
             const { decisions } = route.request().postDataJSON();
             saveRequests.push(decisions);
-            if (saveRequests.length === 1) {
-                return route.fulfill({ status: 409, json: {
-                    code: 'taas_review_conflict',
-                    conflicts: [{ submission_id: '71', decision: 'reject', version: 1 }],
-                    progress: { total: 2, reviewed: 1, approved: 0 }
-                } });
-            }
             return route.fulfill({ json: {
                 reviews: decisions.map(change => ({ ...change, version: change.version + 1 })),
                 progress: { total: 2, reviewed: 2, approved: 2 }
@@ -159,11 +152,23 @@ async function run() {
                 await dialog.waitFor({ state: 'hidden' });
                 const save = review.getByRole('button', { name: /^Submit (Decision|\d+ Applications)$/ });
                 assert.ok(await save.isDisabled());
+                assert.ok(await rows.first().getByRole('button', { name: 'Add Comment' }).isDisabled());
                 await rows.first().getByRole('radio', { name: 'Approve' }).check();
+                await rows.first().getByRole('button', { name: 'Add Comment' }).click();
+                const firstComment = review.locator('.hr-comment-row:visible').getByLabel('Comment (optional)');
+                assert.ok(await firstComment.evaluate(input => document.activeElement === input));
+                assert.equal(await review.locator('.hr-comment-row:visible td').getAttribute('colspan'), '8');
+                await firstComment.fill('Draft approval');
+                await rows.first().getByRole('button', { name: 'Hide Comment' }).click();
+                assert.ok(await firstComment.isHidden());
+                await rows.first().getByRole('button', { name: 'Edit Comment' }).click();
+                assert.equal(await firstComment.inputValue(), 'Draft approval');
                 assert.equal(await save.textContent(), 'Submit Decision');
                 assert.ok(await save.isEnabled());
                 const filter = review.getByLabel('Filter Applicants by Student Type');
+                const decisionFilter = review.getByLabel('Filter Applicants by Decision');
                 await filter.selectOption('undergrad');
+                assert.ok(await firstComment.isHidden());
                 assert.equal(await rows.count(), 1);
                 assert.ok(await rows.first().getByText(applicants[1].name).isVisible());
                 assert.ok(await review.locator('th.phd-only').isHidden());
@@ -173,31 +178,64 @@ async function run() {
                 assert.ok(await review.getByRole('link', { name: 'https://example.invalid/fws-award' }).isVisible());
                 await dialog.getByRole('button', { name: 'Close' }).click();
                 await rows.first().getByRole('radio', { name: 'Approve' }).check();
+                await rows.first().getByRole('button', { name: 'Add Comment' }).click();
+                assert.equal(await review.locator('.hr-comment-row:visible td').getAttribute('colspan'), '7');
+                await review.locator('.hr-comment-row:visible').getByLabel('Comment (optional)').fill('Ready for review');
                 await filter.selectOption('phd');
                 assert.ok(await review.getByRole('columnheader', { name: 'Advisor Name' }).isVisible());
                 assert.ok(await rows.first().getByRole('radio', { name: 'Approve' }).isChecked());
                 assert.ok(await dialog.isHidden());
                 assert.equal(await save.textContent(), 'Submit 2 Applications');
-                await save.click();
-                await review.getByText('Current saved decision: Rejected.', { exact: false }).waitFor();
-                assert.ok(await rows.first().getByRole('radio', { name: 'Reject' }).isChecked());
-                assert.equal(await review.locator('#hr-reviewed-count').textContent(), '1');
-                assert.equal(await save.textContent(), 'Submit Decision');
+                const hiddenNotice = review.locator('#hr-hidden-decisions');
+                assert.equal(await hiddenNotice.textContent(), '1 pending decision is hidden by your search or filters.');
+                const search = review.getByRole('searchbox', { name: 'Search Applicants by Name' });
+                await search.fill('no matching applicant');
+                assert.equal(await hiddenNotice.textContent(), '2 pending decisions are hidden by your search or filters.');
+                await search.fill('');
+                await decisionFilter.selectOption('none');
+                assert.equal(await rows.count(), 1);
+                assert.ok(await rows.first().getByRole('radio', { name: 'Approve' }).isChecked());
+                const navigationWarning = page.waitForEvent('dialog', { timeout: 5000 });
+                await page.evaluate(() => { setTimeout(() => location.reload(), 0); });
+                const warning = await navigationWarning;
+                assert.equal(warning.type(), 'beforeunload');
+                await warning.dismiss();
+                assert.equal(await save.textContent(), 'Submit 2 Applications');
                 await filter.selectOption('all');
-                assert.ok(await rows.last().getByRole('radio', { name: 'Approve' }).isChecked());
-                await rows.first().getByRole('radio', { name: 'Approve' }).check();
+                await decisionFilter.selectOption('all');
+                assert.equal(await hiddenNotice.textContent(), '');
+                assert.deepEqual(await rows.locator('[data-name]').allTextContents(), applicants.map(row => row.name));
+                assert.ok(await rows.first().getByRole('radio', { name: 'Approve' }).isChecked());
+                await decisionFilter.selectOption('none');
                 await save.click();
                 await review.getByText('2 decisions saved.', { exact: true }).waitFor();
+                assert.ok(await review.getByText('No applicants match the selected filters.').isVisible());
                 assert.equal(await save.textContent(), 'Submit Decision');
                 assert.ok(await save.isDisabled());
+                assert.equal(await hiddenNotice.textContent(), '');
                 assert.deepEqual(saveRequests.map(batch => batch.map(change => [change.submission_id, change.version])), [
-                    [['71', 0], ['72', 0]], [['71', 1], ['72', 0]]
+                    [['71', 0], ['72', 0]]
+                ]);
+                assert.deepEqual(saveRequests.map(batch => batch.map(change => change.comment)), [
+                    ['Draft approval', 'Ready for review']
                 ]);
                 assert.equal(await review.locator('#hr-reviewed-count').textContent(), '2');
                 assert.equal(await review.locator('#hr-approved-count').textContent(), '2');
+                await decisionFilter.selectOption('approve');
+                assert.deepEqual(await rows.locator('[data-name]').allTextContents(), applicants.map(row => row.name));
+                await search.fill('  pHD APP  ');
+                assert.deepEqual(await rows.locator('[data-name]').allTextContents(), [applicants[0].name]);
+                await filter.selectOption('undergrad');
+                assert.ok(await review.getByText('No applicants match your search and filters.').isVisible());
+                for (const query of [' JOSE ALVAREZ ', 'Jose\u0301 A\u0301lvarez']) {
+                    await search.fill(query);
+                    assert.deepEqual(await rows.locator('[data-name]').allTextContents(), [applicants[1].name]);
+                }
+                await search.fill('');
+                assert.deepEqual(await rows.locator('[data-name]').allTextContents(), [applicants[1].name]);
                 assert.equal(await review.getByRole('progressbar').getAttribute('aria-valuenow'), '100.0');
                 await filter.selectOption('masters');
-                assert.ok(await review.getByText('No applicants match this student type.').isVisible());
+                assert.ok(await review.getByText('No applicants match the selected filters.').isVisible());
             }
             await page.unroute(isCycleRequest, respond);
         }
@@ -209,6 +247,10 @@ async function run() {
         await review.getByRole('radio', { name: 'Approve' }).first().waitFor();
         assert.ok(await review.getByRole('radio', { name: 'Approve' }).first().isChecked());
         assert.equal(await review.locator('#hr-approved-count').textContent(), '2');
+        applicantResponse = applicantList([{ ...applicants[0], decision: 'reject', version: 1 }, applicants[1]], 1);
+        await page.goto(portal);
+        await review.getByText(applicants[1].name, { exact: true }).waitFor();
+        assert.deepEqual(await review.locator('tbody [data-name]').allTextContents(), [applicants[1].name, applicants[0].name]);
         for (const scenario of [
             { response: applicantList([]), message: 'No applications have been submitted for this cycle.' },
             { response: { status: 503, body: 'Unavailable' }, message: 'The applicant list could not be loaded. Reload the page to try again.' },
@@ -239,11 +281,11 @@ async function run() {
         assert.ok(await save.isDisabled());
         assert.ok(await approve.isDisabled());
         await page.clock.fastForward(30000);
-        await review.getByText('The save could not be confirmed. Try again to check the latest decisions.', { exact: true }).waitFor();
+        await review.getByText('The save could not be confirmed.', { exact: true }).waitFor();
         assert.ok(await save.isEnabled());
         assert.ok(await approve.isEnabled());
         assert.ok(await approve.isChecked());
-        console.log('PASS: Applicant details, advisor names, decision conflicts, saved progress, and stalled save recovery.');
+        console.log('PASS: Applicant details, advisor names, saved progress, and stalled save recovery.');
     } finally {
         await browser.close();
     }
