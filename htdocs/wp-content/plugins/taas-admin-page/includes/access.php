@@ -21,7 +21,12 @@ function taas_admin_pages_is_page(): bool {
 	return false;
 }
 
-/** Homepage URL for the caller's highest non-admin role (if available). */
+/**
+ * Get the homepage for the caller's highest non-admin role.
+ *
+ * @param array|null $user The current user, or null when signed out.
+ * @return string The homepage URL, or an empty string if none is available.
+ */
 function taas_admin_pages_home( ?array $user ): string {
 	$homes = array(
 		TAAS_Auth::ROLE_HR         => 'hr-page',
