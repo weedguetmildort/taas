@@ -10,8 +10,7 @@ This page covers the rules shared by every route. The routes themselves are spli
 | [admin.md](admin.md) | Routes for the admin: application cycle, courses, professors, students, applications, matching |
 | [professor.md](professor.md) | Routes for a signed-in professor: their courses, applicants and rankings |
 | [student.md](student.md) | Routes for a signed-in student: applying, and checking or editing their applications |
-
-HR has no routes of its own. It uses the routes in [common.md](common.md), during its stage.
+| [hr.md](hr.md) | Routes for HR: current-cycle applicant summaries |
 
 ## All routes
 
@@ -21,6 +20,7 @@ Paths are relative to the base path, `/wp-json/taas/v1`.
 | --- | --- | --- | --- |
 | GET | `/me` | Signed in, any stage | [common.md](common.md#get-current-user) |
 | GET | `/application-cycle` | Signed in, any stage | [common.md](common.md#get-current-application-cycle) |
+| GET | `/hr/applicants` | HR and admin during HR review | [hr.md](hr.md#get-current-cycle-applicants) |
 | GET | `/courses` | Signed in | [common.md](common.md#get-course-listings) |
 | GET | `/courses/{course_id}` | Signed in | [common.md](common.md#get-one-course) |
 | GET | `/status` | Signed in | [common.md](common.md#get-status) |

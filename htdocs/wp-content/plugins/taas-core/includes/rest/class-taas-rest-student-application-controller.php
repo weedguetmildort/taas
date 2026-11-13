@@ -137,6 +137,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 						'replacement'         => $replacement,
 						'profile'             => $profile?->to_row(),
 						'english_test_score'  => $exam_source['english_test_score'] ?? null,
+						'advisor_name'        => ( $saved['snapshot'] ?? $latest )?->submitted_details['profile']['advisor_name'] ?? null,
 						'academic_background' => array_map(
 							static fn( TAAS_Academic_Background $entry ) => $entry->to_row(),
 							( new TAAS_Academic_Background_Repository() )->find_by_student( $ufid )
@@ -354,7 +355,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 			return new WP_Error( 'taas_invalid_application', 'Send an application JSON object.', array( 'status' => 400 ) );
 		}
 		try {
-			$input = TAAS_Student_Application_Input::parse( $body, $editing && ! $replacement );
+			$input = TAAS_Student_Application_Input::parse( $body );
 			if ( isset( $input['details'] ) ) {
 				$email = TAAS_Auth::current_user()['email'] ?? '';
 				if ( ! is_string( $email ) || ! is_email( $email ) || ! preg_match( '/@ufl\.edu$/i', $email ) ) {

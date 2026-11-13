@@ -67,8 +67,6 @@
 .taas-application-form-root .student-app-message[data-state="success"] { color: #18703a; }
 .taas-application-form-root button { min-height: 44px; padding: 11px 22px; border: 0; border-radius: 6px; background: var(--accent); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; transition: background-color .15s ease; }
 .taas-application-form-root button:hover { background: var(--accent-hover); }
-.taas-application-form-root button[data-withdraw-all] { background: #b42318; color: #fff; }
-.taas-application-form-root button[data-withdraw-all]:hover:not(:disabled) { background: #912018; }
 .taas-application-form-root button:focus-visible { outline: 3px solid #222; outline-offset: 3px; }
 .taas-application-form-root button:disabled { opacity: .65; cursor: wait; }@media (max-width: 620px) {
 .taas-application-form-root { padding: 20px 10px; }

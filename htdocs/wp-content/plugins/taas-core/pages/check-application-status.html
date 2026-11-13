@@ -238,6 +238,12 @@
                           </select>
                         </label>
                       </div>
+                      <div class="wp-block-taas-application-field" data-advisor-section hidden>
+                        <label>Advisor Name (optional)
+                          <input name="advisorName" type="text" maxlength="255" aria-describedby="advisor-name-help">
+                          <small id="advisor-name-help">Leave blank if you don’t know your advisor’s name.</small>
+                        </label>
+                      </div>
                       <div class="wp-block-group full-width">
                         <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
                           <div class="wp-block-taas-application-field">
@@ -262,7 +268,7 @@
               <div class="wp-block-group form-section course-section">
                 <div class="wp-block-group__inner-container is-layout-flow wp-block-group-is-layout-flow">
                   <h2 class="wp-block-heading">Course Preferences</h2>
-                  <p class="section-help wp-block-paragraph">PhD students must rank exactly five courses and may stay selected for additional courses as Unranked. Other students must select and rank one to five courses. Uncheck a course to withdraw from it. Use consecutive ranks starting at 1 and answer the course-history question for every selected course.</p>
+                  <p class="section-help wp-block-paragraph">PhD students must rank exactly five courses. Unchecking a course changes its rank to No Preference. Other students must rank one to five courses and can uncheck a course to withdraw from it. Use consecutive ranks starting at 1 and answer the course-history question for every selected course.</p>
                   <div class="course-selection-layout">
                     <div class="course-chooser">
                       <h3>Available courses</h3>
@@ -322,7 +328,6 @@
               <p class="student-app-message" id="form-message" data-application-ui="message" role="status" aria-live="polite">Loading your application…</p>
               <button type="button" id="retry-application-load" data-application-ui="retry" hidden>Retry loading</button>
               <div class="form-action-buttons">
-                <button type="button" data-withdraw-all disabled data-application-loading-lock hidden>Withdraw from all courses</button>
                 <button type="submit" data-saved-label="Application submitted" disabled data-application-loading-lock>Submit Changes</button>
               </div>
             </footer>

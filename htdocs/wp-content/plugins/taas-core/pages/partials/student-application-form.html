@@ -74,6 +74,10 @@
             <small id="english-test-score-help">If you’ve taken multiple English tests, select the highest score range you qualify for.</small>
           </label>
           <label>Planned TA hours per week <select name="taHours" required><option value="">Select hours</option><option value="10">10 hours</option><option value="20">20 hours</option></select></label>
+          <label data-advisor-section hidden>Advisor Name (optional)
+            <input name="advisorName" type="text" maxlength="255" aria-describedby="advisor-name-help">
+            <small id="advisor-name-help">Leave blank if you don’t know your advisor’s name.</small>
+          </label>
           <label class="full-width">Anything else the professor should know, including planned travel <textarea name="additionalInfo" rows="5" maxlength="1000"></textarea></label>
           <label class="full-width">Resume URL (optional) <input name="resumeUrl" type="url" maxlength="255" placeholder="https://…"></label>
         </div>

@@ -361,7 +361,11 @@ function html(editing, redesigned) {
       ...fixture.courses[0], course_id: String(index + 1)
     }));
     assert(await open(false, false, { ...fixture, courses: fiveCourses }));
+    const advisorName = page.locator('[name="advisorName"]');
+    assert(await advisorName.isHidden());
     await page.locator('[name="collegeStatus"]').selectOption('phd');
+    assert(await advisorName.isVisible());
+    assert.equal(await advisorName.inputValue(), '');
     assert.equal(await page.evaluate(() => window.adapter.collect()), null);
     assert.match(await page.locator('#form-message').textContent(), /exactly five courses/);
     for (const choice of await page.locator('[name="selectedCourses"]').all()) await choice.check();
@@ -370,6 +374,8 @@ function html(editing, redesigned) {
     }
     for (const history of await page.locator('[name="courseHistory"]').all()) await history.selectOption('yes');
     assert.equal(await page.evaluate(() => window.adapter.collect().course_preferences.length), 5);
+    await advisorName.fill('Dr. Morgan Rivera');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.advisor_name), 'Dr. Morgan Rivera');
     console.log('PASS: The PhD selection requires five ranked courses');
 
     const replacementCourses = [...fiveCourses, { ...fixture.courses[0], course_id: '6' }];
