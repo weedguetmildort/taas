@@ -131,6 +131,7 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 						'identity'            => array(
 							'ufid'  => $ufid,
 							'email' => $user['email'],
+							'name'  => $this->prefill_name( $ufid, $user ),
 						),
 						'already_applied'     => $already_applied,
 						'replacement'         => $replacement,
@@ -279,6 +280,32 @@ final class TAAS_REST_Student_Application_Controller extends TAAS_REST_Controlle
 				return $this->student_response( $saved + array( 'message' => 'Your application changes were saved.' ) );
 			}
 		);
+	}
+
+	/**
+	 * Name to start a new application with.
+	 *
+	 * The students row comes first: sign-in adds it, and each submission keeps
+	 * the name the student last entered. Without one, the account's name.
+	 *
+	 * @param string $ufid Authenticated owner.
+	 * @param array  $user Current user from TAAS_Auth::current_user().
+	 * @return string Name, or '' when none is known.
+	 */
+	private function prefill_name( string $ufid, array $user ): string {
+		$student = ( new TAAS_Student_Repository() )->find( $ufid );
+
+		if ( $student instanceof TAAS_Student && '' !== trim( $student->student_name ) ) {
+			return $student->student_name;
+		}
+
+		$account = wp_get_current_user();
+
+		if ( TAAS_Auth::is_local_dev() || 0 === $account->ID ) {
+			return (string) ( $user['display_name'] ?? '' );
+		}
+
+		return TAAS_Shibboleth::student_name( (string) $account->display_name, (string) $account->user_login, (string) $account->first_name, (string) $account->last_name );
 	}
 
 	/**

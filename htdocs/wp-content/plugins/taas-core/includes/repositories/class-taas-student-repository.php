@@ -55,6 +55,35 @@ final class TAAS_Student_Repository extends TAAS_Repository {
 	}
 
 	/**
+	 * Add a student who has signed in but not applied, leaving an existing row unchanged.
+	 *
+	 * Sign-in only seeds the row. Name and email stay whatever the student last
+	 * submitted, so a later sign-in never replaces a name they corrected.
+	 *
+	 * @param TAAS_Student $student Identity from the verified account.
+	 * @return bool Whether a new row was added.
+	 * @throws RuntimeException If the database write fails.
+	 */
+	public function add_if_missing( TAAS_Student $student ): bool {
+		global $wpdb;
+		// Unlike INSERT IGNORE, a no-op update on the key still reports every other error.
+		$sql = $wpdb->prepare(
+			'INSERT INTO %i (student_ufid, student_name, student_email) VALUES (%s, %s, %s)'
+			. ' ON DUPLICATE KEY UPDATE student_ufid = student_ufid',
+			$this->table(),
+			$student->student_ufid,
+			$student->student_name,
+			$student->student_email
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared immediately above.
+		$affected = $wpdb->query( $sql );
+		if ( false === $affected ) {
+			throw new RuntimeException( 'Adding student failed: ' . esc_html( $wpdb->last_error ) );
+		}
+		return 1 === $affected;
+	}
+
+	/**
 	 * Bare table name.
 	 *
 	 * @return string

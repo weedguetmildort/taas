@@ -103,6 +103,16 @@ const initialResponse = () => ({
   academic_background: [{ university: 'Example', major: null, minor: null, degree_type: 2, grad_date: '2025-05-01', gpa: null }]
 });
 
+test('initial loading accepts an identity with or without a name', async () => {
+  for (const name of ['Albert Gator', '', null]) {
+    const fixture = initialResponse();
+    fixture.identity.name = name;
+    await withFetch(async () => new Response(JSON.stringify(fixture)), async () => {
+      assert.deepEqual(await createApplicationApi({ nonce: 'test' }).load('/fixture'), fixture);
+    });
+  }
+});
+
 test('initial loading accepts closed periods and nullable profiles/degrees', async () => {
   const fixture = initialResponse();
   await withFetch(async () => new Response(JSON.stringify(fixture)), async () => {
@@ -127,6 +137,7 @@ for (const [name, corrupt] of Object.entries({
   'empty identity': data => { data.identity = {}; },
   'numeric UFID': data => { data.identity.ufid = 12345678; },
   'invalid email type': data => { data.identity.email = {}; },
+  'invalid name type': data => { data.identity.name = 42; },
   'null course': data => { data.courses = [null]; },
   'missing course id': data => { delete data.courses[0].course_id; },
   'invalid course name': data => { data.courses[0].course_name = {}; },
