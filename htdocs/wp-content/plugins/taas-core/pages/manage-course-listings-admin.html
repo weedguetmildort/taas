@@ -9,6 +9,7 @@
     padding: 40px;
 
     background: #ffffff;
+    border-radius: 6px;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 
     font-family: Arial, sans-serif;
@@ -25,15 +26,8 @@
 .manage-courses-header h2 {
     font-size: 27px;
     font-weight: 600;
-    margin: 0 0 15px;
-    color: #222;
-}
-
-.manage-courses-header p {
-    font-size: 16px;
-    line-height: 1.7;
-    color: #444;
     margin: 0;
+    color: #222;
 }
 
 /* TABLE SECTION */
@@ -46,6 +40,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     gap: 20px;
     margin-bottom: 20px;
 }
@@ -54,6 +49,83 @@
     font-size: 19px;
     font-weight: 600;
     margin: 0;
+}
+
+.course-header-actions,
+.course-student-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.course-header-actions {
+    justify-content: flex-end;
+    gap: 18px;
+}
+
+.course-student-filter {
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.course-student-filter select {
+    min-width: 155px;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #222;
+    font: inherit;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.course-row-actions,
+.course-edit-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.course-edit-dialog {
+    width: min(520px, 90vw);
+    max-height: 85vh;
+    padding: 24px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24);
+}
+
+.course-edit-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.42);
+}
+
+.course-edit-dialog form {
+    display: grid;
+    gap: 12px;
+}
+
+.course-edit-dialog label {
+    display: block;
+}
+
+.course-edit-dialog input:not([type="checkbox"]),
+.course-edit-dialog select,
+.course-edit-dialog textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+}
+
+.course-edit-dialog fieldset {
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
 /* ADD COURSE BUTTON */
@@ -81,6 +153,9 @@
 .manage-courses-table-wrapper {
     width: 100%;
     overflow-x: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    box-sizing: border-box;
 }
 
 /* TABLE */
@@ -104,7 +179,7 @@
     font-size: 14px;
     font-weight: 600;
     color: #222;
-    white-space: nowrap;
+    line-height: 1.35;
 }
 
 /* TABLE CELLS */
@@ -130,62 +205,59 @@
     background: #e8f1f8;
 }
 
-/* EMAIL LINKS */
-
-.manage-courses-table td a {
-    color: #0021a5;
-    text-decoration: none;
-}
-
-.manage-courses-table td a:hover {
-    text-decoration: underline;
-}
-
-/* ACTION BUTTONS */
-
-.course-actions {
-    display: flex;
-    gap: 8px;
+.manage-courses-table td:nth-child(4) {
+    overflow-wrap: anywhere;
 }
 
 .edit-course-button,
-.delete-course-button {
+.delete-course-button,
+.course-edit-actions button {
     padding: 8px 12px;
+    border: 1px solid transparent;
     border-radius: 4px;
-
-    font-size: 13px;
-    font-weight: 500;
+    font: 500 13px Arial, sans-serif;
     cursor: pointer;
+    white-space: nowrap;
 }
 
-/* EDIT BUTTON */
-
-.edit-course-button {
+.edit-course-button,
+.course-edit-actions button[type="submit"] {
     background: #0021a5;
-    color: white;
-    border: none;
+    color: #fff;
 }
 
-.edit-course-button:hover {
+.edit-course-button:hover,
+.course-edit-actions button[type="submit"]:hover {
     background: #00166e;
 }
 
-/* DELETE BUTTON */
-
 .delete-course-button {
-    background: #ffffff;
+    border-color: #b42318;
+    background: #fff;
     color: #b42318;
-    border: 1px solid #b42318;
 }
 
 .delete-course-button:hover {
     background: #fff0ee;
 }
 
+.course-edit-actions button[type="button"] {
+    border-color: #ccc;
+    background: #fff;
+    color: #222;
+}
+
+.manage-courses-container button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
 /* KEYBOARD ACCESSIBILITY */
 
 .manage-courses-container button:focus-visible,
-.manage-courses-container a:focus-visible {
+.manage-courses-container input:focus-visible,
+.manage-courses-container select:focus-visible,
+.manage-courses-container textarea:focus-visible {
     outline: 3px solid #0021a5;
     outline-offset: 3px;
 }
@@ -208,444 +280,103 @@
         align-items: flex-start;
     }
 
-    .add-course-button {
-        width: 100%;
+    .course-header-actions {
+        justify-content: flex-start;
     }
 }
 
-/* ADD COURSE CSV UPLOAD */
+/* ADD COURSE XLSX UPLOAD */
 
-.add-course-upload {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-/* ORANGE ADD COURSE BUTTON */
-
-.add-course-button {
-    padding: 12px 20px;
-    background-color: #ff7f11;
-    color: white;
-
-    border: none;
-    border-radius: 4px;
-
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.add-course-button:hover {
-    background-color: #e66f08;
-}
-
-/* SELECTED FILE NAME */
-
-.selected-csv-name {
-    font-size: 13px;
-    color: #444;
-    font-style: italic;
+#course-upload-status {
     overflow-wrap: anywhere;
 }
 
-/* MOBILE */
-
-@media (max-width: 768px) {
-    .add-course-upload {
-        justify-content: flex-start;
-    }
+.manage-courses-container [role="status"]:empty {
+    margin: 0;
 }
 
-/* COURSE HEADER ACTIONS */
-
-.manage-courses-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-bottom: 25px;
-}
-
-.course-header-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 18px;
-    flex-wrap: wrap;
-}
-
-/* STUDENT TYPE FILTER */
-
-.course-student-filter {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.course-student-filter label {
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: #222;
-    white-space: nowrap;
-}
-
-.course-student-filter select {
-    min-width: 155px;
-    padding: 11px 12px;
-
-    background-color: #ffffff;
-    color: #222;
-
-    border: 1px solid #ccc;
-    border-radius: 4px;
-
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.course-student-filter select:focus {
-    outline: 2px solid #0021a5;
-    outline-offset: 2px;
-}
-
-/* MOBILE */
-
-@media (max-width: 768px) {
-    .manage-courses-title {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .course-header-actions {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    .course-student-filter {
-        flex-wrap: wrap;
-    }
-}
 </style>
 
-<script data-wp-block-html="js">
-<script>
-(function () {
-
-    function initializeCourseUpload() {
-
-        const addButton = document.getElementById("add-course-button");
-        const fileInput = document.getElementById("course-csv-upload");
-        const fileName = document.getElementById("selected-csv-name");
-
-        if (!addButton || !fileInput || !fileName) {
-            return;
-        }
-
-        // Open file picker when Add Course is clicked
-        addButton.addEventListener("click", function () {
-            fileInput.click();
-        });
-
-        // Display the selected CSV filename
-        fileInput.addEventListener("change", function () {
-
-            if (fileInput.files.length > 0) {
-
-                const selectedFile = fileInput.files[0];
-
-                // Check that the file has a CSV extension
-                if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
-                    fileName.textContent = "Please select a CSV file.";
-                    fileInput.value = "";
-                    return;
-                }
-
-                fileName.textContent =
-                    "Selected file: " + selectedFile.name;
-
-            } else {
-                fileName.textContent = "";
-            }
-
-        });
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initializeCourseUpload);
-    } else {
-        initializeCourseUpload();
-    }
-
-})();
-</script>
-
-<div class="manage-courses-container">
-
-    <!-- HEADER -->
+<div class="manage-courses-container" data-manage-courses>
     <div class="manage-courses-header">
         <h2>Manage Course Listings</h2>
-        <p>
-            View and manage courses currently accepting
-            Teaching Assistant applications.
-            Course information will be updated through
-            the university database once connected.
-        </p>
     </div>
 
-    <!-- TABLE SECTION -->
     <div class="manage-courses-section">
+        <div class="manage-courses-title">
+            <h3 id="course-list-heading" data-course-list-term>Current Course Listings</h3>
 
-        
-<div class="manage-courses-title">
+            <div class="course-header-actions">
+                <div class="course-student-filter">
+                    <label for="course-student-type">Student Type</label>
+                    <select id="course-student-type">
+                        <option value="all">All Students</option>
+                        <option value="1">Undergraduate Students</option>
+                        <option value="2">Master’s Students</option>
+                        <option value="4">PhD Students</option>
+                    </select>
+                </div>
 
-    <h3>Current Course Listings for &lt;TERM&gt; &lt;YEAR&gt;</h3>
-
-    <div class="course-header-actions">
-
-        <!-- STUDENT TYPE FILTER -->
-        <div class="course-student-filter">
-
-            <label for="course-course-type">
-                Course Type:
-            </label>
-
-            <select id="course-student-type" name="course-student-type">
-
-                <option value="phd">PhD</option>
-                <option value="undergraduate">Undergraduate</option>
-                <option value="masters">Master's</option>
-
-            </select>
-
-        </div>
-
-        <!-- KEEP YOUR EXISTING ADD COURSE BUTTON HERE -->
-
-    </div>
-
-
-            <!-- CSV UPLOAD -->
-            <div class="add-course-upload">
-
-                <button type="button" class="add-course-button" id="add-course-button">
-                    + Add Course
-                </button>
-
-                <!-- HIDDEN FILE INPUT -->
-                <input type="file" id="course-csv-upload" accept=".csv,text/csv" style="display: none;">
-
-                <span id="selected-csv-name" class="selected-csv-name">
-                </span>
-
+                <form id="upload-course-xlsx">
+                    <input type="file" id="course-xlsx-file" name="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                    <button type="button" id="upload-course-xlsx-button" class="add-course-button">+ Add Course</button>
+                </form>
             </div>
-
         </div>
 
-        <!-- COURSE TABLE -->
-        <div class="manage-courses-table-wrapper">
-
-            <table class="manage-courses-table">
-
+        <div id="course-upload-status" role="status" aria-live="polite"></div>
+        <p data-course-list-status role="status"></p>
+        <p data-course-action-status role="status"></p>
+        <div class="manage-courses-table-wrapper" hidden>
+            <table class="manage-courses-table" aria-labelledby="course-list-heading">
                 <thead>
                     <tr>
-                        <th>Course Name</th>
-                        <th>Course Number</th>
-                        <th>Professor Name</th>
-                        <th>Professor Email</th>
-                        <th>Number of Sections</th>
-                        <th>Maximum Enrollment</th>
-                        <th>Current Enrollment</th>
-                        <th>Lab Requirement</th>
-                        <th>Actions</th>
+                        <th scope="col">Course Name</th>
+                        <th scope="col">Course Number</th>
+                        <th scope="col">Professor Name</th>
+                        <th scope="col">Professor Email</th>
+                        <th scope="col">Maximum Enrollment</th>
+                        <th scope="col">Current Enrollment</th>
+                        <th scope="col">Lab Hours</th>
+                        <th scope="col">Delivery Mode</th>
+                        <th scope="col">Eligible Student Types</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
-
-                <tbody>
-
-                    <!-- COURSE 1 -->
-                    <tr>
-                        <td>Programming Fundamentals 1</td>
-                        <td>COP3502C</td>
-                        <td>Dr. Smith</td>
-                        <td>
-                            <a href="mailto:smith@example.edu">
-                                smith@example.edu
-                            </a>
-                        </td>
-                        <td>4</td>
-                        <td>200</td>
-                        <td>175</td>
-                        <td>2 Hour Lab</td>
-                        <td>
-                            <div class="course-actions">
-                                <button type="button" class="edit-course-button">
-                                    Edit
-                                </button>
-
-                                <button type="button" class="delete-course-button">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- COURSE 2 -->
-                    <tr>
-                        <td>Data Structures and Algorithms</td>
-                        <td>COP3530</td>
-                        <td>Dr. Johnson</td>
-                        <td>
-                            <a href="mailto:johnson@example.edu">
-                                johnson@example.edu
-                            </a>
-                        </td>
-                        <td>3</td>
-                        <td>150</td>
-                        <td>120</td>
-                        <td>1 Hour Lab</td>
-                        <td>
-                            <div class="course-actions">
-                                <button type="button" class="edit-course-button">
-                                    Edit
-                                </button>
-
-                                <button type="button" class="delete-course-button">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- COURSE 3 -->
-                    <tr>
-                        <td>Database Management Systems</td>
-                        <td>CIS4301</td>
-                        <td>Dr. Williams</td>
-                        <td>
-                            <a href="mailto:williams@example.edu">
-                                williams@example.edu
-                            </a>
-                        </td>
-                        <td>2</td>
-                        <td>100</td>
-                        <td>85</td>
-                        <td>No Lab</td>
-                        <td>
-                            <div class="course-actions">
-                                <button type="button" class="edit-course-button">
-                                    Edit
-                                </button>
-
-                                <button type="button" class="delete-course-button">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- COURSE 4 -->
-                    <tr>
-                        <td>Operating Systems</td>
-                        <td>COP4600</td>
-                        <td>Dr. Brown</td>
-                        <td>
-                            <a href="mailto:brown@example.edu">
-                                brown@example.edu
-                            </a>
-                        </td>
-                        <td>2</td>
-                        <td>120</td>
-                        <td>110</td>
-                        <td>No Lab</td>
-                        <td>
-                            <div class="course-actions">
-                                <button type="button" class="edit-course-button">
-                                    Edit
-                                </button>
-
-                                <button type="button" class="delete-course-button">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-
-                </tbody>
-
+                <tbody></tbody>
             </table>
-
         </div>
+    </div>
 
-    </div> <!-- END TABLE SECTION -->
-
-</div> <!-- END MAIN WHITE CARD -->
-
-
-<!-- JAVASCRIPT -->
-<script>
-(function () {
-
-    function initializeCourseUpload() {
-
-        const addButton =
-            document.getElementById("add-course-button");
-
-        const fileInput =
-            document.getElementById("course-csv-upload");
-
-        const fileName =
-            document.getElementById("selected-csv-name");
-
-        if (!addButton || !fileInput || !fileName) {
-            return;
-        }
-
-        // Open CSV file picker
-        addButton.addEventListener("click", function () {
-            fileInput.click();
-        });
-
-        // Display selected filename
-        fileInput.addEventListener("change", function () {
-
-            if (fileInput.files.length > 0) {
-
-                const selectedFile = fileInput.files[0];
-
-                if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
-                    fileName.textContent =
-                        "Please select a CSV file.";
-
-                    fileInput.value = "";
-                    return;
-                }
-
-                fileName.textContent =
-                    "Selected: " + selectedFile.name;
-
-            } else {
-                fileName.textContent = "";
-            }
-
-        });
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeCourseUpload
-        );
-    } else {
-        initializeCourseUpload();
-    }
-
-})();
-</script>
+    <dialog class="course-edit-dialog" data-course-editor aria-labelledby="course-edit-heading">
+        <form>
+            <h3 id="course-edit-heading">Edit Course</h3>
+            <label>Course Name <input name="course_name" maxlength="255" required></label>
+            <label>Course Number <input name="course_code" maxlength="20" required></label>
+            <label>Professor <select name="professor_id" required></select></label>
+            <label>Maximum Enrollment <input type="number" name="max_enrollment" min="0" max="2147483647" required></label>
+            <label>Current Enrollment <input type="number" name="enrollment" min="0" max="2147483647" required></label>
+            <label>Lab Hours
+                <select name="lab_hours">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                </select>
+            </label>
+            <label><input type="checkbox" name="is_online"> Online</label>
+            <label>Description <textarea name="course_description" maxlength="1000" rows="3"></textarea></label>
+            <fieldset>
+                <legend>Eligible Student Types</legend>
+                <label><input type="checkbox" name="eligible_student_types" value="1"> Undergraduate Students</label>
+                <label><input type="checkbox" name="eligible_student_types" value="2"> Master’s Students</label>
+                <label><input type="checkbox" name="eligible_student_types" value="4"> PhD Students</label>
+            </fieldset>
+            <p data-course-edit-status role="status"></p>
+            <div class="course-edit-actions">
+                <button type="submit">Save Changes</button>
+                <button type="button" data-course-edit-cancel>Cancel</button>
+            </div>
+        </form>
+    </dialog>
+</div>
 <!-- /wp:html -->

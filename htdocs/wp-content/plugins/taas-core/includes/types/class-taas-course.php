@@ -33,6 +33,7 @@ final class TAAS_Course {
 	 * @param int           $lab_hours          Lab hours per week.
 	 * @param int           $enrollment         Current enrollment.
 	 * @param int           $max_enrollment     Enrollment cap.
+	 * @param int           $eligible_student_types Eligibility mask: undergraduate 1, master's 2, PhD 4.
 	 * @throws InvalidArgumentException If the course id, professor id or year is invalid.
 	 */
 	public function __construct(
@@ -49,6 +50,7 @@ final class TAAS_Course {
 		public readonly int $lab_hours = 0,
 		public readonly int $enrollment = 0,
 		public readonly int $max_enrollment = 0,
+		public readonly int $eligible_student_types = 7,
 	) {
 		TAAS_Guard::course_id( 'course_id', $course_id );
 		TAAS_Guard::course_id( 'professor_id', $professor_id );
@@ -85,6 +87,7 @@ final class TAAS_Course {
 			lab_hours: TAAS_Cast::int( $r['lab_hours'] ?? 0 ),
 			enrollment: TAAS_Cast::int( $r['enrollment'] ?? 0 ),
 			max_enrollment: TAAS_Cast::int( $r['max_enrollment'] ?? 0 ),
+			eligible_student_types: TAAS_Cast::int( $r['eligible_student_types'] ?? 7 ),
 		);
 	}
 
@@ -102,18 +105,19 @@ final class TAAS_Course {
 	 */
 	public function to_row(): array {
 		$row = array(
-			'course_code'        => $this->course_code,
-			'course_name'        => $this->course_name,
-			'course_semester'    => $this->course_semester->value,
-			'course_year'        => $this->course_year,
-			'is_online'          => $this->is_online ? 1 : 0,
-			'course_description' => $this->course_description,
-			'course_notes'       => $this->course_notes,
-			'weekly_hours'       => $this->weekly_hours,
-			'lab_hours'          => $this->lab_hours,
-			'enrollment'         => $this->enrollment,
-			'max_enrollment'     => $this->max_enrollment,
-			'professor_id'       => $this->professor_id,
+			'course_code'            => $this->course_code,
+			'course_name'            => $this->course_name,
+			'course_semester'        => $this->course_semester->value,
+			'course_year'            => $this->course_year,
+			'is_online'              => $this->is_online ? 1 : 0,
+			'course_description'     => $this->course_description,
+			'course_notes'           => $this->course_notes,
+			'weekly_hours'           => $this->weekly_hours,
+			'lab_hours'              => $this->lab_hours,
+			'enrollment'             => $this->enrollment,
+			'max_enrollment'         => $this->max_enrollment,
+			'professor_id'           => $this->professor_id,
+			'eligible_student_types' => $this->eligible_student_types,
 		);
 
 		if ( null !== $this->course_id ) {

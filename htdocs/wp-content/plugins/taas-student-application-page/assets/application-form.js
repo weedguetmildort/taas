@@ -95,7 +95,8 @@
       setTerm(data.period.label);
       prefill({
         ...data,
-        student_name: data.replacement?.student_name,
+        // A replacement keeps the submitted name; a first application starts from the account's
+        student_name: data.replacement?.student_name ?? data.identity.name,
         course_preferences: data.replacement?.course_preferences ?? data.course_preferences
       });
       showExisting(data.already_applied, data.period.is_open && Boolean(data.replacement)

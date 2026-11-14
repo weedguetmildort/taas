@@ -29,7 +29,8 @@
       && Number.isInteger(period.year) && period.year >= 1901 && period.year <= 2155
       && isText(period.label) && period.label.length > 0 && typeof period.is_open === 'boolean'
       && (period.closes_at == null || (Number.isInteger(period.closes_at) && period.closes_at > 0));
-    const validIdentity = isText(identity.ufid) && /^[0-9]{8}$/.test(identity.ufid) && isText(identity.email);
+    const validIdentity = isText(identity.ufid) && /^[0-9]{8}$/.test(identity.ufid) && isText(identity.email)
+      && optionalText(identity.name);
     // Profiles may be absent for new students; nullable saved fields remain editable.
     const validProfile = profile == null || (isRecord(profile)
       && ['phone', 'admitted_semester', 'resume_url', 'additional_info'].every(key => optionalText(profile[key]))

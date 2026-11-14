@@ -1,6 +1,6 @@
 <?php
 /**
- * Local integration checks for the HR applicant list.
+ * Local integration checks for the HR applicant list and details.
  * Run the script inside the local WordPress container.
  *
  * @package TAAS_Core
@@ -35,11 +35,13 @@ function taas_hr_applicants_check( bool $condition, string $message ): void {
 /**
  * Dispatch as the requested local mock role.
  *
- * @param string $role Local role override.
+ * @param string   $role Local role override.
+ * @param int|null $id   Submission ID for a detail request.
  */
-function taas_hr_applicants_get( string $role ): WP_REST_Response {
+function taas_hr_applicants_get( string $role, ?int $id = null ): WP_REST_Response {
 	$_GET['taas_role'] = $role;
-	$request = new WP_REST_Request( 'GET', '/taas/v1/hr/applicants' );
+	$route   = '/taas/v1/hr/applicants' . ( null === $id ? '' : '/' . $id );
+	$request = new WP_REST_Request( 'GET', $route );
 	$request->set_query_params(
 		array(
 			'term' => 'Fall',
@@ -62,17 +64,23 @@ try {
 		'student_email'       => 'hr-fixture@example.invalid',
 		'academic_background' => array(
 			array(
-				'degree_type' => TAAS_Degree_Type::MS->value,
+				'degree_type' => TAAS_Degree_Type::BS->value,
 				'gpa'         => 3.5,
 			),
 		),
-		'profile'             => array( 'country_code' => 'US' ),
+		'profile'             => array(
+			'country_code'         => 'US',
+			'enrollment_status'    => TAAS_Enrollment_Status::Phd->value,
+			'advisor_name'         => 'Dr. Example',
+			'fws_eligibility'      => 'yes',
+			'fws_award_letter_url' => 'https://example.invalid/fws-award',
+		),
 	);
-	$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details );
+	$spring_id = $submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details + array( 'private_fixture' => 'Ignore extra snapshot fields' ) );
 	$details['student_name'] = 'Submitted Fall name';
-	$submissions->save_for_term( $ufid, TAAS_Semester::Fall, 2026, $details );
+	$fall_id = $submissions->save_for_term( $ufid, TAAS_Semester::Fall, 2026, $details );
 	$details['student_name'] = 'Submitted prior Spring name';
-	$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2025, $details );
+	$prior_spring_id = $submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2025, $details );
 
 	$cycles = new TAAS_Application_Cycle_Repository();
 	$open   = array(
@@ -83,11 +91,16 @@ try {
 	);
 	$cycles->save( new TAAS_Application_Cycle( TAAS_Semester::Spring, 2026, $open ) );
 	$expected = array(
+		'submission_id'      => (string) $spring_id,
+		'decision'           => null,
+		'version'            => 0,
+		'comment'            => null,
 		'name'               => 'Submitted Spring name',
-		'student_type'       => 'masters',
+		'student_type'       => 'phd',
 		'gpa'                => 3.5,
 		'english_test_score' => null,
 		'country_code'       => 'US',
+		'advisor_name'       => 'Dr. Example',
 	);
 	foreach ( array( 'hr', 'admin' ) as $role ) {
 		$response = taas_hr_applicants_get( $role );
@@ -95,16 +108,41 @@ try {
 		taas_hr_applicants_check( 200 === $response->get_status() && 'Spring' === $data['term'] && 2026 === $data['year'], 'Expected the active Spring term.' );
 		$names = array_column( $data['applicants'], 'name' );
 		taas_hr_applicants_check( ! in_array( 'Submitted Fall name', $names, true ) && ! in_array( 'Submitted prior Spring name', $names, true ), 'Another term was returned.' );
-		taas_hr_applicants_check( in_array( $expected, $data['applicants'], true ), 'Expected only the submitted summary fields.' );
+		taas_hr_applicants_check( in_array( $expected, $data['applicants'], true ), 'Expected the summary to classify the PhD student by enrollment, even with a BS in academic history.' );
+
+		$detail = taas_hr_applicants_get( $role, $spring_id );
+		$saved  = $detail->get_data()['details'] ?? array();
+		taas_hr_applicants_check( 200 === $detail->get_status() && 'Submitted Spring name' === $saved['student_name'], 'Expected the selected term snapshot.' );
+		taas_hr_applicants_check( 'hr-fixture@example.invalid' === $saved['student_email'] && 'US' === $saved['profile']->country_code && 3.5 === $saved['academic_background'][0]['gpa'], 'Expected submitted contact and academic fields.' );
+		taas_hr_applicants_check( 'Dr. Example' === $saved['profile']->advisor_name, 'Expected the PhD advisor from the term snapshot.' );
+		taas_hr_applicants_check( ! property_exists( $saved['profile'], 'fws_eligibility' ) && ! property_exists( $saved['profile'], 'fws_award_letter_url' ), 'PhD applicants must not expose FWS fields.' );
+		taas_hr_applicants_check( ! isset( $saved['private_fixture'] ) && 'private, no-store' === $detail->get_headers()['Cache-Control'], 'Details must use an explicit field list and disable caching.' );
+		foreach ( array( $fall_id, $prior_spring_id, PHP_INT_MAX ) as $out_of_scope ) {
+			taas_hr_applicants_check( 404 === taas_hr_applicants_get( $role, $out_of_scope )->get_status(), 'Missing and other-term submissions must return 404.' );
+		}
 	}
 	taas_hr_applicants_check( 403 === taas_hr_applicants_get( 'student' )->get_status(), 'Students cannot read the HR list.' );
+	taas_hr_applicants_check( 403 === taas_hr_applicants_get( 'student', $spring_id )->get_status(), 'Students cannot read HR details.' );
+
+	$details['profile']['enrollment_status'] = TAAS_Enrollment_Status::Undergraduate->value;
+	$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details );
+	$undergraduate = taas_hr_applicants_get( 'hr', $spring_id )->get_data()['details']['profile'];
+	taas_hr_applicants_check( 'yes' === $undergraduate->fws_eligibility && 'https://example.invalid/fws-award' === $undergraduate->fws_award_letter_url, 'Undergraduate details must include the submitted FWS information.' );
+	$rows = array_column( taas_hr_applicants_get( 'hr' )->get_data()['applicants'], null, 'submission_id' );
+	taas_hr_applicants_check( null === $rows[ $spring_id ]['advisor_name'], 'The list must omit the advisor name for an undergraduate.' );
+	$details['profile']['enrollment_status'] = TAAS_Enrollment_Status::Masters->value;
+	$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details );
+	$masters = taas_hr_applicants_get( 'hr', $spring_id )->get_data()['details']['profile'];
+	taas_hr_applicants_check( ! property_exists( $masters, 'fws_eligibility' ) && ! property_exists( $masters, 'fws_award_letter_url' ), 'Master’s applicants must not expose FWS fields.' );
 
 	$cycles->save( new TAAS_Application_Cycle( TAAS_Semester::Spring, 2026, array() ) );
 	foreach ( array( 'hr', 'admin' ) as $role ) {
 		$response = taas_hr_applicants_get( $role );
 		taas_hr_applicants_check( 403 === $response->get_status() && 'taas_stage_closed' === $response->get_data()['code'], 'Closed HR review must refuse list requests.' );
+		$detail = taas_hr_applicants_get( $role, $spring_id );
+		taas_hr_applicants_check( 403 === $detail->get_status() && 'taas_stage_closed' === $detail->get_data()['code'], 'Closed HR review must refuse detail requests.' );
 	}
-	echo 'PASS: HR role and stage access, term isolation, and summary fields.' . PHP_EOL;
+	echo 'PASS: HR role and stage access, term isolation, and applicant summary and detail fields.' . PHP_EOL;
 } finally {
 	$wpdb->query( 'ROLLBACK' );
 }

@@ -26,6 +26,15 @@ ALTER TABLE {prefix}student_submissions
 	ADD CONSTRAINT chk_submissions_semester
 	CHECK (semester IN (1, 2, 3, 4, 5));
 
+ALTER TABLE {prefix}hr_reviews
+	ADD CONSTRAINT fk_hr_reviews_submission
+	FOREIGN KEY (submission_id) REFERENCES {prefix}student_submissions(submission_id)
+	ON DELETE CASCADE;
+
+ALTER TABLE {prefix}hr_reviews
+	ADD CONSTRAINT chk_hr_reviews_decision
+	CHECK (decision IN ('approve', 'reject') AND version > 0);
+
 -- A course must have a real professor. No cascade: deleting a professor
 -- with live courses should fail loudly rather than delete the courses.
 ALTER TABLE {prefix}courses

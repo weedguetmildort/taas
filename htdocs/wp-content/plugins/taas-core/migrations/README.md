@@ -14,6 +14,8 @@ Only changes `dbDelta` cannot make:
 - changing a column that a foreign key uses, on either side
 - changing an existing constraint (see below)
 - changing data (backfills, normalising values)
+- changing a relationship key while preserving existing references, such as
+  moving courses from professor UFIDs to stable professor IDs
 
 `dbDelta` never reports these. It fails or skips them and the old structure
 stays, which is how 0.7.8.8.2.5 reached prod with half-converted `professors`

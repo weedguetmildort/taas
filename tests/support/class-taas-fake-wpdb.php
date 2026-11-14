@@ -139,6 +139,13 @@ class TAAS_Fake_Wpdb {
 	public $fail_query = null;
 
 	/**
+	 * Rows query() reports as affected, or false for a failure
+	 *
+	 * @var int|false
+	 */
+	public $query_result = 0;
+
+	/**
 	 * Record a raw statement such as START TRANSACTION
 	 *
 	 * @param string $sql Statement.
@@ -146,7 +153,7 @@ class TAAS_Fake_Wpdb {
 	 */
 	public function query( $sql ) {
 		$this->queries[] = $sql;
-		return $sql === $this->fail_query ? false : 0;
+		return $sql === $this->fail_query ? false : $this->query_result;
 	}
 
 	/**

@@ -10,17 +10,12 @@
     </div>
 
     <div data-hr-review hidden>
-        <p>Application details are placeholders. Review totals and decisions are for demonstration only.</p>
-
         <!-- HR APPLICATION REVIEW PROGRESS -->
         <div class="hr-review-progress">
 
             <div class="hr-progress-header">
                 <h3>HR Application Review Progress</h3>
 
-                <span class="hr-progress-label">
-                    Demo data
-                </span>
             </div>
 
             <!-- REVIEWED AND APPROVED COUNTS -->
@@ -28,9 +23,9 @@
 
                 <div class="hr-reviewed-stat">
                     <div class="hr-progress-count">
-                        <span id="hr-reviewed-count">45</span>
+                        <span id="hr-reviewed-count">—</span>
                         <span class="hr-progress-divider">/</span>
-                        <span id="hr-total-applicants">200</span>
+                        <span id="hr-total-applicants">—</span>
                     </div>
 
                     <span class="hr-progress-description">
@@ -44,41 +39,56 @@
                         Total Approved
                     </span>
 
-                    <span id="hr-approved-count">22</span>
+                    <span id="hr-approved-count">—</span>
                 </div>
 
             </div>
 
             <!-- PROGRESS BAR -->
-            <div class="hr-progress-bar">
+            <div class="hr-progress-bar" role="progressbar" aria-label="HR review completion">
                 <div
                     id="hr-progress-fill"
                     class="hr-progress-fill"
-                    style="width: 22.5%;">
+                    style="width: 0%;">
                 </div>
             </div>
 
             <!-- PROGRESS FOOTER -->
             <div class="hr-progress-footer">
                 <span id="hr-progress-percentage">
-                    22.5% Completed
+                    — Completed
                 </span>
 
                 <span id="hr-remaining-count">
-                    155 Remaining
+                    — Remaining
                 </span>
             </div>
 
         </div> <!-- END HR REVIEW PROGRESS -->
 
         <div class="student-filter-section">
-            <label for="student-type-filter">Filter Applicants by Student Type</label>
-            <select id="student-type-filter" disabled>
-                <option value="all">All Student Types</option>
-                <option value="phd">PhD Students</option>
-                <option value="masters">Master’s Students</option>
-                <option value="undergrad">Undergraduate Students</option>
-            </select>
+            <div>
+                <label for="hr-applicant-search">Search Applicants by Name</label>
+                <input id="hr-applicant-search" type="search" disabled>
+            </div>
+            <div>
+                <label for="student-type-filter">Filter Applicants by Student Type</label>
+                <select id="student-type-filter" disabled>
+                    <option value="all">All Student Types</option>
+                    <option value="phd">PhD Students</option>
+                    <option value="masters">Master’s Students</option>
+                    <option value="undergrad">Undergraduate Students</option>
+                </select>
+            </div>
+            <div>
+                <label for="hr-decision-filter">Filter Applicants by Decision</label>
+                <select id="hr-decision-filter" disabled>
+                    <option value="all">All Decisions</option>
+                    <option value="none">No Decision</option>
+                    <option value="approve">Approved</option>
+                    <option value="reject">Rejected</option>
+                </select>
+            </div>
         </div>
 
         <div class="applicants-section">
@@ -104,7 +114,7 @@
             <template data-hr-applicant-row>
                 <tr class="student-row">
                     <td data-name></td>
-                    <td><button type="button" class="view-button" aria-expanded="false">View</button></td>
+                    <td><button type="button" class="view-button" aria-haspopup="dialog" aria-controls="hr-application-details">View</button></td>
                     <td data-student-type></td>
                     <td data-gpa></td>
                     <td data-score></td>
@@ -115,17 +125,36 @@
                             <label><input type="radio" value="approve"> Approve</label>
                             <label><input type="radio" value="reject"> Reject</label>
                         </div>
+                        <button type="button" class="hr-comment-toggle" aria-expanded="false" disabled>Add Comment</button>
                     </td>
                 </tr>
-                <tr class="student-details" hidden>
+                <tr class="hr-comment-row" hidden>
                     <td colspan="8">
-                        <strong data-details-title></strong>
-                        <p>Additional application information will appear here once connected to the backend.</p>
+                        <div class="hr-comment-panel">
+                            <label class="hr-review-comment">
+                                <span class="hr-review-comment-label">Comment <span>(optional)</span></span>
+                                <textarea rows="3" maxlength="1000" placeholder="Add a note about this decision…" disabled></textarea>
+                            </label>
+                            <p>Visible only to HR and admins.</p>
+                        </div>
                     </td>
                 </tr>
             </template>
+            <dialog id="hr-application-details" class="hr-details-dialog" aria-labelledby="hr-application-details-title">
+                <div class="hr-details-header">
+                    <h3 id="hr-application-details-title">Application details</h3>
+                    <form method="dialog">
+                        <button type="submit" autofocus>Close</button>
+                    </form>
+                </div>
+                <div class="hr-details-body">
+                    <p data-details-status role="status"></p>
+                    <div data-details-content></div>
+                </div>
+            </dialog>
             <div class="save-section">
-                <button type="button" class="save-button" disabled>Save Changes</button>
+                <p id="hr-hidden-decisions" role="status"></p>
+                <button type="button" class="save-button" disabled>Submit Decision</button>
                 <p id="hr-save-message" role="status"></p>
             </div>
         </div>

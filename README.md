@@ -34,6 +34,8 @@ docker compose up -d
   in `.env`, or add `?taas_role=instructor` to any URL
 - Activating `taas-core` creates the tables, constraints and pages, and
   imports `seeds/demo-data.json`
+- Activate `taas-admin-page` in wp-admin to enable the protected Admin Home
+  and its managed page links.
 
 The repo root is mounted at `/var/www/taas` inside the container:
 
@@ -46,8 +48,9 @@ docker compose exec wordpress php /var/www/taas/bin/import-courses.php /var/www/
 ```
 
 `real-data/` is gitignored, for real course files that must never be committed.
-Course import, by this script or `POST /courses/import`, runs locally only; the server has no `vendor/`.
-The route loads PhpSpreadsheet from `TAAS_COMPOSER_AUTOLOAD`, which `docker-compose.yml` sets.
+The course import endpoint loads PhpSpreadsheet from the repository's Composer
+dependencies. Docker sets `TAAS_COMPOSER_AUTOLOAD` because it mounts the
+repository separately from WordPress.
 
 ### UF theme
 
@@ -106,7 +109,9 @@ version exactly, e.g. `v0.7.8.8.2.4`.
 3. The workflow tags the committed version and drafts a GitHub release. It
    fails if that version is already tagged: bump it in another PR
 4. Set the severity on the draft release and publish it
-5. Deploy by hand with the steps in the release
+5. Deploy by hand with the steps in the release. Run
+   `composer install --no-dev --prefer-dist --no-interaction` in the server's
+   repository root to install the locked XLSX dependency outside the web root.
 
 A tag pushed by hand still drafts a release, but it must match the committed
 version or the workflow fails.

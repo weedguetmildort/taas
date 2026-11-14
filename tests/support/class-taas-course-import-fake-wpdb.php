@@ -32,7 +32,7 @@ class TAAS_Course_Import_Fake_Wpdb extends TAAS_Fake_Wpdb {
 	public $professor_inserts = array();
 
 	/**
-	 * Course ids in the database, keyed by "semester|year|code|name"
+	 * Course ids in the database, keyed by "semester|year|code|name|online"
 	 *
 	 * @var array<string, string>
 	 */
@@ -81,7 +81,7 @@ class TAAS_Course_Import_Fake_Wpdb extends TAAS_Fake_Wpdb {
 	 * @return string|null
 	 */
 	public function get_var( $query ) {
-		if ( preg_match( "/course_semester = (\d+) AND course_year = (\d+) AND course_code = '(.*)' AND course_name = '(.*)'$/", $query, $match ) ) {
+		if ( preg_match( "/course_semester = (\d+) AND course_year = (\d+) AND course_code = '(.*)' AND course_name = '(.*)' AND is_online = ([01])$/", $query, $match ) ) {
 			return $this->course_ids[ implode( '|', array_slice( $match, 1 ) ) ] ?? null;
 		}
 
@@ -107,7 +107,7 @@ class TAAS_Course_Import_Fake_Wpdb extends TAAS_Fake_Wpdb {
 		$result = parent::insert( $table, $data );
 
 		if ( false !== $result ) {
-			$key = implode( '|', array( $data['course_semester'], $data['course_year'], $data['course_code'], $data['course_name'] ) );
+			$key = implode( '|', array( $data['course_semester'], $data['course_year'], $data['course_code'], $data['course_name'], $data['is_online'] ) );
 
 			$this->course_ids[ $key ] = (string) ( count( $this->course_ids ) + 1 );
 		}

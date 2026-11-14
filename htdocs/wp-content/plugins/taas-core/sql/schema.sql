@@ -81,6 +81,17 @@ CREATE TABLE {prefix}student_submissions (
 	UNIQUE KEY student_term (student_ufid,semester,year)
 );
 
+-- Latest HR decision for a submitted application. No row means unreviewed.
+CREATE TABLE {prefix}hr_reviews (
+	submission_id bigint(20) unsigned NOT NULL,
+	decision varchar(7) NOT NULL,
+	version int unsigned NOT NULL,
+	reviewed_by bigint(20) unsigned DEFAULT NULL,
+	reviewed_at datetime DEFAULT NULL,
+	review_comment text,
+	PRIMARY KEY  (submission_id)
+);
+
 -- Courses: identification, owned by a professor
 CREATE TABLE {prefix}courses (
 	course_id bigint(20) unsigned NOT NULL AUTO_INCREMENT, -- one offering of a course in one term
@@ -96,8 +107,9 @@ CREATE TABLE {prefix}courses (
 	enrollment int NOT NULL DEFAULT 0,
 	max_enrollment int NOT NULL DEFAULT 0,
 	professor_id bigint(20) unsigned NOT NULL,
+	eligible_student_types tinyint unsigned NOT NULL DEFAULT 7, -- bit mask: undergraduate 1, master's 2, PhD 4
 	PRIMARY KEY  (course_id),
-	UNIQUE KEY course_offering (course_semester,course_year,course_code,course_name), -- code alone is not unique, e.g. CIS4930 covers every special topic
+	UNIQUE KEY course_offering_by_delivery (course_semester,course_year,course_code,course_name,is_online),
 	KEY course_code (course_code),
 	KEY professor_id (professor_id)
 );

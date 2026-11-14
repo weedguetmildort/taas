@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TAAS Core
  * Description: Provides shared foundation used by TAAS Onboarding and Matching
- * Version: 0.7.8.8.2.6
+ * Version: 0.7.8.8.2.7
  *
  * @package TAAS_Core
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAAS_CORE_VERSION', '0.7.8.8.2.6' );
+define( 'TAAS_CORE_VERSION', '0.7.8.8.2.7' );
 define( 'TAAS_CORE_FILE', __FILE__ );
 define( 'TAAS_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_CORE_URL', plugin_dir_url( __FILE__ ) );
@@ -52,6 +52,7 @@ require_once TAAS_CORE_PATH . 'includes/types/class-taas-course.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-application-cycle.php';
 require_once TAAS_CORE_PATH . 'includes/types/class-taas-match-recommendation.php';
+require_once TAAS_CORE_PATH . 'includes/types/class-taas-hr-review.php';
 
 /*
  * Repositories layer for direct DB access.
@@ -62,6 +63,7 @@ require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-professor-reposi
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-profile-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-student-submission-repository.php';
+require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-hr-review-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-academic-background-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-course-repository.php';
 require_once TAAS_CORE_PATH . 'includes/repositories/class-taas-application-repository.php';

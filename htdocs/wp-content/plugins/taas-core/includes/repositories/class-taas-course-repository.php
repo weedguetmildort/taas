@@ -144,22 +144,24 @@ final class TAAS_Course_Repository extends TAAS_Repository {
 	}
 
 	/**
-	 * The course with this term, year, code and name, if there is one.
+	 * The course with this term, year, code, name and delivery mode.
 	 *
 	 * @param TAAS_Semester $semester Semester to match.
 	 * @param int           $year     Year to match.
 	 * @param string        $code     Course code to match.
 	 * @param string        $name     Course name to match.
+	 * @param bool          $online   Whether the course is offered online.
 	 * @return TAAS_Course|null
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function find_offering( TAAS_Semester $semester, int $year, string $code, string $name ): ?TAAS_Course {
+	public function find_offering( TAAS_Semester $semester, int $year, string $code, string $name, bool $online ): ?TAAS_Course {
 		$matches = $this->find_where(
 			array(
 				'course_semester' => $semester->value,
 				'course_year'     => $year,
 				'course_code'     => $code,
 				'course_name'     => $name,
+				'is_online'       => (int) $online,
 			)
 		);
 

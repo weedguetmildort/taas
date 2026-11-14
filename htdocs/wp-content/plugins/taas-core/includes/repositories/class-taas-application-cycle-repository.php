@@ -48,23 +48,36 @@ final class TAAS_Application_Cycle_Repository extends TAAS_Repository {
 	 * @throws RuntimeException If a query fails.
 	 */
 	public function current( bool $for_update = false ): ?TAAS_Application_Cycle {
-		global $wpdb;
-
 		if ( ! $for_update ) {
 			return $this->find( TAAS_Application_Cycle::CURRENT_ID );
 		}
+		return $this->locked_current( true );
+	}
 
-		$row = $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE cycle_id = %d FOR UPDATE',
-				$this->table(),
-				TAAS_Application_Cycle::CURRENT_ID
-			),
-			ARRAY_A
-		);
+	/**
+	 * Keep the cycle stable during a review write while allowing other reviewers to read it.
+	 *
+	 * @return TAAS_Application_Cycle|null
+	 */
+	public function current_for_share(): ?TAAS_Application_Cycle {
+		return $this->locked_current( false );
+	}
 
+	/**
+	 * Lock the current cycle until the caller's transaction ends.
+	 *
+	 * @param bool $exclusive Use an exclusive lock for a cycle update.
+	 * @return TAAS_Application_Cycle|null
+	 */
+	private function locked_current( bool $exclusive ): ?TAAS_Application_Cycle {
+		global $wpdb;
+
+		$sql  = $exclusive
+			? $wpdb->prepare( 'SELECT * FROM %i WHERE cycle_id = %d FOR UPDATE', $this->table(), TAAS_Application_Cycle::CURRENT_ID )
+			: $wpdb->prepare( 'SELECT * FROM %i WHERE cycle_id = %d FOR SHARE', $this->table(), TAAS_Application_Cycle::CURRENT_ID );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Both locking queries are prepared immediately above.
+		$row = $wpdb->get_row( $sql, ARRAY_A );
 		$this->check_error();
-
 		return null === $row ? null : TAAS_Application_Cycle::from_row( $row );
 	}
 

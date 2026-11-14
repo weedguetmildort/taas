@@ -153,7 +153,7 @@ class AdminRoutesTest extends TestCase {
 			'professor_email' => 'grace@ufl.edu',
 		);
 		$this->db->insert_result = false;
-		$this->db->insert_error  = "Duplicate entry '2-2027-COP3502C-Programming Fundamentals 1' for key 'course_offering'";
+		$this->db->insert_error  = "Duplicate entry '2-2027-COP3502C-Programming Fundamentals 1-0' for key 'course_offering_by_delivery'";
 
 		$result = ( new TAAS_REST_Course_Controller() )->create_item(
 			new WP_REST_Request(

@@ -28,16 +28,12 @@ This is not intended to replace project management and tickets, but rather to no
 - **PhD applications:** create all of a PhD student's applications on their behalf, as part of the student layer.
 - **Re-adding a ranked course:** decide whether a professor's rank is cleared or kept when a student re-adds a course they withdrew from. Until then the edit returns 409 and says the admin must review it, but no admin route can do that, since `PATCH /applications/{application_id}` rejects withdrawn applications.
 - **Already applied:** decide what a second submission for the same term should do. It currently returns 409, and students edit through their status page instead, which only works during `student_application`.
-- **HR decisions:** add somewhere to store them. The HR page collects approve and reject decisions, and the matching algorithm assumes them, but the schema has no field for them.
+- **Use HR decisions in matching:** the HR page saves decisions per term submission. Apply those decisions when selecting matching inputs.
 
 ## Auth
 
 - **Nonce:** confirm that requests need an `X-WP-Nonce` header in production, and how pages obtain it.
 - **Student affiliation values:** `taas_student` is synced from `eduperson_affiliations`, matching `student` (UF sends `STUDENT$`). Only one student account has been checked. If other students, such as graduate students, arrive with a different value, add it to `TAAS_Shibboleth::STUDENT_AFFILIATIONS`. HR and admin stay assigned in wp-admin.
-
-## Deployment
-
-- **PhpSpreadsheet:** the course import and the XLSX exports need it on the server, but production deploys by git checkout and has no `vendor/` directory. `POST /courses/import` returns 503 `taas_import_unavailable` until it's there. The route loads the autoloader named by `TAAS_COMPOSER_AUTOLOAD`, so production needs that defined in `wp-config.php` too.
 
 ## Course ingestion
 

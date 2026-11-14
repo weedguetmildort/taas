@@ -124,6 +124,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 | `lab_hours` | no | 0, 1 or 2, default 0 |
 | `is_online` | no | Default `false` |
 | `course_description` | no | Up to 1000 characters, or `null` |
+| `eligible_student_types` | no | Add the flags for eligible students. Undergraduate is 1, master’s is 2, and PhD is 4. Defaults to 7 for all three. |
 
 `weekly_hours` is calculated and `course_notes` is written by the professor, so neither is accepted here.
 
@@ -132,7 +133,7 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 | Status | `code` | When |
 | --- | --- | --- |
 | 400 | `rest_invalid_param` | A field is invalid, or `professor_id` isn't an existing professor |
-| 409 | `taas_course_exists` | The same term, year, code and name already exists |
+| 409 | `taas_course_exists` | The same term, year, code, name and delivery mode already exist |
 
 ### PATCH: edit a course
 
@@ -185,9 +186,10 @@ Adds or replaces courses from an `.xlsx` file.
 
 How each row is handled:
 
-- Each row is imported on its own. A row with a bad or missing value uses the column's default if it has one, and is otherwise skipped. Either way it's reported in `messages`.
+- Each row is imported in its own transaction. A blank cell uses the database default, including `NULL` for a nullable column, and reports the fallback in `messages`. Invalid values and blank cells without a default skip the row.
+- A blank description sets it to `NULL`. Omitting the Description column preserves the description of an existing course.
 - The professor is found by email, ignoring case, and added without a UFID if new. An existing professor keeps their name. See [GET: professors](#get-professors).
-- A row with the same term, year, code and name as a course in the database, or as an earlier row, replaces that course and keeps its `course_id`, so its applications stay linked.
+- A row with the same term, year, code, name and delivery mode as an existing course updates it and keeps its `course_id`, so its applications stay linked.
 - `weekly_hours` is calculated, as on [POST: add a course](#post-add-a-course). `course_notes` is left alone.
 
 **Response:** 200 OK, including when some rows were skipped.
@@ -198,8 +200,7 @@ How each row is handled:
   "replaced": 2,
   "skipped": 1,
   "messages": [
-    { "row": 7, "header": "Year", "message": "Type mismatch, row skipped" },
-    { "row": 9, "header": "Description", "message": "Missing value, used default" }
+    { "row": 7, "header": "Year", "message": "Invalid value, row skipped" }
   ]
 }
 ```
