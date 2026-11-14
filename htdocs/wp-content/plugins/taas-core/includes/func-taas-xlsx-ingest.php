@@ -39,7 +39,7 @@ const TAAS_COURSE_HEADERS = array(
  * Match the header row to TAAS_COURSE_HEADERS
  *
  * @param array $cells Header row cells
- * @return array<int, array{header: string, schema_field: string}> Known headers, keyed by cell index
+ * @return array<int, array{header: string, schema_field: string, required: bool}> Known headers, keyed by cell index
  * @throws UnexpectedValueException If a required header is missing.
  */
 function taas_map_headers( array $cells ): array {
@@ -181,8 +181,8 @@ function taas_cast_cell( string $value, array $field ) {
 /**
  * Validate one data row against the database fields
  *
- * A bad or missing value falls back to the column's default if it has one,
- * otherwise the row is rejected. Every problem is reported either way.
+ * Blank cells use the database column default, including NULL for nullable columns.
+ * Invalid values and blank cells without a default reject the row.
  *
  * @param array $cells   Row cells
  * @param array $headers Output of taas_map_headers()
@@ -200,29 +200,31 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
 		$value = trim( (string) ( $cells[ $index ] ?? '' ) ); // Get value at cell
 		$cast  = '' === $value ? null : taas_cast_cell( $value, $field ); // Convert value to the field's type
 
-		// If value isn't null, then set field and it's database certified value in data array
+		if ( '' === $value && ( null !== $field['Default'] || 'YES' === $field['Null'] ) ) {
+			$data[ $spec['schema_field'] ] = $field['Default'];
+			$messages[] = array(
+				'header'  => $spec['header'],
+				'message' => 'Missing value, used default',
+			);
+			continue;
+		}
+
+		if ( 'lab_hours' === $spec['schema_field'] && ! in_array( $cast, array( 0, 1, 2 ), true ) ) {
+			$cast = null;
+		}
+		if ( in_array( $spec['schema_field'], array( 'enrollment', 'max_enrollment' ), true ) && $cast < 0 ) {
+			$cast = null;
+		}
+
 		if ( null !== $cast ) {
 			$data[ $spec['schema_field'] ] = $cast;
 			continue;
 		}
 
-		// Otherwise, header value is missing or mismatched
-		$problem = '' === $value ? 'Missing value' : 'Type mismatch';
-
-		// Check if header has a default value
-		$has_default = null !== $field['Default'] || 'YES' === $field['Null'];
-
-		// Set value to default if header has one
-		if ( $has_default ) {
-			$data[ $spec['schema_field'] ] = $field['Default'];
-		} else {
-			$valid = false;
-		}
-
-		// Add to messages array what went wrong
+		$valid      = false;
 		$messages[] = array(
 			'header'  => $spec['header'],
-			'message' => $problem . ( $has_default ? ', used default' : ', row skipped' ),
+			'message' => '' === $value ? 'Missing value, row skipped' : 'Invalid value, row skipped',
 		);
 	}
 
@@ -239,7 +241,7 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
  * - Each row's professor is found by GLID (email) alone, and added if new, with the database assigning their id.
  *   An existing professor keeps their name, however a row spells it. Later rows with the same GLID reuse that id.
  *   Their UFID is filled in when they first sign in.
- * - A course with the same term, year, code and name, in the database or earlier in the file, is replaced by the later row.
+ * - A course with the same term, year, code, name and delivery mode is updated in place.
  * - A missing required header throws UnexpectedValueException, from taas_map_headers(), and a file
  *   that isn't a readable XLSX throws \PhpOffice\PhpSpreadsheet\Exception.
  *
@@ -263,9 +265,7 @@ function taas_import_courses( string $file_path ): array {
 	$courses    = TAAS_Schema::table( 'courses' );
 	$professors = new TAAS_Professor_Repository();
 
-	// Ids of the professors found or created by this import, keyed by normalized email
-	$professor_ids = array();
-	$result        = array(
+	$result = array(
 		'courses'  => 0,
 		'replaced' => 0,
 		'skipped'  => 0,
@@ -292,65 +292,49 @@ function taas_import_courses( string $file_path ): array {
 
 			list( $course, $messages ) = taas_parse_course_row( $cells, $headers, $fields );
 
-			// If course was successfully parsed
+			$outcome = 'skipped';
 			if ( null !== $course ) {
-				// Find the professor by email, adding them if new, the first time their email appears, then reuse their id
-				$email = TAAS_Professor_Repository::normalize_email( $course['professor_email'] );
-
 				try {
-					$professor_ids[ $email ] ??= $professors->find_or_create( $email, $course['professor_name'] );
+					$outcome = TAAS_Transaction::run(
+						function () use ( $wpdb, $courses, $professors, $course ): string {
+							$course['professor_id'] = $professors->find_or_create( $course['professor_email'], $course['professor_name'] );
+							unset( $course['professor_name'], $course['professor_email'] );
 
-					$course['professor_id'] = $professor_ids[ $email ];
+							$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
+							$existing_id           = $wpdb->get_var(
+								$wpdb->prepare(
+									'SELECT course_id FROM %i WHERE course_semester = %d AND course_year = %d AND course_code = %s AND course_name = %s AND is_online = %d',
+									$courses,
+									$course['course_semester'],
+									$course['course_year'],
+									$course['course_code'],
+									$course['course_name'],
+									$course['is_online']
+								)
+							);
+							if ( '' !== $wpdb->last_error ) {
+								throw new RuntimeException( 'Could not look up the course.' );
+							}
+
+							$saved = null === $existing_id
+								? $wpdb->insert( $courses, $course )
+								: $wpdb->update( $courses, $course, array( 'course_id' => (int) $existing_id ) );
+							if ( false === $saved ) {
+								throw new RuntimeException( 'Could not save the course.' );
+							}
+
+							return null === $existing_id ? 'courses' : 'replaced';
+						}
+					);
 				} catch ( RuntimeException $e ) {
-					$course['professor_id'] = null;
-					$messages[]             = array(
-						'header'  => 'GLID',
-						'message' => 'Could not save professor (' . $e->getMessage() . '), row skipped',
+					$messages[] = array(
+						'header'  => 'Course',
+						'message' => 'Could not save the row, row skipped',
 					);
-				}
-
-				// Unset these professor_name and professor_email since these aren't fields that a course object has in schema
-				unset( $course['professor_name'], $course['professor_email'] );
-
-				$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
-
-				// If the professor could not be saved, skip row
-				if ( null === $course['professor_id'] ) {
-					$course = null;
-				} else {
-					// A course that already exists is replaced by this row, keeping its id so its applications stay linked
-					$existing_id = $wpdb->get_var(
-						$wpdb->prepare(
-							'SELECT course_id FROM %i WHERE course_semester = %d AND course_year = %d AND course_code = %s AND course_name = %s',
-							$courses,
-							$course['course_semester'],
-							$course['course_year'],
-							$course['course_code'],
-							$course['course_name']
-						)
-					);
-
-					$saved = null === $existing_id
-						? $wpdb->insert( $courses, $course )
-						: $wpdb->update( $courses, $course, array( 'course_id' => (int) $existing_id ) );
-
-					// If update/insert failed, skip row
-					if ( false === $saved ) {
-						$messages[] = array(
-							'header'  => 'Prefix',
-							'message' => 'Could not save course (' . $wpdb->last_error . '), row skipped',
-						);
-						$course     = null;
-					}
 				}
 			}
 
-			// Update counts
-			if ( null === $course ) {
-				++$result['skipped'];
-			} else {
-				++$result[ null === $existing_id ? 'courses' : 'replaced' ];
-			}
+			++$result[ $outcome ];
 
 			foreach ( $messages as $message ) {
 				$result['messages'][] = array( 'row' => $row_number ) + $message;

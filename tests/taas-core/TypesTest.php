@@ -144,6 +144,7 @@ class TypesTest extends TestCase {
 				'enrollment',
 				'max_enrollment',
 				'professor_id',
+				'eligible_student_types',
 			),
 			array_keys( $row )
 		);

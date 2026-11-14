@@ -133,54 +133,6 @@
     margin: 0;
 }
 
-/* CSV UPLOAD */
-
-.csv-upload-section {
-    padding-top: 25px;
-    border-top: 1px solid #eeeeee;
-}
-
-.csv-label {
-    display: block;
-    margin-bottom: 12px;
-
-    font-size: 17px;
-    font-weight: 600;
-}
-
-.csv-upload-section input[type="file"] {
-    display: block;
-    width: 100%;
-    margin-bottom: 20px;
-    padding: 12px;
-
-    border: 1px solid #ccc;
-    border-radius: 4px;
-
-    font-size: 15px;
-    box-sizing: border-box;
-}
-
-/* UPLOAD BUTTON */
-
-.admin-button {
-    padding: 13px 25px;
-
-    background: #ff7f11;
-    color: white;
-
-    border: none;
-    border-radius: 4px;
-
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.admin-button:hover {
-    background: #e66f08;
-}
-
 /* KEYBOARD ACCESSIBILITY */
 
 .admin-portal-container a:focus-visible,
@@ -387,7 +339,7 @@
 
             <h2>TA Application Administrator Portal</h2>
 
-            <a href="/professor-page/" class="professor-switch-button">
+            <a class="professor-switch-button" data-admin-destination="professor-page">
                 Also a Professor? Click here to Switch to Professor View
             </a>
 
@@ -398,22 +350,26 @@
         <div class="admin-navigation">
 
             <!-- MANAGE COURSES -->
-            <a href="/manage-course-listings-admin/" class="admin-nav-button active">
+            <a class="admin-nav-button active" data-admin-destination="manage-course-listings-admin">
                 Manage Course Listings
             </a>
 
             <!-- VIEW APPLICATIONS -->
-            <a href="/view-student-application-admin/" class="admin-nav-button active">
+            <a class="admin-nav-button active" data-admin-destination="view-student-application-admin">
                 View Student Applications
             </a>
 
+            <noscript>
+                <p>JavaScript is required to use the admin page links. Enable JavaScript, then reload this page.</p>
+            </noscript>
+
             <!-- STOP APPLICATIONS -->
-            <button type="button" class="stop-applications-button" onclick="showStopApplicationsMessage()">
+            <button type="button" class="stop-applications-button">
                 Stop Accepting Applications
             </button>
 
             <!-- DOWNLOAD STUDENT DATA -->
-            <button type="button" id="download-student-data" class="admin-nav-button download-student-button" onclick="downloadStudentCSV()">
+            <button type="button" id="download-student-data" class="admin-nav-button download-student-button">
                 Download Student Data
             </button>
 
@@ -423,151 +379,6 @@
 
 </div> <!-- END ADMIN PORTAL CONTAINER -->
 
-<script>
-(function () {
-
-    function initializeStudentDownload() {
-
-        const downloadButton =
-            document.getElementById("download-student-data");
-
-        if (!downloadButton) return;
-
-        downloadButton.addEventListener("click", function () {
-
-            // SAMPLE STUDENT DATA
-            // Replace with database results later.
-
-            const students = [
-                {
-                    name: "Jane Doe",
-                    email: "jane@example.edu",
-                    studentType: "PhD",
-                    course: "COP3502C",
-                    gpa: "3.9",
-                    hours: "15",
-                    status: "Submitted",
-                    hr: "Approved"
-                },
-                {
-                    name: "John Smith",
-                    email: "john@example.edu",
-                    studentType: "Masters",
-                    course: "COP3530",
-                    gpa: "3.8",
-                    hours: "10",
-                    status: "Submitted",
-                    hr: "Not Approved"
-                },
-                {
-                    name: "Leonardo Rey",
-                    email: "leonardo@example.edu",
-                    studentType: "Undergraduate",
-                    course: "CIS4301",
-                    gpa: "3.7",
-                    hours: "12",
-                    status: "Submitted",
-                    hr: "Approved"
-                },
-                {
-                    name: "Emily Davis",
-                    email: "emily@example.edu",
-                    studentType: "PhD",
-                    course: "COP4600",
-                    gpa: "3.8",
-                    hours: "20",
-                    status: "Submitted",
-                    hr: "Approved"
-                }
-            ];
-
-            // CSV COLUMN HEADERS
-            const headers = [
-                "Student Name",
-                "Email",
-                "Student Type",
-                "Course Number",
-                "GPA",
-                "Available Hours",
-                "Application Status",
-                "HR Approval Status"
-            ];
-
-            // ESCAPE CSV VALUES SAFELY
-            function escapeCSV(value) {
-                const text = String(value ?? "");
-
-                return '"' +
-                    text.replace(/"/g, '""') +
-                    '"';
-            }
-
-            // BUILD CSV CONTENT
-           
-const rows = students.map(function (student) {
-
-    // Remove spaces and standardize course numbers
-    const formattedCourse = String(student.course)
-        .replace(/\s+/g, "")
-        .toUpperCase();
-
-    return [
-        student.name,
-        student.email,
-        student.studentType,
-        formattedCourse,
-        student.gpa,
-        student.hours,
-        student.status,
-        student.hr
-    ].map(escapeCSV).join(",");
-
-});
-
-
-            const csvContent =
-                [headers.map(escapeCSV).join(","), ...rows]
-                    .join("\r\n");
-
-            // CREATE CSV FILE
-            const blob = new Blob(
-                ["\uFEFF" + csvContent],
-                { type: "text/csv;charset=utf-8;" }
-            );
-
-            const url = URL.createObjectURL(blob);
-
-            const link = document.createElement("a");
-
-            link.href = url;
-            link.download = "TA_Student_Applications_SAMPLE.csv";
-
-            document.body.appendChild(link);
-
-            link.click();
-
-            document.body.removeChild(link);
-
-            // CLEAN UP
-            setTimeout(function () {
-                URL.revokeObjectURL(url);
-            }, 1000);
-
-        });
-
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeStudentDownload
-        );
-    } else {
-        initializeStudentDownload();
-    }
-
-})();
-</script>
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->

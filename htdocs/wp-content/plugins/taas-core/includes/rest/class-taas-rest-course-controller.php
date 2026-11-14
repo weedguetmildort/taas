@@ -142,33 +142,38 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 		);
 
 		return $this->term_args( $is_new ) + array(
-			'course_code'        => array(
+			'course_code'            => array(
 				'type'      => 'string',
 				'required'  => $is_new,
 				'minLength' => 1,
 				'maxLength' => 20,
 				'pattern'   => '\S',
 			),
-			'course_name'        => array(
+			'course_name'            => array(
 				'type'      => 'string',
 				'required'  => $is_new,
 				'minLength' => 1,
 				'maxLength' => 255,
 				'pattern'   => '\S',
 			),
-			'professor_id'       => array(
+			'professor_id'           => array(
 				'type'     => 'integer',
 				'required' => $is_new,
 				'minimum'  => 1,
 			),
-			'enrollment'         => $whole_number,
-			'max_enrollment'     => $whole_number,
-			'lab_hours'          => array(
+			'enrollment'             => $whole_number,
+			'max_enrollment'         => $whole_number,
+			'eligible_student_types' => array(
+				'type'    => 'integer',
+				'minimum' => 1,
+				'maximum' => 7,
+			),
+			'lab_hours'              => array(
 				'type'              => 'integer',
 				'validate_callback' => array( $this, 'validate_lab_hours' ),
 			),
-			'is_online'          => array( 'type' => 'boolean' ),
-			'course_description' => array(
+			'is_online'              => array( 'type' => 'boolean' ),
+			'course_description'     => array(
 				'type'      => array( 'string', 'null' ),
 				'maxLength' => 1000,
 			),
@@ -300,9 +305,13 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 			return $this->invalid_param( 'file', __( 'The file must be an .xlsx file.', 'taas-core' ) );
 		}
 
-		// PhpSpreadsheet comes from Composer, which only some environments have
-		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) && defined( 'TAAS_COMPOSER_AUTOLOAD' ) && is_readable( TAAS_COMPOSER_AUTOLOAD ) ) {
-			require_once TAAS_COMPOSER_AUTOLOAD;
+		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
+			$autoload = defined( 'TAAS_COMPOSER_AUTOLOAD' )
+				? TAAS_COMPOSER_AUTOLOAD
+				: dirname( TAAS_CORE_PATH, 4 ) . '/vendor/autoload.php';
+			if ( is_readable( $autoload ) ) {
+				require_once $autoload;
+			}
 		}
 
 		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
@@ -449,6 +458,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 			lab_hours: $lab_hours,
 			enrollment: $enrollment,
 			max_enrollment: (int) $value( 'max_enrollment', $existing?->max_enrollment ?? 0 ),
+			eligible_student_types: (int) $value( 'eligible_student_types', $existing?->eligible_student_types ?? 7 ),
 		);
 	}
 
@@ -468,7 +478,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	}
 
 	/**
-	 * A 409 if another course has the same term, year, code and name.
+	 * A 409 if another course has the same term, year, code, name and delivery mode.
 	 *
 	 * @param TAAS_Course $course    Course to check.
 	 * @param int|null    $course_id Course being edited, which cannot duplicate itself.
@@ -476,7 +486,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	 * @throws RuntimeException If the query fails.
 	 */
 	private function duplicate_error( TAAS_Course $course, ?int $course_id = null ): ?WP_Error {
-		$match = $this->courses->find_offering( $course->course_semester, $course->course_year, $course->course_code, $course->course_name );
+		$match = $this->courses->find_offering( $course->course_semester, $course->course_year, $course->course_code, $course->course_name, $course->is_online );
 
 		if ( null === $match || $match->course_id === $course_id ) {
 			return null;
@@ -491,7 +501,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	 * @return WP_Error
 	 */
 	private function course_exists_error(): WP_Error {
-		return $this->conflict( 'taas_course_exists', __( 'A course with this term, year, code and name already exists.', 'taas-core' ) );
+		return $this->conflict( 'taas_course_exists', __( 'A course with this term, year, code, name and delivery mode already exists.', 'taas-core' ) );
 	}
 
 	/**
