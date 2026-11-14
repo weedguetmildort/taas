@@ -186,8 +186,8 @@ Adds or replaces courses from an `.xlsx` file.
 
 How each row is handled:
 
-- Each row is imported in its own transaction. An invalid value or a missing required value skips the row and is reported in `messages`.
-- A blank or omitted description preserves the description of an existing course.
+- Each row is imported in its own transaction. A blank cell uses the database default, including `NULL` for a nullable column, and reports the fallback in `messages`. Invalid values and blank cells without a default skip the row.
+- A blank description sets it to `NULL`. Omitting the Description column preserves the description of an existing course.
 - The professor is found by email, ignoring case, and added without a UFID if new. An existing professor keeps their name. See [GET: professors](#get-professors).
 - A row with the same term, year, code, name and delivery mode as an existing course updates it and keeps its `course_id`, so its applications stay linked.
 - `weekly_hours` is calculated, as on [POST: add a course](#post-add-a-course). `course_notes` is left alone.

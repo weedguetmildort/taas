@@ -181,7 +181,8 @@ function taas_cast_cell( string $value, array $field ) {
 /**
  * Validate one data row against the database fields
  *
- * Blank optional cells are omitted. Invalid values and missing required cells reject the row.
+ * Blank cells use the database column default, including NULL for nullable columns.
+ * Invalid values and blank cells without a default reject the row.
  *
  * @param array $cells   Row cells
  * @param array $headers Output of taas_map_headers()
@@ -199,7 +200,12 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
 		$value = trim( (string) ( $cells[ $index ] ?? '' ) ); // Get value at cell
 		$cast  = '' === $value ? null : taas_cast_cell( $value, $field ); // Convert value to the field's type
 
-		if ( '' === $value && ! $spec['required'] ) {
+		if ( '' === $value && ( null !== $field['Default'] || 'YES' === $field['Null'] ) ) {
+			$data[ $spec['schema_field'] ] = $field['Default'];
+			$messages[] = array(
+				'header'  => $spec['header'],
+				'message' => 'Missing value, used default',
+			);
 			continue;
 		}
 
@@ -294,7 +300,7 @@ function taas_import_courses( string $file_path ): array {
 							$course['professor_id'] = $professors->find_or_create( $course['professor_email'], $course['professor_name'] );
 							unset( $course['professor_name'], $course['professor_email'] );
 
-							$course['weekly_hours'] = taas_calc_weekly_hours( $course['enrollment'], $course['lab_hours'] );
+							$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
 							$existing_id           = $wpdb->get_var(
 								$wpdb->prepare(
 									'SELECT course_id FROM %i WHERE course_semester = %d AND course_year = %d AND course_code = %s AND course_name = %s AND is_online = %d',

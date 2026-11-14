@@ -374,18 +374,42 @@
         }
 
         function showResult(result) {
+            const outcome = document.createElement('strong');
+            if (result.skipped > 0) {
+                outcome.textContent = result.courses + result.replaced > 0
+                    ? 'Course import finished with skipped rows.'
+                    : 'No courses were imported.';
+            } else {
+                outcome.textContent = result.courses + result.replaced > 0
+                    ? 'Course listings imported successfully.'
+                    : 'Import complete. The file contained no course rows.';
+            }
+
             const summary = document.createElement('p');
-            summary.textContent = `Import complete: ${result.courses} added, ${result.replaced} replaced, ${result.skipped} skipped.`;
-            status.replaceChildren(summary);
+            summary.textContent = `${result.courses} added, ${result.replaced} replaced, ${result.skipped} skipped.`;
+            status.replaceChildren(outcome, summary);
 
             if (result.messages.length > 0) {
-                const list = document.createElement('ul');
-                result.messages.forEach(function (message) {
-                    const item = document.createElement('li');
-                    item.textContent = `Row ${message.row}: ${message.header} — ${message.message}`;
-                    list.appendChild(item);
+                const instructions = document.createElement('p');
+                instructions.textContent = 'Download the report below to see which rows used defaults or were skipped.';
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = 'Download detailed import report';
+                button.addEventListener('click', () => {
+                    const messages = result.messages.map(
+                        ({ row, header, message }) => `Row ${row}: ${header} — ${message}`
+                    );
+                    const report = `Course import report\n\n${outcome.textContent}\n${summary.textContent}\n\n${messages.join('\n')}\n`;
+                    const url = URL.createObjectURL(new Blob([report], { type: 'text/plain;charset=utf-8' }));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'course-import-report.txt';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
                 });
-                status.appendChild(list);
+                status.append(instructions, button);
             }
         }
 

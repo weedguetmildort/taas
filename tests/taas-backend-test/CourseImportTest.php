@@ -334,16 +334,14 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * Required fields with database defaults still reject missing or invalid cells
+	 * Required fields with database defaults still reject invalid cells
 	 */
 	public function test_parse_course_row_rejects_invalid_required_values(): void {
 		list( $data, $messages ) = $this->parse(
 			array(
 				'UFO'                => 'Online',
-				'Description'        => '',
 				'Lab Hour'           => '3',
 				'Current Enrollment' => '-1',
-				'Maximum Enrollment' => '',
 			)
 		);
 
@@ -361,10 +359,6 @@ class CourseImportTest extends TestCase {
 				array(
 					'header'  => 'Current Enrollment',
 					'message' => 'Invalid value, row skipped',
-				),
-				array(
-					'header'  => 'Maximum Enrollment',
-					'message' => 'Missing value, row skipped',
 				),
 			),
 			$messages
@@ -523,18 +517,37 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * A row matching a course already in the database replaces it, keeping its id
+	 * Reimporting a course keeps its ID and applies schema defaults to blank cells.
 	 */
 	public function test_import_replaces_matching_course_in_database(): void {
 		$this->db->course_ids['1|2026|COP3502|Programming 1|0'] = '7';
 
-		$result = taas_import_courses( $this->write_courses( self::row( array( 'Description' => '' ) ) ) );
+		$result = taas_import_courses(
+			$this->write_courses(
+				self::row(
+					array(
+						'UFO'                => '',
+						'Description'        => '',
+						'Lab Hour'           => '',
+						'Current Enrollment' => '',
+						'Maximum Enrollment' => '',
+					)
+				)
+			)
+		);
 
 		$this->assertSame( 0, $result['courses'] );
 		$this->assertSame( 1, $result['replaced'] );
 		$this->assertCount( 1, $this->db->writes );
 		$this->assertSame( array( 'course_id' => 7 ), $this->db->writes[0]['where'] );
-		$this->assertArrayNotHasKey( 'course_description', $this->db->writes[0]['data'] );
+		$data = $this->db->writes[0]['data'];
+		$this->assertSame( '0', $data['is_online'] );
+		$this->assertNull( $data['course_description'] );
+		$this->assertSame( '0', $data['lab_hours'] );
+		$this->assertSame( '0', $data['enrollment'] );
+		$this->assertSame( '0', $data['max_enrollment'] );
+		$this->assertCount( 5, $result['messages'] );
+		$this->assertSame( array( 'Missing value, used default' ), array_values( array_unique( array_column( $result['messages'], 'message' ) ) ) );
 	}
 
 	/**
