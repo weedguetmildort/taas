@@ -2,8 +2,9 @@
 /**
  * Propose TA matches for courses using greedy, tiered passes
  *
- * Proposals only: Nothing is written to the database. An admin reviews and
- * finalizes them separately, which is when match_status changes and offers go out.
+ * Proposals only: Each run replaces the match_recommendations table with its
+ * proposals, and nothing else is written. An admin reviews and finalizes them
+ * separately, which is when match_status changes and offers go out.
  *
  * Assumptions:
  * - Every application passed in has been approved by HR
@@ -230,6 +231,8 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 /**
  * Propose matches for every course
  *
+ * Saves the matches to match_recommendations, replacing whatever an earlier run left there.
+ *
  * @param TAAS_Course[]          $courses  Courses to staff, which is ordered by admin's choice
  * @param TAAS_Application[]     $apps     Applications across all courses
  * @param TAAS_Student_Profile[] $profiles Profiles of the applicants
@@ -237,6 +240,7 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
  *         matches and unfilled_hours are keyed by course_id; students_with_hours_left maps the UFID of each
  *         PhD student with hours not given to any course to those hours, in profile order
  * @throws InvalidArgumentException If any course's TA hours cannot be calculated.
+ * @throws RuntimeException If saving the recommendations fails.
  */
 function taas_run_matching( array $courses, array $apps, array $profiles ): array {
 	$profiles_by_ufid = array();
@@ -278,10 +282,32 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 		);
 	}
 
+	// Save the matches, replacing the previous run's
+	$recommendations = array();
+
+	foreach ( $all_matches as $course_id => $matches ) {
+		foreach ( $matches as $match ) {
+			$recommendations[] = new TAAS_Match_Recommendation(
+				recommendation_id: null,
+				course_id: (int) $course_id,
+				student_ufid: (string) $match['student_ufid'],
+				recommended_hours: $match['hours'],
+				reason: $match['reason'],
+			);
+		}
+	}
+
+	( new TAAS_Match_Recommendation_Repository() )->replace_all( $recommendations );
+
 	// PhD students with hours not given to any course, including students never matched
 	$students_with_hours_left = array();
 
 	foreach ( $profiles as $profile ) {
+		// Only PhD students are matched in this version
+		if ( TAAS_Enrollment_Status::Phd !== $profile->enrollment_status ) {
+			continue;
+		}
+
 		$left = $hours_left[ $profile->student_ufid ] ?? $profile->available_hours;
 
 		if ( null !== $left && $left > 0 ) {

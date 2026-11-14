@@ -134,6 +134,20 @@ CREATE TABLE {prefix}applications (
 	KEY match_status (match_status)
 );
 
+-- Match recommendations: the matching algorithm's latest proposals, one row per
+-- student per course. Each run replaces every row, so only the latest run is kept.
+-- Rows are inserted in priority order, so recommendation_id orders a course's matches.
+CREATE TABLE {prefix}match_recommendations (
+	recommendation_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+	course_id bigint(20) unsigned NOT NULL,
+	student_ufid varchar(8) NOT NULL,
+	recommended_hours int NOT NULL,                     -- weekly hours the student would give this course
+	reason varchar(40) NOT NULL,                        -- tier that made the match, e.g. professor_preference_1, applied
+	PRIMARY KEY  (recommendation_id),
+	UNIQUE KEY course_student (course_id,student_ufid),
+	KEY student_ufid (student_ufid)
+);
+
 -- Application cycle: one term's run through the stages. Only one cycle is ever
 -- current, so this table holds at most one row, with cycle_id = 1. All dates are UTC.
 -- The active stage is not stored: it is worked out from these dates on each request.

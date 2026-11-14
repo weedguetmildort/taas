@@ -452,7 +452,7 @@ Professor rankings inform the admin but never block anything. A course with no r
 
 The admin works in three steps:
 
-1. **Review recommendations** from the matching algorithm. These are only advice.
+1. **Review recommendations** from the matching algorithm, after [running it](#post-run-the-matching-algorithm). These are only advice.
 2. **Make matches** with [PATCH /applications/{application_id}](#patch-make-change-or-undo-a-match-or-reject-an-applicant), recommended or not.
 3. **Finalize**, which rejects every application still `Pending`.
 
@@ -460,7 +460,7 @@ The admin works in three steps:
 
 `GET /matching/recommendations`
 
-The matching algorithm is not connected to this route yet, so it currently returns `[]`.
+Every course in the term, with what the matching algorithm's last run recommended for it. Each run replaces the previous run's recommendations. A course with no recommendations has `recommendations: []` and `unfilled_hours` equal to `weekly_hours`.
 
 **Paginated:** yes
 
@@ -668,6 +668,43 @@ This lists every student with a non-withdrawn application that term. A student c
 
 For one course's hours, use GET: current matches for one course.
 
+### POST: run the matching algorithm
+
+`POST /matching/run`
+
+Runs the matching algorithm over the term's courses and every `Pending` or `Matched` application in it, using each applicant's current profile. The results replace every saved recommendation, including another term's, and are read with [GET: recommended matches](#get-recommended-matches). No application changes.
+
+**Request params:** `term` and `year` (optional), defaulting to the current application cycle's term
+
+**Request body:** none
+
+**Response:** 200 OK:
+
+```json
+{
+  "term": "Spring",
+  "year": 2027,
+  "recommendations_made": 25,
+  "unfilled_hours": 30,
+  "students_with_hours_left": [
+    { "student_ufid": "12345678", "hours": 10 }
+  ]
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `recommendations_made` | Recommendations saved, across all courses |
+| `unfilled_hours` | Total hours the recommendations leave uncovered, across all courses |
+| `students_with_hours_left` | PhD applicants with available hours the algorithm did not use, and how many |
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 404 | `taas_no_current_cycle` | No term was sent, and no cycle has been set |
+| 409 | `taas_matching_failed` | A course's TA hours can't be calculated, e.g. its enrollment is under 10. The message names the course, and no recommendations change |
+
+Running it again is safe, and replaces the previous run's recommendations.
+
 ### POST: finalize matches
 
 `POST /matching/finalize`
@@ -706,3 +743,5 @@ Changes to these routes, newest first.
 
 | Date | Route | Change |
 | --- | --- | --- |
+| 2026-11-12 | `POST /matching/run` | Added |
+| 2026-11-12 | `GET /matching/recommendations`, `GET /matching/recommendations/{course_id}` | Return the last `POST /matching/run`'s recommendations instead of `[]` |
