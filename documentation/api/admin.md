@@ -738,11 +738,85 @@ Only this route rejects applications in bulk. `admin_matching` ending leaves app
 
 Running it again is safe, and rejects only what has become `Pending` since. A rejected application can still be changed with PATCH. This route does not send notifications.
 
+## Exports
+
+### GET: export a CSV
+
+`GET /exports/{type}`
+
+Downloads one term's data as a CSV file. `type` is one of the exports below.
+
+**Request params:** `term` and `year` (optional), defaulting to the current application cycle's term
+
+**Response:** 200 OK with `Content-Type: text/csv; charset=utf-8`, the body being the file itself, not JSON. `Content-Disposition` names it `taas-{type}-{term}-{year}.csv`, e.g. `taas-course-staffing-spring-2027.csv`.
+
+**The file:**
+
+- UTF-8 with a byte order mark, so Excel opens it as UTF-8. CRLF line endings and RFC 4180 quoting
+- One header row, then the data rows
+- Repeated groups (`TA 1 …`, `Pref 1 …`) take as many columns as the longest row needs, but never fewer than the export's minimum below. Unused cells are blank
+- Blank cells mean the value hasn't been given, e.g. a course whose TA hours can't be calculated
+- Withdrawn applications are left out of every export
+- A course in one cell reads `CEN3031 - Intro to Software Engineering - Rani, Neha`, with ` (UFO)` after the title for an online offering
+
+**Course columns**, shared by the course exports. They're the [import](#post-import-courses) headers, so a course export can be imported again:
+
+| Header | Value |
+| --- | --- |
+| `Prefix` | `course_code` |
+| `Title` | `course_name` |
+| `Semester` | `Fall`, `Spring`, `Summer A`, `Summer B` or `Summer C` |
+| `Year` | `course_year` |
+| `UFO` | `UFO` or `In-person` |
+| `Lab Hour` | `lab_hours` |
+| `Current Enrollment` | `enrollment` |
+| `Maximum Enrollment` | `max_enrollment` |
+| `Professor Teaching` | The professor's name |
+| `GLID` | The professor's email |
+
+**Applicant columns**, shared by the applicant exports. An applicant is a student with any application in the term that isn't withdrawn. Applicants are sorted by UFID:
+
+| Header | Value |
+| --- | --- |
+| `UFID` | `student_ufid` |
+| `UF Email` | `student_email` |
+| `Student Name` | `student_name` |
+| `Program` | `PhD`, `Masters`, `Undergraduate` or `Not enrolled` |
+| `Semester Admitted` | `admitted_semester`, as the student typed it |
+| `GPA` | Two decimals, e.g. `3.69` |
+| `English Test Score` | The score range, e.g. `55–60 SPEAK / 28–30 TOEFL iBT` |
+| `Country` | `country_code`, e.g. `US` |
+| `HR Decision` | `Approved`, `Rejected` or `Unreviewed` |
+| `TA Hours` | `available_hours` |
+
+**The exports:**
+
+| `type` | One row per | Columns after the shared ones | Fewest groups |
+| --- | --- | --- | --- |
+| `course-staffing` | Course | `Course TA Hours`, `TA Hours Assigned`, `TA Hours Left`, then `TA n UFID`, `TA n Email`, `TA n Name`, `TA n Hours` for each `Matched` application, most hours first | 5 |
+| `match-recommendations` | Course | `Course TA Hours`, `TA Hours Recommended`, `TA Hours Left`, then `TA n UFID`, `TA n Email`, `TA n Name`, `TA n Hours`, `TA n Reason` for each of the last [run's](#post-run-the-matching-algorithm) recommendations, in the order it made them | 5 |
+| `ta-assignments` | Applicant | `Hours Assigned`, `Assignment Status` (`Assigned`, `Partially Assigned` or `Unassigned`), then `Course n`, `Course n Hours` for each `Matched` application | 2 |
+| `student-preferences` | Applicant | `Preference n` for each course the student ranked, in rank order | 5 |
+| `instructor-rankings` | Course | `Pref n UFID`, `Pref n Email`, `Pref n Name` for each applicant the professor ranked, in rank order. The course columns leave out `Maximum Enrollment` | 9 |
+
+Course rows are sorted by `Prefix`, then `Title`, and every course in the term has a row. `TA Hours Left` is `Course TA Hours` minus the hours given, and is negative when a course has more than it needs.
+
+`TA n Reason` says which step of the algorithm picked the student: `Professor preference n`, `Student preference n`, `Has TA'd this course`, `Has taken this course`, `Has TA experience` or `Applied`.
+
+`Assignment Status` is `Partially Assigned` when the hours assigned are fewer than `TA Hours`.
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `rest_missing_callback_param` | Only one of `term` and `year` was sent |
+| 404 | `rest_no_route` | `type` isn't one of the exports |
+| 404 | `taas_no_current_cycle` | No term was sent, and no cycle has been set |
+
 ## Changelog
 
 Changes to these routes, newest first.
 
 | Date | Route | Change |
 | --- | --- | --- |
+| 2026-11-15 | `GET /exports/{type}` | Added |
 | 2026-11-12 | `POST /matching/run` | Added |
 | 2026-11-12 | `GET /matching/recommendations`, `GET /matching/recommendations/{course_id}` | Return the last `POST /matching/run`'s recommendations instead of `[]` |

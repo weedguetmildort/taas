@@ -92,6 +92,7 @@ require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-application-control
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-professor-page-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-student-application-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-hr-applicants-controller.php';
+require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest-export-controller.php';
 require_once TAAS_CORE_PATH . 'includes/rest/class-taas-rest.php';
 
 /*
@@ -103,6 +104,11 @@ require_once TAAS_CORE_PATH . 'includes/func-matching.php';
  * Course import from XLSX or CSV. PhpSpreadsheet itself is loaded only when an XLSX import runs.
  */
 require_once TAAS_CORE_PATH . 'includes/func-taas-course-ingest.php';
+
+/*
+ * CSV exports of a term's courses, applicants, preferences and matches.
+ */
+require_once TAAS_CORE_PATH . 'includes/func-taas-exports.php';
 
 TAAS_REST::init();
 TAAS_Stage_Gate::init();

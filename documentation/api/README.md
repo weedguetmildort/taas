@@ -7,7 +7,7 @@ This page covers the rules shared by every route. The routes themselves are spli
 | Document | Covers |
 | --- | --- |
 | [common.md](common.md) | Routes for any signed-in user: current user, application cycle, course listings, status |
-| [admin.md](admin.md) | Routes for the admin: application cycle, courses, professors, students, applications, matching |
+| [admin.md](admin.md) | Routes for the admin: application cycle, courses, professors, students, applications, matching, exports |
 | [professor.md](professor.md) | Routes for a signed-in professor: their courses, applicants and rankings |
 | [student.md](student.md) | Routes for a signed-in student: applying, and checking or editing their applications |
 | [hr.md](hr.md) | Routes for HR: current-cycle applicant summaries |
@@ -53,6 +53,7 @@ Paths are relative to the base path, `/wp-json/taas/v1`.
 | GET | `/matching/progress` | Admin | [admin.md](admin.md#get-matching-progress) |
 | POST | `/matching/run` | Admin | [admin.md](admin.md#post-run-the-matching-algorithm) |
 | POST | `/matching/finalize` | Admin | [admin.md](admin.md#post-finalize-matches) |
+| GET | `/exports/{type}` | Admin | [admin.md](admin.md#get-export-a-csv) |
 | GET | `/professor/courses` | Professor | [professor.md](professor.md#get-a-professors-courses) |
 | GET | `/professor/courses/{course_id}/applications` | Professor | [professor.md](professor.md#get-applicants-for-a-course) |
 | GET | `/professor/courses/{course_id}/ranking` | Professor | [professor.md](professor.md#get-current-ranking) |
