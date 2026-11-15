@@ -21,7 +21,7 @@ define( 'TAAS_BACKEND_TEST_URL', plugin_dir_url( __FILE__ ) );
 /*
  * Explicit requires from taas-core, which loads after this plugin
  */
-require_once WP_PLUGIN_DIR . '/taas-core/includes/func-taas-xlsx-ingest.php';
+require_once WP_PLUGIN_DIR . '/taas-core/includes/func-taas-course-ingest.php';
 require_once WP_PLUGIN_DIR . '/taas-core/includes/func-matching.php';
 
 /**

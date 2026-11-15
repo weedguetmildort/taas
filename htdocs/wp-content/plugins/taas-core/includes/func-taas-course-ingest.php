@@ -1,6 +1,6 @@
 <?php
 /**
- * Import courses from an XLSX file into the database
+ * Import courses from an XLSX or CSV file into the database
  *
  * @package TAAS_Core
  */
@@ -36,6 +36,15 @@ const TAAS_COURSE_HEADERS = array(
 );
 
 /**
+ * Other spellings accepted for a header in TAAS_COURSE_HEADERS, which still match exactly
+ */
+const TAAS_COURSE_HEADER_ALIASES = array(
+	// Alias     => header in TAAS_COURSE_HEADERS
+	'Lab'       => 'Lab Hour',
+	'Lab Hours' => 'Lab Hour',
+);
+
+/**
  * Match the header row to TAAS_COURSE_HEADERS
  *
  * @param array $cells Header row cells
@@ -58,7 +67,7 @@ function taas_map_headers( array $cells ): array {
 
 	// Go through header row and find wanted headers
 	foreach ( $cells as $index => $cell ) {
-		$key = (string) $cell;
+		$key = TAAS_COURSE_HEADER_ALIASES[ (string) $cell ] ?? (string) $cell;
 
 		// If header is found in our wanted array, move header to map array and use index as key
 		if ( isset( $wanted[ $key ] ) ) {
@@ -232,7 +241,64 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
 }
 
 /**
- * Import every course in an XLSX file
+ * Read the first sheet of an XLSX file, one row at a time
+ *
+ * PhpSpreadsheet is needed only by this reader, so CSV imports work without it.
+ *
+ * @param string $file_path Path to a .xlsx file
+ * @return Generator<int, array> Row cells, keyed by row number counting the header row as 1
+ * @throws \PhpOffice\PhpSpreadsheet\Exception If the file isn't a readable XLSX.
+ */
+function taas_read_xlsx_rows( string $file_path ): Generator {
+	// Read it only as XLSX, since PhpSpreadsheet would otherwise guess the format from the contents
+	$spreadsheet = IOFactory::load( $file_path, 0, array( IOFactory::READER_XLSX ) );
+
+	try {
+		$sheet       = $spreadsheet->getSheet( 0 );
+		$last_column = $sheet->getHighestDataColumn();
+		$last_row    = $sheet->getHighestDataRow();
+
+		for ( $row_number = 1; $row_number <= $last_row; $row_number++ ) {
+			yield $row_number => $sheet->rangeToArray( "A{$row_number}:{$last_column}{$row_number}", null, true, false )[0];
+		}
+	} finally {
+		$spreadsheet->disconnectWorksheets();
+	}
+}
+
+/**
+ * Read a CSV file, one row at a time
+ *
+ * The UTF-8 byte order mark that Excel adds when saving as "CSV UTF-8" is removed from the first header.
+ *
+ * @param string $file_path Path to a .csv file
+ * @return Generator<int, array> Row cells, keyed by row number counting the header row as 1
+ * @throws RuntimeException If the file cannot be opened.
+ */
+function taas_read_csv_rows( string $file_path ): Generator {
+	$handle = fopen( $file_path, 'rb' );
+
+	if ( false === $handle ) {
+		throw new RuntimeException( 'File does not exist or cannot be read.' );
+	}
+
+	try {
+		$row_number = 0;
+
+		while ( false !== ( $cells = fgetcsv( $handle, null, ',', '"', '' ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
+			if ( 0 === $row_number++ ) {
+				$cells[0] = preg_replace( '/^\xEF\xBB\xBF/', '', (string) $cells[0] );
+			}
+
+			yield $row_number => $cells;
+		}
+	} finally {
+		fclose( $handle );
+	}
+}
+
+/**
+ * Import every course in an XLSX or CSV file
  *
  * The file's first row holds the headers, in any order. Each row is
  * imported on its own: a bad row is skipped and reported, and the rest carry on.
@@ -244,17 +310,20 @@ function taas_parse_course_row( array $cells, array $headers, array $fields ): a
  * - A course with the same term, year, code, name and delivery mode is updated in place.
  * - A missing required header throws UnexpectedValueException, from taas_map_headers(), and a file
  *   that isn't a readable XLSX throws \PhpOffice\PhpSpreadsheet\Exception.
+ * - XLSX needs PhpSpreadsheet to be loaded. CSV does not.
  *
- * @param string $file_path Path to a .xlsx file
+ * @param string $file_path Path to a .xlsx or .csv file
  * @return array{courses: int, replaced: int, skipped: int, messages: array<array{row: int, header: string, message: string}>}
- * @throws InvalidArgumentException If the file is not .xlsx.
+ * @throws InvalidArgumentException If the file is not .xlsx or .csv.
  * @throws RuntimeException If the file does not exist or cannot be read.
  */
 function taas_import_courses( string $file_path ): array {
 	global $wpdb;
 
-	if ( 'xlsx' !== strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) ) ) {
-		throw new InvalidArgumentException( 'Unsupported file type. Please use .xlsx.' );
+	$extension = strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) );
+
+	if ( 'xlsx' !== $extension && 'csv' !== $extension ) {
+		throw new InvalidArgumentException( 'Unsupported file type. Please use .xlsx or .csv.' );
 	}
 
 	if ( ! is_file( $file_path ) || ! is_readable( $file_path ) ) {
@@ -272,76 +341,69 @@ function taas_import_courses( string $file_path ): array {
 		'messages' => array(),
 	);
 
-	// Read it only as XLSX, since PhpSpreadsheet would otherwise guess the format from the contents
-	$spreadsheet = IOFactory::load( $file_path, 0, array( IOFactory::READER_XLSX ) );
+	$rows    = 'csv' === $extension ? taas_read_csv_rows( $file_path ) : taas_read_xlsx_rows( $file_path );
+	$headers = taas_map_headers( $rows->current() ?? array() );
 
-	try {
-		$sheet       = $spreadsheet->getSheet( 0 );
-		$last_column = $sheet->getHighestDataColumn();
-		$last_row    = $sheet->getHighestDataRow();
-		$headers     = taas_map_headers( $sheet->rangeToArray( "A1:{$last_column}1", null, true, false )[0] );
+	// Go through each row after the header and process the course
+	foreach ( $rows as $row_number => $cells ) {
+		if ( 1 === $row_number ) {
+			continue;
+		}
 
-		// Go through each row and process the course
-		for ( $row_number = 2; $row_number <= $last_row; $row_number++ ) {
-			$cells = $sheet->rangeToArray( "A{$row_number}:{$last_column}{$row_number}", null, true, false )[0];
+		// If the entire row is empty, then skip the row
+		if ( empty( array_filter( $cells, fn( $value ) => '' !== trim( (string) $value ) ) ) ) {
+			continue;
+		}
 
-			// If the entire row is empty, then skip the row
-			if ( empty( array_filter( $cells, fn( $value ) => '' !== trim( (string) $value ) ) ) ) {
-				continue;
-			}
+		list( $course, $messages ) = taas_parse_course_row( $cells, $headers, $fields );
 
-			list( $course, $messages ) = taas_parse_course_row( $cells, $headers, $fields );
+		$outcome = 'skipped';
+		if ( null !== $course ) {
+			try {
+				$outcome = TAAS_Transaction::run(
+					function () use ( $wpdb, $courses, $professors, $course ): string {
+						$course['professor_id'] = $professors->find_or_create( $course['professor_email'], $course['professor_name'] );
+						unset( $course['professor_name'], $course['professor_email'] );
 
-			$outcome = 'skipped';
-			if ( null !== $course ) {
-				try {
-					$outcome = TAAS_Transaction::run(
-						function () use ( $wpdb, $courses, $professors, $course ): string {
-							$course['professor_id'] = $professors->find_or_create( $course['professor_email'], $course['professor_name'] );
-							unset( $course['professor_name'], $course['professor_email'] );
-
-							$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
-							$existing_id           = $wpdb->get_var(
-								$wpdb->prepare(
-									'SELECT course_id FROM %i WHERE course_semester = %d AND course_year = %d AND course_code = %s AND course_name = %s AND is_online = %d',
-									$courses,
-									$course['course_semester'],
-									$course['course_year'],
-									$course['course_code'],
-									$course['course_name'],
-									$course['is_online']
-								)
-							);
-							if ( '' !== $wpdb->last_error ) {
-								throw new RuntimeException( 'Could not look up the course.' );
-							}
-
-							$saved = null === $existing_id
-								? $wpdb->insert( $courses, $course )
-								: $wpdb->update( $courses, $course, array( 'course_id' => (int) $existing_id ) );
-							if ( false === $saved ) {
-								throw new RuntimeException( 'Could not save the course.' );
-							}
-
-							return null === $existing_id ? 'courses' : 'replaced';
+						$course['weekly_hours'] = taas_calc_weekly_hours( (int) $course['enrollment'], (int) $course['lab_hours'] );
+						$existing_id           = $wpdb->get_var(
+							$wpdb->prepare(
+								'SELECT course_id FROM %i WHERE course_semester = %d AND course_year = %d AND course_code = %s AND course_name = %s AND is_online = %d',
+								$courses,
+								$course['course_semester'],
+								$course['course_year'],
+								$course['course_code'],
+								$course['course_name'],
+								$course['is_online']
+							)
+						);
+						if ( '' !== $wpdb->last_error ) {
+							throw new RuntimeException( 'Could not look up the course.' );
 						}
-					);
-				} catch ( RuntimeException $e ) {
-					$messages[] = array(
-						'header'  => 'Course',
-						'message' => 'Could not save the row, row skipped',
-					);
-				}
-			}
 
-			++$result[ $outcome ];
+						$saved = null === $existing_id
+							? $wpdb->insert( $courses, $course )
+							: $wpdb->update( $courses, $course, array( 'course_id' => (int) $existing_id ) );
+						if ( false === $saved ) {
+							throw new RuntimeException( 'Could not save the course.' );
+						}
 
-			foreach ( $messages as $message ) {
-				$result['messages'][] = array( 'row' => $row_number ) + $message;
+						return null === $existing_id ? 'courses' : 'replaced';
+					}
+				);
+			} catch ( RuntimeException $e ) {
+				$messages[] = array(
+					'header'  => 'Course',
+					'message' => 'Could not save the row, row skipped',
+				);
 			}
 		}
-	} finally {
-		$spreadsheet->disconnectWorksheets();
+
+		++$result[ $outcome ];
+
+		foreach ( $messages as $message ) {
+			$result['messages'][] = array( 'row' => $row_number ) + $message;
+		}
 	}
 
 	TAAS_Logger::info(

@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for the XLSX course import
+ * Tests for the XLSX and CSV course import
  *
  * @package TAAS_Core
  */
@@ -17,7 +17,7 @@ require_once dirname( __DIR__ ) . '/support/class-taas-fake-wpdb.php';
 require_once dirname( __DIR__ ) . '/support/class-taas-course-import-fake-wpdb.php';
 
 // Plain functions are not covered by the Composer classmap
-require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-xlsx-ingest.php';
+require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-course-ingest.php';
 require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-matching.php';
 
 /**
@@ -225,6 +225,26 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
+	 * Write the headers plus the given rows to a temporary .csv file, as Excel's "CSV UTF-8" saves it
+	 *
+	 * @param array ...$rows Rows from row().
+	 * @return string Path to the file
+	 */
+	private function write_csv_courses( array ...$rows ): string {
+		$path          = sys_get_temp_dir() . '/taas-course-import-' . uniqid() . '.csv';
+		$this->files[] = $path;
+
+		$handle = fopen( $path, 'wb' );
+		fwrite( $handle, "\xEF\xBB\xBF" );
+		foreach ( array_merge( array( self::HEADERS ), array_map( 'array_values', $rows ) ) as $cells ) {
+			fputcsv( $handle, $cells, ',', '"', '' );
+		}
+		fclose( $handle );
+
+		return $path;
+	}
+
+	/**
 	 * Headers are found in any order, keyed by column position, and unknown headers (including the old Notes) are ignored
 	 */
 	public function test_map_headers_in_any_order(): void {
@@ -235,6 +255,19 @@ class CourseImportTest extends TestCase {
 		$this->assertArrayNotHasKey( 1, $map );
 		$this->assertSame( 'professor_email', $map[2]['schema_field'] );
 		$this->assertSame( 'course_code', $map[12]['schema_field'] );
+	}
+
+	/**
+	 * Lab Hour may also be spelled Lab or Lab Hours, and is still reported as Lab Hour
+	 */
+	public function test_map_headers_accepts_lab_aliases(): void {
+		foreach ( array( 'Lab', 'Lab Hours' ) as $alias ) {
+			$headers = array_map( fn( $header ) => 'Lab Hour' === $header ? $alias : $header, self::HEADERS );
+			$map     = taas_map_headers( $headers );
+
+			$this->assertSame( 'lab_hours', $map[6]['schema_field'] );
+			$this->assertSame( 'Lab Hour', $map[6]['header'] );
+		}
 	}
 
 	/**
@@ -565,6 +598,40 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
+	 * A CSV is imported like an XLSX: the byte order mark is ignored, quoted commas stay in their cell,
+	 * blank lines are skipped, and row numbers count the header as 1
+	 */
+	public function test_import_reads_csv(): void {
+		$path = $this->write_csv_courses(
+			self::row( array( 'Title' => 'Programming 1, Honors' ) ),
+			self::row( array( 'Year' => 'next year' ) )
+		);
+		file_put_contents( $path, "\n", FILE_APPEND ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture.
+
+		$result = taas_import_courses( $path );
+
+		$this->assertSame( 1, $result['courses'] );
+		$this->assertSame( 1, $result['skipped'] );
+		$this->assertSame( 3, $result['messages'][0]['row'] );
+		$this->assertSame( 'Programming 1, Honors', $this->db->writes[0]['data']['course_name'] );
+		$this->assertSame( 2026, $this->db->writes[0]['data']['course_year'] );
+	}
+
+	/**
+	 * A CSV missing required headers is refused like an XLSX
+	 */
+	public function test_import_csv_requires_headers(): void {
+		$path          = sys_get_temp_dir() . '/taas-course-import-' . uniqid() . '.csv';
+		$this->files[] = $path;
+		file_put_contents( $path, "Prefix,Title\nCOP3502,Programming 1\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- test fixture.
+
+		$this->expectException( UnexpectedValueException::class );
+		$this->expectExceptionMessage( 'Missing required headers: Semester' );
+
+		taas_import_courses( $path );
+	}
+
+	/**
 	 * Send a file to POST /courses/import as PHP hands over an upload: in a temp file with no extension
 	 *
 	 * @param string $source Spreadsheet to upload.
@@ -575,6 +642,7 @@ class CourseImportTest extends TestCase {
 		$tmp_name      = tempnam( sys_get_temp_dir(), 'php' );
 		$this->files[] = $tmp_name;
 		$this->files[] = $tmp_name . '.xlsx';
+		$this->files[] = $tmp_name . '.csv';
 
 		copy( $source, $tmp_name );
 
@@ -604,6 +672,22 @@ class CourseImportTest extends TestCase {
 		$this->assertSame( 1, $response->get_data()['courses'] );
 		$this->assertSame( 1, $response->get_data()['skipped'] );
 		$this->assertSame( 3, $response->get_data()['messages'][0]['row'] );
+		$this->assertCount( 1, $this->db->writes );
+
+		foreach ( array_diff( $this->files, array( $source ) ) as $file ) {
+			$this->assertFileDoesNotExist( $file );
+		}
+	}
+
+	/**
+	 * The route imports an uploaded CSV and deletes the file
+	 */
+	public function test_import_route_imports_uploaded_csv(): void {
+		$source   = $this->write_csv_courses( self::row() );
+		$response = $this->upload( $source, 'courses.csv' );
+
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
+		$this->assertSame( 1, $response->get_data()['courses'] );
 		$this->assertCount( 1, $this->db->writes );
 
 		foreach ( array_diff( $this->files, array( $source ) ) as $file ) {
@@ -645,10 +729,10 @@ class CourseImportTest extends TestCase {
 	}
 
 	/**
-	 * A file not named .xlsx is refused before it is read
+	 * A file not named .xlsx or .csv is refused before it is read
 	 */
 	public function test_import_route_refuses_other_file_types(): void {
-		$response = $this->upload( $this->write_courses( self::row() ), 'courses.csv' );
+		$response = $this->upload( $this->write_courses( self::row() ), 'courses.txt' );
 
 		$this->assertSame( 'rest_invalid_param', $response->get_error_code() );
 		$this->assertSame( array(), $this->db->writes );

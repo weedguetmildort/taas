@@ -419,11 +419,11 @@
 
             const file = fileInput.files?.[0];
             if (!file) {
-                status.textContent = 'Choose a course XLSX file to upload.';
+                status.textContent = 'Choose a course XLSX or CSV file to upload.';
                 return;
             }
-            if (!/\.xlsx$/i.test(file.name)) {
-                status.textContent = 'The selected file must be an XLSX spreadsheet.';
+            if (!/\.(xlsx|csv)$/i.test(file.name)) {
+                status.textContent = 'The selected file must be an XLSX or CSV file.';
                 return;
             }
 

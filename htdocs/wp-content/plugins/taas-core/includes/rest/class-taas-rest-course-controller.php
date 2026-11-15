@@ -282,7 +282,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 	}
 
 	/**
-	 * POST /courses/import: add or replace courses from an uploaded .xlsx file.
+	 * POST /courses/import: add or replace courses from an uploaded .xlsx or .csv file.
 	 *
 	 * The file is sent as multipart/form-data in the `file` field. Each row is imported on its own,
 	 * so a bad row is skipped and reported in the response while the rest are saved.
@@ -301,11 +301,14 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 			return $this->invalid_param( 'file', __( 'The file could not be uploaded.', 'taas-core' ) );
 		}
 
-		if ( 'xlsx' !== strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) ) ) {
-			return $this->invalid_param( 'file', __( 'The file must be an .xlsx file.', 'taas-core' ) );
+		$extension = strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) );
+
+		if ( 'xlsx' !== $extension && 'csv' !== $extension ) {
+			return $this->invalid_param( 'file', __( 'The file must be an .xlsx or .csv file.', 'taas-core' ) );
 		}
 
-		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
+		// Only XLSX needs PhpSpreadsheet, so CSV still works where Composer's dependencies can't load
+		if ( 'xlsx' === $extension && ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
 			$autoload = defined( 'TAAS_COMPOSER_AUTOLOAD' )
 				? TAAS_COMPOSER_AUTOLOAD
 				: dirname( TAAS_CORE_PATH, 4 ) . '/vendor/autoload.php';
@@ -314,7 +317,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 			}
 		}
 
-		if ( ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
+		if ( 'xlsx' === $extension && ! class_exists( \PhpOffice\PhpSpreadsheet\IOFactory::class ) ) {
 			return new WP_Error(
 				'taas_import_unavailable',
 				__( 'Course import is not available on this server.', 'taas-core' ),
@@ -323,7 +326,7 @@ final class TAAS_REST_Course_Controller extends TAAS_REST_Resource_Controller {
 		}
 
 		// The importer checks the extension, and PHP's upload has none
-		$path = $file['tmp_name'] . '.xlsx';
+		$path = $file['tmp_name'] . '.' . $extension;
 
 		if ( ! rename( $file['tmp_name'], $path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- PHP's own upload temp file, not a WordPress upload.
 			return $this->server_error( new RuntimeException( 'Could not move the uploaded course file.' ) );
