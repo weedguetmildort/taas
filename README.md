@@ -44,7 +44,7 @@ docker compose exec wordpress php /var/www/taas/bin/db-status.php      # tables,
 docker compose exec wordpress php /var/www/taas/bin/seed.php [--fresh] # reload demo data
 docker compose exec wordpress php /var/www/taas/bin/export-schema.php  # live DDL -> snapshots/taas-core/
 docker compose exec wordpress php /var/www/taas/bin/export-pages.php   # page edits -> pages/*.html
-docker compose exec wordpress php /var/www/taas/bin/import-courses.php /var/www/taas/real-data/<file>.xlsx
+docker compose exec wordpress php /var/www/taas/bin/import-courses.php /var/www/taas/real-data/<file>.xlsx  # or <file>.csv
 ```
 
 `real-data/` is gitignored, for real course files that must never be committed.

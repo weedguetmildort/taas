@@ -164,11 +164,12 @@ To read courses, use [GET: course listings](common.md#get-course-listings) and [
 
 `POST /courses/import`
 
-Adds or replaces courses from an `.xlsx` file.
+Adds or replaces courses from an `.xlsx` or `.csv` file.
 
 **Request body:** `multipart/form-data`, with the file in the `file` field.
 
-**The file:** the first sheet's first row holds the headers, in any order. Headers must match exactly, and any other header is ignored.
+**The file:** the first row (of the first sheet, for `.xlsx`) holds the headers, in any order. Headers must match exactly, and any other header is ignored.
+A `.csv` must be comma-separated UTF-8, as Excel saves with "CSV UTF-8".
 
 | Header | Required | Saved as |
 | --- | --- | --- |
@@ -178,7 +179,7 @@ Adds or replaces courses from an `.xlsx` file.
 | `Year` | yes | `year` |
 | `UFO` | yes | `is_online`: `UFO` or `In-person` |
 | `Description` | no | `course_description` |
-| `Lab Hour` | yes | `lab_hours` |
+| `Lab Hour` (or `Lab`, `Lab Hours`) | yes | `lab_hours` |
 | `Current Enrollment` | yes | `enrollment` |
 | `Maximum Enrollment` | yes | `max_enrollment` |
 | `Professor Teaching` | yes | The professor's name, used only when adding them |
@@ -215,8 +216,8 @@ How each row is handled:
 | Status | `code` | When |
 | --- | --- | --- |
 | 400 | `rest_missing_callback_param` | No `file` was sent |
-| 400 | `rest_invalid_param` | The upload failed, the file isn't named `.xlsx` or can't be read as one, or a required header is missing. `data.params.file` says which |
-| 503 | `taas_import_unavailable` | The server doesn't have PhpSpreadsheet |
+| 400 | `rest_invalid_param` | The upload failed, the file isn't named `.xlsx` or `.csv`, an `.xlsx` can't be read as one, or a required header is missing. `data.params.file` says which |
+| 503 | `taas_import_unavailable` | An `.xlsx` was sent and the server doesn't have PhpSpreadsheet. `.csv` doesn't need it |
 | 409 | `taas_course_has_applications` | The course has any application, including withdrawn ones |
 
 ## Professors
