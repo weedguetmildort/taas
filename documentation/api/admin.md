@@ -757,6 +757,7 @@ Downloads one term's data as a CSV file. `type` is one of the exports below.
 - Repeated groups (`TA 1 …`, `Pref 1 …`) take as many columns as the longest row needs, but never fewer than the export's minimum below. Unused cells are blank
 - Blank cells mean the value hasn't been given, e.g. a course whose TA hours can't be calculated
 - Withdrawn applications are left out of every export
+- A cell that would run as a spreadsheet formula, one starting with `=`, `+`, `-`, `@`, a tab or a carriage return, gets a leading `'` so it shows as text. Numbers such as `-5` are left as they are
 - A course in one cell reads `CEN3031 - Intro to Software Engineering - Rani, Neha`, with ` (UFO)` after the title for an online offering
 
 **Course columns**, shared by the course exports. They're the [import](#post-import-courses) headers, so a course export can be imported again:

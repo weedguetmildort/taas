@@ -561,6 +561,8 @@ function taas_export_table( array $headers, array $group_headers, int $min_group
  * Write rows as CSV: UTF-8 with a byte order mark so Excel reads it as UTF-8, CRLF line endings,
  * and RFC 4180 quoting (fputcsv also quotes fields with spaces)
  *
+ * Cells are passed through taas_export_cell(), so text a student typed can't run as a spreadsheet formula.
+ *
  * @param array<int, array<int, string>> $rows Header row, then data rows
  * @return string
  */
@@ -568,7 +570,7 @@ function taas_export_csv( array $rows ): string {
 	$handle = fopen( 'php://temp', 'r+b' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- In-memory stream, not a file.
 
 	foreach ( $rows as $row ) {
-		fputcsv( $handle, $row, ',', '"', '', "\r\n" );
+		fputcsv( $handle, array_map( 'taas_export_cell', $row ), ',', '"', '', "\r\n" );
 	}
 
 	rewind( $handle );
@@ -576,4 +578,21 @@ function taas_export_csv( array $rows ): string {
 	fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- In-memory stream, not a file.
 
 	return "\xEF\xBB\xBF" . $csv;
+}
+
+/**
+ * Keep a cell from being read as a formula by Excel, Google Sheets or LibreOffice
+ *
+ * A cell starting with =, +, -, @, a tab or a carriage return gets a leading apostrophe, which
+ * spreadsheets show as text. Numbers are left as they are, so a negative number like -5 stays a number.
+ *
+ * @param string $cell Cell value
+ * @return string
+ */
+function taas_export_cell( string $cell ): string {
+	if ( '' === $cell || is_numeric( $cell ) || ! in_array( $cell[0], array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
+		return $cell;
+	}
+
+	return "'" . $cell;
 }

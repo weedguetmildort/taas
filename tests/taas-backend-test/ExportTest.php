@@ -344,6 +344,32 @@ class ExportTest extends TestCase {
 		$this->assertSame( "\xEF\xBB\xBFPrefix,\"Professor Teaching\"\r\nCEN3031,\"Rani, Neha\"\r\nCIS4930,\"Says \"\"hi\"\"\"\r\n", $csv );
 	}
 
+	public function test_cells_that_would_run_as_formulas_are_escaped(): void {
+		$this->assertSame( "'=HYPERLINK(\"http://x\")", taas_export_cell( '=HYPERLINK("http://x")' ) );
+		$this->assertSame( "'+1+2", taas_export_cell( '+1+2' ) );
+		$this->assertSame( "'-2+3+cmd|' /C calc'!A0", taas_export_cell( "-2+3+cmd|' /C calc'!A0" ) );
+		$this->assertSame( "'@SUM(A1)", taas_export_cell( '@SUM(A1)' ) );
+		$this->assertSame( "'\t=1", taas_export_cell( "\t=1" ) );
+		$this->assertSame( "'\r=1", taas_export_cell( "\r=1" ) );
+	}
+
+	public function test_numbers_and_plain_text_are_not_escaped(): void {
+		foreach ( array( '-5', '+5', '3.69', '0', '', 'Jay Bardi', 'a=b', '55–60 SPEAK / 28–30 TOEFL iBT' ) as $cell ) {
+			$this->assertSame( $cell, taas_export_cell( $cell ) );
+		}
+	}
+
+	public function test_csv_escapes_formulas_in_every_row(): void {
+		$csv = taas_export_csv(
+			array(
+				array( 'Student Name', 'TA Hours Left' ),
+				array( '=1+1', '-5' ),
+			)
+		);
+
+		$this->assertSame( "\xEF\xBB\xBF\"Student Name\",\"TA Hours Left\"\r\n'=1+1,-5\r\n", $csv );
+	}
+
 	public function test_course_export_reads_back_through_course_import_headers(): void {
 		require_once dirname( __DIR__, 2 ) . '/htdocs/wp-content/plugins/taas-core/includes/func-taas-course-ingest.php';
 
