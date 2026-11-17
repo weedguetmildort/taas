@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TAAS Core
  * Description: Provides shared foundation used by TAAS Onboarding and Matching
- * Version: 0.7.8.8.2.8
+ * Version: 0.7.8.8.2.9
  *
  * @package TAAS_Core
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAAS_CORE_VERSION', '0.7.8.8.2.8' );
+define( 'TAAS_CORE_VERSION', '0.7.8.8.2.9' );
 define( 'TAAS_CORE_FILE', __FILE__ );
 define( 'TAAS_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAAS_CORE_URL', plugin_dir_url( __FILE__ ) );
@@ -104,6 +104,7 @@ require_once TAAS_CORE_PATH . 'includes/func-matching.php';
  */
 require_once TAAS_CORE_PATH . 'includes/func-taas-course-ingest.php';
 
+TAAS_Auth::init();
 TAAS_REST::init();
 TAAS_Stage_Gate::init();
 TAAS_Shibboleth::init();
