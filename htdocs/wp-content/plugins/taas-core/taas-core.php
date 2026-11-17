@@ -104,6 +104,7 @@ require_once TAAS_CORE_PATH . 'includes/func-matching.php';
  */
 require_once TAAS_CORE_PATH . 'includes/func-taas-course-ingest.php';
 
+TAAS_Auth::init();
 TAAS_REST::init();
 TAAS_Stage_Gate::init();
 TAAS_Shibboleth::init();

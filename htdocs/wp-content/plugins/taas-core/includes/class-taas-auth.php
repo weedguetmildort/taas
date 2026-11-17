@@ -33,6 +33,56 @@ class TAAS_Auth {
 	public const UFID_META_KEY = 'taas_ufid';
 
 	/**
+	 * Restrict the WordPress dashboard independently of TAAS application roles.
+	 *
+	 * @return void
+	 */
+	public static function init(): void {
+		add_action( 'admin_init', array( self::class, 'restrict_wp_admin' ), 1 );
+		add_filter( 'show_admin_bar', array( self::class, 'filter_admin_bar' ) );
+	}
+
+	/**
+	 * Only actual WordPress editors and administrators may use the dashboard.
+	 *
+	 * Uses the WordPress account even when TAAS local role mocking is enabled.
+	 *
+	 * @return bool
+	 */
+	public static function can_access_wp_admin(): bool {
+		return (bool) array_intersect( array( 'editor', self::WP_ADMIN_ROLE ), (array) wp_get_current_user()->roles );
+	}
+
+	/**
+	 * Redirect other users away from dashboard screens before they render.
+	 *
+	 * AJAX and form handlers authorize their own actions and are also used by
+	 * frontend plugins, so they must remain reachable.
+	 *
+	 * @return void
+	 */
+	public static function restrict_wp_admin(): void {
+		global $pagenow;
+
+		if ( wp_doing_ajax() || 'admin-post.php' === $pagenow || self::can_access_wp_admin() ) {
+			return;
+		}
+
+		wp_safe_redirect( home_url( '/' ) );
+		exit;
+	}
+
+	/**
+	 * Hide dashboard links for users without dashboard access.
+	 *
+	 * @param bool $show Whether WordPress would otherwise show the toolbar.
+	 * @return bool
+	 */
+	public static function filter_admin_bar( bool $show ): bool {
+		return $show && self::can_access_wp_admin();
+	}
+
+	/**
 	 * Create TAAS roles and their display names
 	 *
 	 * @return array<string, string>
