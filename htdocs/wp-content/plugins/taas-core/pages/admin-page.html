@@ -101,29 +101,6 @@
     color: white !important;
 }
 
-/* STOP APPLICATIONS BUTTON */
-
-.stop-applications-button {
-    padding: 14px 20px;
-
-    background: #b42318;
-    color: white;
-
-    border: none;
-    border-radius: 4px;
-
-    font-family: Arial, sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.4;
-
-    cursor: pointer;
-}
-
-.stop-applications-button:hover {
-    background: #8f1d14;
-}
-
 /* DESCRIPTION */
 
 .admin-header p {
@@ -167,8 +144,7 @@
         flex-direction: column;
     }
 
-    .admin-nav-button,
-    .stop-applications-button {
+    .admin-nav-button {
         width: 100%;
         box-sizing: border-box;
         text-align: center;
@@ -272,34 +248,6 @@
     background-color: #e66f08;
 }
 
-/* RED STOP ACCEPTING APPLICATIONS BUTTON */
-
-.admin-portal-container .stop-applications-button {
-    display: block;
-    width: 350px;
-    max-width: 100%;
-    padding: 18px 22px;
-
-    background-color: #b42318;
-    color: #ffffff;
-
-    border: none;
-    border-radius: 4px;
-    box-sizing: border-box;
-
-    font-family: Arial, sans-serif;
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.4;
-    text-align: left;
-
-    cursor: pointer;
-}
-
-.admin-portal-container .stop-applications-button:hover {
-    background-color: #8f1d14;
-}
-
 /* MOBILE */
 
 @media (max-width: 768px) {
@@ -322,8 +270,7 @@
         font-size: 15px;
     }
 
-    .admin-portal-container .admin-nav-button,
-    .admin-portal-container .stop-applications-button {
+    .admin-portal-container .admin-nav-button {
         width: 100%;
         font-size: 17px;
     }
@@ -366,11 +313,6 @@
             <noscript>
                 <p>JavaScript is required to use the admin page links. Enable JavaScript, then reload this page.</p>
             </noscript>
-
-            <!-- STOP APPLICATIONS -->
-            <button type="button" class="stop-applications-button">
-                Stop Accepting Applications
-            </button>
 
             <!-- DOWNLOAD STUDENT DATA -->
             <button type="button" id="download-student-data" class="admin-nav-button download-student-button">
