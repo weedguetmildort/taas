@@ -84,26 +84,6 @@
 </section>
 
 
-<!-- ALL APPLICANTS -->
-
-<section class="ta-apps-card" aria-labelledby="ta-all-heading">
-
-    <h2 id="ta-all-heading">
-        All Applicants
-    </h2>
-
-    <p class="ta-apps-help">
-        Every student who applied to any of your courses this term.
-        You can rank someone for this course only if they also applied to it.
-    </p>
-
-    <div id="ta-all-applicants" class="ta-apps-table-host">
-        Loading applicants…
-    </div>
-
-</section>
-
-
 <!-- STUDENTS THAT APPLIED FOR THIS COURSE -->
 
 <section class="ta-apps-card" aria-labelledby="ta-course-applicants-heading">
@@ -787,8 +767,7 @@
 
 
   /*
-   * Yes / No, or a dash when the answer is not known
-   * (for example, a course the student did not apply to).
+   * Yes / No, or a dash when the answer is not known.
    */
 
   const yesNo = (value) => {
@@ -824,28 +803,6 @@
     String(value || '')
       .trim()
       .toLowerCase();
-
-
-  /*
-   * The professor API gives no student id, so the same student
-   * is recognised across courses by these profile fields.
-   * Replace this once the API returns a shared student id.
-   */
-
-  const studentKey = (applicant) =>
-    [
-      applicant.student_name,
-      applicant.major,
-      applicant.gpa,
-      applicant.enrollment_status
-    ]
-      .map(
-        (part) =>
-          String(part ?? '')
-            .trim()
-            .toLowerCase()
-      )
-      .join('|');
 
 
   function fwsValue(applicant) {
@@ -1120,8 +1077,7 @@
 
 
   function detailUrl(
-    applicationId,
-    forCourseId
+    applicationId
   ) {
 
     const params =
@@ -1136,7 +1092,7 @@
 
     params.set(
       'course',
-      forCourseId ?? courseId
+      courseId
     );
 
 
@@ -1265,14 +1221,10 @@
 
   /*
    * TABLE
-   *
-   * showApplied adds an "Applied To" column. The all applicants
-   * table uses it. The course only table does not.
    */
 
   function applicantTable(
-    rows,
-    showApplied
+    rows
   ) {
 
     if (!rows.length) {
@@ -1305,10 +1257,6 @@
 
             <th>FWS</th>
 
-            ${showApplied
-              ? '<th>Applied To</th>'
-              : ''}
-
             <th>
               Taken Class Before
             </th>
@@ -1325,109 +1273,53 @@
           ${rows.map(
             (applicant) => {
 
-              /*
-               * id is the application for the course being
-               * ranked. It is missing for a student who did
-               * not apply to this course.
-               */
-
-              const hasCurrent =
-                (
-                  applicant.application_id
-                  ?? null
-                ) !== null;
-
-
               const id =
-                hasCurrent
-                  ? Number(
-                      applicant.application_id
-                    )
-                  : NaN;
-
-
-              const detailId =
                 Number(
-                  applicant.detail_application_id
-                  ?? applicant.application_id
+                  applicant.application_id
                 );
 
 
-              const detailCourse =
-                applicant.detail_course_id
-                ?? courseId;
-
-
-              const canRank =
-                hasCurrent
-                  ? current.byId.has(id)
-                  : false;
-
-
               const position =
-                canRank
-                  ? current.ranking.indexOf(id)
-                  : -1;
+                current.ranking.indexOf(id);
 
 
               let action =
-                `
-                  <span class="ta-apps-unavailable">
-                    Did not apply to this course
-                  </span>
-                `;
-
-
-              if (canRank) {
-
-                if (
-                  position >= 0
-                ) {
-
-                  action = `
-                    <span class="ta-apps-ranked">
-                      Ranked #${position + 1}
-                    </span>
-                  `;
-
-                } else {
-
-                  action = `
-                    <button
-                      type="button"
-                      class="ta-apps-add"
-                      data-add="${id}">
-                      Add to ranking
-                    </button>
-                  `;
-                }
-              }
-
-
-              let href =
-                '#';
+                '';
 
 
               if (
-                Number.isFinite(detailId)
+                position >= 0
               ) {
 
-                href =
-                  esc(
-                    detailUrl(
-                      detailId,
-                      detailCourse
-                    )
-                  );
+                action = `
+                  <span class="ta-apps-ranked">
+                    Ranked #${position + 1}
+                  </span>
+                `;
+
+              } else {
+
+                action = `
+                  <button
+                    type="button"
+                    class="ta-apps-add"
+                    data-add="${id}">
+                    Add to ranking
+                  </button>
+                `;
               }
+
+
+              const href =
+                esc(
+                  detailUrl(id)
+                );
 
 
               return `
                 <tr
                   class="ta-apps-row"
-                  ${Number.isFinite(detailId)
-                    ? `data-href="${href}"`
-                    : ''}>
+                  data-href="${href}">
 
                   <td>
                     ${action}
@@ -1435,23 +1327,14 @@
 
                   <td class="name">
 
-                    ${Number.isFinite(detailId)
-
-                      ? `
-                        <a
-                          class="ta-apps-link"
-                          href="${href}">
-                          ${esc(
-                            applicant.student_name
-                          )}
-                        </a>
-                      `
-
-                      : esc(
-                          applicant.student_name
-                          || '—'
-                        )
-                    }
+                    <a
+                      class="ta-apps-link"
+                      href="${href}">
+                      ${esc(
+                        applicant.student_name
+                        || '—'
+                      )}
+                    </a>
 
                   </td>
 
@@ -1483,19 +1366,6 @@
                     )}
                   </td>
 
-                  ${showApplied
-                    ? `
-                      <td>
-                        ${esc(
-                          (
-                            applicant.applied_courses
-                            || []
-                          ).join(', ')
-                        )}
-                      </td>
-                    `
-                    : ''}
-
                   <td>
                     ${yesNo(
                       applicant.has_taken_course
@@ -1517,60 +1387,6 @@
 
       </table>
     `;
-  }
-
-
-  /*
-   * ALL APPLICANTS
-   */
-
-  function renderAllApplicants() {
-
-    if (!current) {
-      return;
-    }
-
-
-    if (
-      !current.allApplicantsSupported
-    ) {
-
-      el.allApplicants.innerHTML = `
-        <p>
-          The full applicant list could not be loaded.
-        </p>
-      `;
-
-      return;
-    }
-
-
-    if (
-      !current.allApplicants.length
-    ) {
-
-      el.allApplicants.innerHTML =
-        '<p>No students have applied to any of your courses yet.</p>';
-
-      return;
-    }
-
-
-    const rows =
-      current.allApplicants
-        .filter(
-          passesSharedFilters
-        )
-        .filter(
-          passesProgramFilter
-        );
-
-
-    el.allApplicants.innerHTML =
-      applicantTable(
-        rows,
-        true
-      );
   }
 
 
@@ -1608,8 +1424,7 @@
 
     el.courseApplicants.innerHTML =
       applicantTable(
-        rows,
-        false
+        rows
       );
   }
 
@@ -1638,7 +1453,7 @@
 
           <span>
             No applicants ranked yet.
-            Add applicants from the lists above.
+            Add applicants from the list above.
           </span>
 
         </li>
@@ -1764,8 +1579,6 @@
 
   function renderAll() {
 
-    renderAllApplicants();
-
     renderCourseApplicants();
 
     renderRanking();
@@ -1789,168 +1602,6 @@
 
       current.notes =
         el.requests.value;
-    }
-  }
-
-
-  /*
-   * ALL APPLICANTS
-   *
-   * Built from the applications route of every course the
-   * professor teaches this term. A student who applied to
-   * several of those courses is listed once.
-   *
-   * application_id is the student's application for the
-   * course being ranked, or null if they did not apply to it.
-   * The ranking API only accepts applications for that course.
-   */
-
-  async function fetchAllApplicants(
-    currentCourseId
-  ) {
-
-    try {
-
-      const lists =
-        await Promise.all(
-          courses.map(
-            async (course) => {
-
-              const data =
-                await api(
-                  `/professor/courses/${course.course_id}/applications`
-                );
-
-              return {
-                course,
-                applications:
-                  data.applications
-              };
-            }
-          )
-        );
-
-
-      const students =
-        new Map();
-
-
-      lists.forEach(
-        (entry) => {
-
-          entry.applications.forEach(
-            (application) => {
-
-              const key =
-                studentKey(
-                  application
-                );
-
-
-              if (
-                !students.has(key)
-              ) {
-
-                students.set(
-                  key,
-                  {
-
-                    ...application,
-
-                    application_id:
-                      null,
-
-                    detail_application_id:
-                      Number(
-                        application.application_id
-                      ),
-
-                    detail_course_id:
-                      entry.course.course_id,
-
-                    has_taken_course:
-                      null,
-
-                    has_ta_for_course:
-                      null,
-
-                    applied_courses:
-                      []
-
-                  }
-                );
-              }
-
-
-              const student =
-                students.get(key);
-
-
-              student.applied_courses
-                .push(
-                  entry.course.course_code
-                );
-
-
-              if (
-                entry.course.course_id
-                === currentCourseId
-              ) {
-
-                student.application_id =
-                  Number(
-                    application.application_id
-                  );
-
-
-                student.has_taken_course =
-                  application.has_taken_course;
-
-
-                student.has_ta_for_course =
-                  application.has_ta_for_course;
-              }
-            }
-          );
-        }
-      );
-
-
-      const applicants =
-        Array.from(
-          students.values()
-        ).sort(
-          (first, second) =>
-            String(
-              first.student_name
-              || ''
-            ).localeCompare(
-              String(
-                second.student_name
-                || ''
-              )
-            )
-        );
-
-
-      return {
-        supported:true,
-        applicants
-      };
-
-
-    } catch (error) {
-
-      console.warn(
-        'TA page: could not build the all applicants list',
-        error
-      );
-
-
-      return {
-        supported:false,
-        applicants:[]
-      };
     }
   }
 
@@ -2056,10 +1707,6 @@
       null;
 
 
-    el.allApplicants.textContent =
-      'Loading applicants…';
-
-
     el.courseApplicants.textContent =
       'Loading applicants…';
 
@@ -2083,9 +1730,7 @@
 
           api(
             `/professor/courses/${id}/ranking`
-          ),
-
-          fetchAllApplicants(id)
+          )
 
         ]);
 
@@ -2104,10 +1749,6 @@
 
       const saved =
         results[1];
-
-
-      const allData =
-        results[2];
 
 
       const courseApplicants =
@@ -2165,14 +1806,6 @@
 
         courseApplicants,
 
-        allApplicants:
-          allData.applicants
-          || [],
-
-        allApplicantsSupported:
-          allData.supported
-          === true,
-
         byId,
 
         ranking,
@@ -2207,10 +1840,6 @@
 
         return;
       }
-
-
-      el.allApplicants.textContent =
-        '';
 
 
       el.courseApplicants.textContent =
@@ -2787,11 +2416,6 @@
       clearFilters:
         document.querySelector(
           '#clear-filters'
-        ),
-
-      allApplicants:
-        document.querySelector(
-          '#ta-all-applicants'
         ),
 
       courseApplicants:
