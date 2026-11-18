@@ -17,13 +17,14 @@
 /* HEADER */
 
 .admin-applications-header {
-    margin-bottom: 35px;
+    margin-bottom: 20px;
 }
 
 .admin-applications-header h2 {
     font-size: 27px;
     font-weight: 600;
-    margin: 0 0 15px;
+    line-height: 1.25;
+    margin: 0 0 10px;
     color: #222;
 }
 
@@ -164,7 +165,8 @@
 
 /* APPROVE MATCH BUTTON */
 
-.approve-match-button {
+.approve-match-button,
+.run-matching-button {
     padding: 10px 14px;
     background: #ff7f11;
     color: #ffffff;
@@ -179,11 +181,13 @@
     cursor: pointer;
 }
 
-.approve-match-button:hover {
+.approve-match-button:hover,
+.run-matching-button:hover {
     background: #e66f08;
 }
 
-.approve-match-button:disabled {
+.approve-match-button:disabled,
+.run-matching-button:disabled {
     background: #d1d5db;
     color: #444;
     cursor: default;
@@ -209,6 +213,7 @@
 
 .admin-applications-container button:focus-visible,
 .admin-applications-container select:focus-visible,
+.admin-applications-container input:focus-visible,
 .admin-applications-container a:focus-visible {
     outline: 3px solid #0021a5;
     outline-offset: 3px;
@@ -239,8 +244,8 @@
     border: 1px solid #e1e5eb;
     border-radius: 6px;
 
-    padding: 25px 30px;
-    margin: 30px 0 35px;
+    padding: 20px 24px;
+    margin: 0 0 20px;
 }
 
 /* PROGRESS HEADER */
@@ -251,7 +256,7 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .approval-progress-header h3 {
@@ -273,7 +278,7 @@
     align-items: baseline;
     flex-wrap: wrap;
     gap: 5px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 #approved-count {
@@ -328,7 +333,7 @@
 
 @media (max-width: 768px) {
     .ta-approval-progress {
-        padding: 20px;
+        padding: 16px;
     }
 
     .approval-progress-header h3 {
@@ -339,26 +344,32 @@
         font-size: 30px;
     }
 
-    .progress-description {
-        width: 100%;
-        margin-left: 0;
-    }
 }
 
-/* TITLE AND VIEW SELECTOR */
+/* MATCHING TOOLBAR */
 
-.admin-applications-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    margin: 30px 0 20px;
-}
-
-.admin-applications-title-row h3 {
-    font-size: 18px;
-    margin: 0;
+#admin-matching-view-title {
+    margin: 0 0 10px;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
     color: #222;
+}
+
+.admin-applications-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+    gap: 14px 16px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: #f7f8fa;
+    border: 1px solid #e1e5eb;
+    border-radius: 6px;
+}
+
+#admin-matching-form {
+    max-width: 100%;
+    margin: 0;
 }
 
 /* COURSE / STUDENT VIEW SELECTOR */
@@ -375,14 +386,62 @@
     white-space: nowrap;
 }
 
-.admin-applications-filter select {
-    min-width: 160px;
+.admin-applications-filter select,
+.admin-matching-controls input {
     padding: 10px 12px;
     border: 1px solid #ccc;
     border-radius: 4px;
     background: white;
     color: #222;
     font-size: 14px;
+}
+
+.admin-applications-filter select {
+    min-width: 160px;
+}
+
+.admin-applications-toolbar .admin-applications-filter:not(fieldset) {
+    display: grid;
+    align-content: start;
+    gap: 4px;
+}
+
+.admin-applications-toolbar select,
+.admin-matching-controls input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    margin: 0;
+}
+
+.admin-matching-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 11rem) minmax(0, 7rem) minmax(max-content, 1fr);
+    align-items: end;
+    gap: 12px 16px;
+    border: 0;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.admin-matching-controls .run-matching-button {
+    justify-self: end;
+    min-height: 42px;
+}
+
+.admin-matching-run-note,
+.admin-matching-run-status {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #555;
+    text-align: right;
+}
+
+.admin-matching-run-status:empty {
+    margin: 0;
 }
 
 /* TABLE */
@@ -411,12 +470,28 @@
     overflow-wrap: anywhere;
 }
 
+#admin-course-view .admin-applications-table th,
+#admin-course-view .admin-applications-table td {
+    padding: 12px 10px;
+}
+
+.admin-matching-scroll-hint {
+    display: none;
+}
+
 #admin-course-view .admin-applications-table-wrapper:focus-visible {
     outline: 3px solid #0021a5;
     outline-offset: 3px;
 }
 
 @media (max-width: 1023px) {
+    .admin-matching-scroll-hint {
+        display: block;
+        margin: 0 0 8px;
+        font-size: 13px;
+        color: #555;
+    }
+
     #admin-course-view .admin-applications-table-wrapper {
         max-height: min(70vh, 42rem);
         overflow: auto;
@@ -473,17 +548,21 @@
 /* MOBILE */
 
 @media (max-width: 768px) {
-
-    .admin-applications-title-row {
-        flex-direction: column;
-        align-items: flex-start;
+    .admin-applications-toolbar {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .admin-applications-filter {
-        width: 100%;
+    .admin-matching-controls {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.6fr);
     }
 
-    .admin-applications-filter select {
-        flex: 1;
+    .admin-matching-controls .run-matching-button {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+    }
+
+    .admin-matching-run-note,
+    .admin-matching-run-status {
+        text-align: left;
     }
 }

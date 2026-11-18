@@ -27,13 +27,14 @@ function taas_admin_matching_portal_assets(): void {
 		return;
 	}
 
-	$endpoint = rest_url( 'taas/v1/matching/recommendations' );
-	if ( TAAS_Auth::is_local_dev() ) {
-		$endpoint = add_query_arg( 'taas_role', 'admin', $endpoint );
-	}
-	$config = array(
-		'endpoint' => $endpoint,
-		'nonce'    => wp_create_nonce( 'wp_rest' ),
+	$endpoints = array(
+		'recommendationsEndpoint' => rest_url( 'taas/v1/matching/recommendations' ),
+		'runEndpoint'             => rest_url( 'taas/v1/matching/run' ),
+		'cycleEndpoint'           => rest_url( 'taas/v1/application-cycle' ),
 	);
+	if ( TAAS_Auth::is_local_dev() ) {
+		$endpoints = array_map( static fn( $url ) => add_query_arg( 'taas_role', 'admin', $url ), $endpoints );
+	}
+	$config = $endpoints + array( 'nonce' => wp_create_nonce( 'wp_rest' ) );
 	wp_add_inline_script( 'taas-admin-matching-portal', 'window.TAASMatchingPortal = ' . wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';', 'before' );
 }

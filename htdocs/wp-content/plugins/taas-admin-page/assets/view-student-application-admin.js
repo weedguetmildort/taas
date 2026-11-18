@@ -19,6 +19,9 @@
         const studentView = container.querySelector(
             "#admin-student-view"
         );
+        const matchingForm = container.querySelector("#admin-matching-form");
+        const matchingConfig = window.TAASMatchingPortal;
+        const viewTitle = container.querySelector("#admin-matching-view-title");
 
         // SWITCH BETWEEN COURSE AND STUDENT VIEWS
         viewSelector.addEventListener("change", function () {
@@ -27,6 +30,10 @@
 
             courseView.hidden = !showCourse;
             studentView.hidden = showCourse;
+            matchingForm.hidden = !showCourse || !matchingConfig;
+            if (viewTitle) {
+                viewTitle.textContent = showCourse ? "Course Recommendations" : "Student Applications";
+            }
 
         });
 
@@ -89,41 +96,124 @@
 
         // APPLY INITIAL VIEW
         viewSelector.dispatchEvent(new Event("change"));
-        if (window.TAASMatchingPortal) {
-            loadCourseRecommendations(courseView.querySelector("tbody"), window.TAASMatchingPortal);
+        if (matchingConfig) {
+            initializeMatchingControls(matchingForm, courseView.querySelector("tbody"), matchingConfig);
         }
 
     }
 
-    async function loadCourseRecommendations(rows, config) {
-        const status = rows.querySelector('[role="status"]');
-        status.textContent = "Loading matching recommendations…";
+    async function initializeMatchingControls(form, rows, config) {
+        const controls = form.querySelector("fieldset");
+        const term = form.querySelector("#admin-matching-term");
+        const year = form.querySelector("#admin-matching-year");
+        const run = form.querySelector(".run-matching-button");
+        const status = form.querySelector("#admin-matching-run-status");
+        let request;
 
-        const url = new URL(config.endpoint, window.location.href);
+        function selectedUrl(endpoint) {
+            const url = new URL(endpoint, window.location.href);
+            url.searchParams.set("term", term.value);
+            url.searchParams.set("year", String(year.valueAsNumber));
+            return url;
+        }
+
+        function reloadRecommendations() {
+            request?.abort();
+            if (!form.checkValidity()) {
+                showCourseMessage(rows, "Select a term and year to see saved recommendations.");
+                return;
+            }
+
+            request = new AbortController();
+            return loadCourseRecommendations(rows, selectedUrl(config.recommendationsEndpoint), config.nonce, request.signal);
+        }
+
+        function updateRunButton() {
+            run.disabled = controls.disabled || !form.checkValidity();
+        }
+
+        form.addEventListener("input", updateRunButton);
+        form.addEventListener("change", function () {
+            status.textContent = "";
+            reloadRecommendations();
+        });
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            if (controls.disabled || !form.reportValidity()) return;
+
+            const url = selectedUrl(config.runEndpoint);
+            controls.disabled = true;
+            updateRunButton();
+            status.textContent = "Running matching…";
+
+            try {
+                const { data } = await matchingRequest(url, config.nonce, { method: "POST" });
+                await reloadRecommendations();
+                status.textContent = `Matching complete. Recommendations saved: ${data.recommendations_made}.`;
+            } catch (error) {
+                status.textContent = error.message;
+            } finally {
+                controls.disabled = false;
+                updateRunButton();
+            }
+        });
+
+        showCourseMessage(rows, "Loading the current application cycle…");
+        try {
+            const { data } = await matchingRequest(config.cycleEndpoint, config.nonce);
+            term.value = data.term;
+            year.value = data.year;
+        } catch (error) {
+            status.textContent = error.message;
+        } finally {
+            controls.disabled = false;
+            updateRunButton();
+            reloadRecommendations();
+        }
+    }
+
+    async function matchingRequest(url, nonce, options = {}) {
+        const response = await fetch(url, { ...options, headers: { "X-WP-Nonce": nonce } });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || data === null) {
+            throw new Error(data?.message || "The matching request failed. Try again.");
+        }
+        return { data, pages: Number(response.headers.get("X-WP-TotalPages") ?? 1) };
+    }
+
+    function showCourseMessage(rows, text) {
+        rows.replaceChildren();
+        const cell = rows.insertRow().insertCell();
+        cell.colSpan = rows.parentElement.tHead.rows[0].cells.length;
+        cell.setAttribute("role", "status");
+        cell.textContent = text;
+    }
+
+    async function loadCourseRecommendations(rows, url, nonce, signal) {
+        showCourseMessage(rows, "Loading matching recommendations…");
         url.searchParams.set("per_page", "100");
 
         const courses = [];
-        let pages = 1;
         try {
+            let pages = 1;
             for (let page = 1; page <= pages; page++) {
                 url.searchParams.set("page", String(page));
-                const response = await fetch(url, {
-                    headers: { "X-WP-Nonce": config.nonce },
-                });
-                const data = await response.json().catch(() => null);
-                if (!response.ok || !Array.isArray(data)) {
-                    throw new Error(data?.message || "Could not load matching recommendations.");
+                const result = await matchingRequest(url, nonce, { signal });
+                if (!Array.isArray(result.data)) {
+                    throw new Error("Could not load matching recommendations.");
                 }
-                pages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
-                courses.push(...data);
+                pages = result.pages;
+                courses.push(...result.data);
             }
         } catch (error) {
-            status.textContent = error.message;
+            if (!signal.aborted) showCourseMessage(rows, error.message);
             return;
         }
 
+        if (signal.aborted) return;
+
         if (!courses.length) {
-            status.textContent = "No courses are listed for the current application cycle.";
+            showCourseMessage(rows, "No courses are listed for the selected term.");
             return;
         }
 

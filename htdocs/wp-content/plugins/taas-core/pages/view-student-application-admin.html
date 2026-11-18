@@ -50,11 +50,8 @@
 
     </div>
 
-    <!-- SECTION TITLE AND VIEW SELECTOR -->
-    <div class="admin-applications-title-row">
-
-        <h3>Applications for the Current Cycle</h3>
-
+    <h3 id="admin-matching-view-title">Course Recommendations</h3>
+    <div class="admin-applications-toolbar">
         <div class="admin-applications-filter">
             <label for="admin-view-type">
                 View:
@@ -70,11 +67,35 @@
             </select>
         </div>
 
+        <form id="admin-matching-form" hidden>
+            <fieldset class="admin-applications-filter admin-matching-controls" aria-label="Matching term" disabled>
+                <div class="admin-applications-filter">
+                    <label for="admin-matching-term">Term:</label>
+                    <select id="admin-matching-term" required>
+                        <option value="">Select term</option>
+                        <option value="Spring">Spring</option>
+                        <option value="Summer A">Summer A</option>
+                        <option value="Summer B">Summer B</option>
+                        <option value="Summer C">Summer C</option>
+                        <option value="Fall">Fall</option>
+                    </select>
+                </div>
+
+                <div class="admin-applications-filter">
+                    <label for="admin-matching-year">Year:</label>
+                    <input id="admin-matching-year" type="number" min="1901" max="2155" required>
+                </div>
+
+                <button class="run-matching-button" type="submit" aria-describedby="admin-matching-run-note" disabled>Run Matching</button>
+            </fieldset>
+            <p id="admin-matching-run-note" class="admin-matching-run-note">Running matching clears saved recommendations for other terms.</p>
+            <p id="admin-matching-run-status" class="admin-matching-run-status" role="status"></p>
+        </form>
     </div>
 
     <!-- COURSE VIEW -->
     <div id="admin-course-view">
-
+        <p class="admin-matching-scroll-hint">Scroll the table sideways to see all columns.</p>
         <div class="admin-applications-table-wrapper" tabindex="0" role="region" aria-label="Course recommendations">
 
             <table class="admin-applications-table">
