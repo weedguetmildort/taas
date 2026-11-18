@@ -163,9 +163,10 @@
     color: #176b35;
 }
 
-/* APPROVE MATCH BUTTON */
+/* MATCHING ACTIONS */
 
 .approve-match-button,
+.decline-match-button,
 .run-matching-button {
     padding: 10px 14px;
     background: #ff7f11;
@@ -187,10 +188,40 @@
 }
 
 .approve-match-button:disabled,
+.decline-match-button:disabled,
 .run-matching-button:disabled {
     background: #d1d5db;
     color: #444;
     cursor: default;
+}
+
+.admin-match-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.admin-match-actions button {
+    padding: 7px 9px;
+}
+
+.decline-match-button:not(:disabled) {
+    background: #fff;
+    color: #333;
+    box-shadow: inset 0 0 0 1px #aaa;
+}
+
+.decline-match-button:hover:not(:disabled) {
+    background: #eee;
+}
+
+.admin-match-feedback {
+    margin: 6px 0 0;
+    font-size: 13px;
+}
+
+.admin-match-feedback:empty {
+    margin: 0;
 }
 
 /* UNMATCHED STUDENTS */

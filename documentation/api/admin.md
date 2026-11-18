@@ -490,7 +490,8 @@ Every course in the term, with what the matching algorithm's last run recommende
         "student_ufid": "12345678",
         "student_name": "Jane Doe",
         "hours": 20,
-        "reason": "professor_preference_1"
+        "reason": "professor_preference_1",
+        "match_status": "Pending"
       }
     ]
   }
@@ -503,6 +504,7 @@ Every course in the term, with what the matching algorithm's last run recommende
 | `unfilled_hours` | How many of the course's `weekly_hours` the recommendations leave uncovered. It does not reflect matches the admin has made |
 | `recommendations` | In the order the algorithm chose the students |
 | `hours` | How many hours the algorithm recommends for that student |
+| `match_status` | Current status of the application for this recommendation |
 | `reason` | Why the algorithm chose the student |
 
 | `reason` | Meaning |

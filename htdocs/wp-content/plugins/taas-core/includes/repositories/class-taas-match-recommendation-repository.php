@@ -91,7 +91,7 @@ final class TAAS_Match_Recommendation_Repository extends TAAS_Repository {
 	 * Every recommendation for the given courses, in the order the algorithm made them.
 	 *
 	 * @param int[] $course_ids Course IDs.
-	 * @return array<int, array{application_id: int, course_id: int, student_ufid: string, student_name: string, hours: int, reason: string}>
+	 * @return array<int, array{application_id: int, course_id: int, student_ufid: string, student_name: string, hours: int, reason: string, match_status: string}>
 	 * @throws RuntimeException If the query fails.
 	 */
 	public function for_courses( array $course_ids ): array {
@@ -106,7 +106,7 @@ final class TAAS_Match_Recommendation_Repository extends TAAS_Repository {
 		$rows = $this->select_rows(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Only %d placeholders are joined in; every value is bound.
 			$wpdb->prepare(
-				'SELECT a.application_id, r.course_id, r.student_ufid, s.student_name, r.recommended_hours, r.reason'
+				'SELECT a.application_id, a.match_status, r.course_id, r.student_ufid, s.student_name, r.recommended_hours, r.reason'
 				. ' FROM %i r'
 				. ' INNER JOIN %i a ON a.student_ufid = r.student_ufid AND a.applied_course_id = r.course_id'
 				. ' INNER JOIN %i s ON s.student_ufid = r.student_ufid'
@@ -128,6 +128,7 @@ final class TAAS_Match_Recommendation_Repository extends TAAS_Repository {
 				'student_name'   => (string) $r['student_name'],
 				'hours'          => TAAS_Cast::int( $r['recommended_hours'] ),
 				'reason'         => (string) $r['reason'],
+				'match_status'   => TAAS_Match_Status::from( TAAS_Cast::int( $r['match_status'] ) )->label(),
 			),
 			$rows
 		);

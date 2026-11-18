@@ -29,8 +29,10 @@ function taas_admin_matching_portal_assets(): void {
 
 	$endpoints = array(
 		'recommendationsEndpoint' => rest_url( 'taas/v1/matching/recommendations' ),
+		'courseMatchesEndpoint'   => rest_url( 'taas/v1/matching/courses' ),
 		'runEndpoint'             => rest_url( 'taas/v1/matching/run' ),
 		'cycleEndpoint'           => rest_url( 'taas/v1/application-cycle' ),
+		'applicationEndpoint'     => rest_url( 'taas/v1/applications/__application_id__' ),
 	);
 	if ( TAAS_Auth::is_local_dev() ) {
 		$endpoints = array_map( static fn( $url ) => add_query_arg( 'taas_role', 'admin', $url ), $endpoints );
