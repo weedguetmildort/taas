@@ -10,13 +10,15 @@
     <h1 id="ta-course-title">Loading course…</h1>
 
     <p class="ta-apps-intro">
-        Review the applicants for each course, rank your preferred choices,
-        add any special requests, and submit your preferences to the administrator.
+        Review applicants for each course, rank your preferred choices,
+        add any special requests, and submit your preferences.
     </p>
 </header>
 
 <section class="ta-apps-card" aria-label="Course selection">
+
     <div class="ta-apps-course-picker">
+
         <label for="ta-course-select">
             Select Course
 
@@ -24,10 +26,13 @@
                 <option value="">Loading courses...</option>
             </select>
         </label>
+
     </div>
+
 </section>
 
 <section class="ta-apps-card" aria-label="Search and filters">
+
     <div class="ta-apps-search">
 
         <label for="ta-search-name">
@@ -37,7 +42,21 @@
         </label>
 
         <div class="ta-filter-group">
-            <span class="ta-filter-title">Add Filters</span>
+
+            <label for="filter-program" class="ta-filter-title">
+                Program
+
+                <select id="filter-program">
+                    <option value="">All Programs</option>
+                    <option value="undergraduate">Undergraduate</option>
+                    <option value="masters">Masters</option>
+                    <option value="phd">PhD</option>
+                </select>
+            </label>
+
+            <span class="ta-filter-title">
+                Additional Filters
+            </span>
 
             <label class="ta-filter-option">
                 <input type="checkbox" id="filter-taken">
@@ -57,58 +76,118 @@
             <button type="button" id="clear-filters" class="ta-clear-filters">
                 Clear Filters
             </button>
+
         </div>
 
     </div>
+
 </section>
+
+
+<!-- ALL APPLICANTS -->
 
 <section class="ta-apps-card" aria-labelledby="ta-all-heading">
-    <h2 id="ta-all-heading">All Applicants</h2>
+
+    <h2 id="ta-all-heading">
+        All Applicants
+    </h2>
 
     <p class="ta-apps-help">
-        Click <strong>Add to ranking</strong> to add someone to your preferences,
-        or click a row to read their full application.
+        Every student who applied to any of your courses this term.
+        You can rank someone for this course only if they also applied to it.
     </p>
 
-    <div id="ta-all" class="ta-apps-table-host">
+    <div id="ta-all-applicants" class="ta-apps-table-host">
         Loading applicants…
     </div>
+
 </section>
 
+
+<!-- STUDENTS THAT APPLIED FOR THIS COURSE -->
+
+<section class="ta-apps-card" aria-labelledby="ta-course-applicants-heading">
+
+    <h2 id="ta-course-applicants-heading">
+        Students That Applied for This Course
+    </h2>
+
+    <p class="ta-apps-help">
+        These students specifically applied for this course.
+        Add students to your ranking in order of preference.
+    </p>
+
+    <div id="ta-course-applicants" class="ta-apps-table-host">
+        Loading applicants…
+    </div>
+
+</section>
+
+
+<!-- RANKING -->
+
 <section class="ta-apps-card" aria-labelledby="ta-rank-heading">
+
     <div class="ta-apps-heading-row">
-        <h2 id="ta-rank-heading">Your Ranking</h2>
-        <p class="ta-apps-counter" id="ta-rank-counter" aria-live="polite"></p>
+
+        <h2 id="ta-rank-heading">
+            Your Ranking
+        </h2>
+
+        <p class="ta-apps-counter" id="ta-rank-counter" aria-live="polite">
+        </p>
+
     </div>
 
     <p class="ta-apps-help">
         Your #1 choice goes at the top.
-        Use the arrows to reorder or the × to remove someone.
-        Applicants you don't rank count as tied for last.
+        Rank as many applicants as you would like.
+        Applicants you do not rank count as tied for last.
     </p>
 
-    <ol class="ta-apps-ranking" id="ta-ranking"></ol>
+    <ol class="ta-apps-ranking" id="ta-ranking">
+    </ol>
+
 </section>
 
+
+<!-- SPECIAL REQUESTS -->
+
 <section class="ta-apps-card" aria-labelledby="ta-requests-heading">
-    <h2 id="ta-requests-heading">Special Requests</h2>
+
+    <h2 id="ta-requests-heading">
+        Special Requests
+    </h2>
 
     <p class="ta-apps-help">
-        Optional. Tell the administrator anything else you would like considered,
-        such as a specific student, scheduling needs, or other notes.
+        Optional. Add any additional information you would like considered
+        during matching.
     </p>
 
-    <label class="ta-apps-sr" for="ta-requests">Special requests</label>
+    <label class="ta-apps-sr" for="ta-requests">
+        Special requests
+    </label>
 
     <textarea id="ta-requests" rows="6" maxlength="1000" placeholder="Type your special requests here..."></textarea>
 
-    <p class="ta-apps-count" id="ta-requests-count">0 / 1000</p>
+    <p class="ta-apps-count" id="ta-requests-count">
+        0 / 1000
+    </p>
+
 </section>
 
-<div class="ta-apps-submit">
-    <p class="ta-apps-message" id="ta-apps-message" role="status" aria-live="polite"></p>
 
-    <button type="button" id="ta-apps-submit">Submit to Administrator</button>
+<!-- SUBMIT -->
+
+<div class="ta-apps-submit">
+
+    <p class="ta-apps-message" id="ta-apps-message" role="status" aria-live="polite">
+    </p>
+
+    <button type="button" id="ta-apps-submit">
+        Submit Preferences
+    </button>
+
 </div>
 
 </main>
@@ -211,7 +290,7 @@
 }
 
 
-/* SEARCH + FILTER AREA */
+/* SEARCH + FILTERS */
 
 .ta-apps-search{
     display:grid;
@@ -260,7 +339,7 @@
 }
 
 
-/* MULTIPLE FILTERS */
+/* FILTERS */
 
 .ta-filter-group{
     display:flex;
@@ -269,6 +348,10 @@
 }
 
 .ta-filter-title{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+
     font-size:1rem;
     font-weight:700;
     color:var(--navy)
@@ -326,7 +409,7 @@
 }
 
 
-/* APPLICANT TABLE */
+/* TABLES */
 
 .ta-apps-table-host{
     overflow-x:auto;
@@ -384,6 +467,12 @@
     text-decoration:underline
 }
 
+.ta-apps-unavailable{
+    color:var(--muted);
+    font-size:.84rem;
+    font-style:italic
+}
+
 
 /* ADD TO RANKING */
 
@@ -428,14 +517,14 @@
 }
 
 
-/* RANKINGS */
+/* HEADINGS */
 
 .ta-apps-heading-row{
     display:flex;
     justify-content:space-between;
-    align-items:baseline;
+    align-items:flex-start;
 
-    gap:12px;
+    gap:20px;
 
     flex-wrap:wrap
 }
@@ -446,6 +535,9 @@
     font-weight:700;
     color:var(--navy)
 }
+
+
+/* RANKING */
 
 .ta-apps-ranking{
     list-style:none;
@@ -557,7 +649,7 @@
 }
 
 
-/* SPECIAL REQUESTS */
+/* NOTES */
 
 .ta-apps-count{
     margin:6px 0 0;
@@ -597,7 +689,7 @@
 }
 
 .ta-apps-submit button{
-    min-width:220px;
+    min-width:240px;
     min-height:48px;
 
     padding:11px 22px;
@@ -651,562 +743,2226 @@
 
   /*
    * CONFIG
-   * The nonce is fetched from WordPress automatically if the page
-   * wasn't given one, so no PHP changes are needed.
    */
+
   const API_BASE =
-    (window.taasConfig && window.taasConfig.restBase) || '/wp-json/taas/v1';
+    window.taasConfig?.restBase
+    || '/wp-json/taas/v1';
 
   let nonce =
-    (window.taasConfig && window.taasConfig.nonce) ||
-    (window.wpApiSettings && window.wpApiSettings.nonce) || '';
+    window.taasConfig?.nonce
+    || window.wpApiSettings?.nonce
+    || '';
 
-  const DETAIL_PAGE_URL = '/applicant-details/';
-  const NOTES_MAX = 1000;
+  const DETAIL_PAGE_URL =
+    '/applicant-details/';
 
-  // Used when /application-cycle isn't deployed (404) and the page URL has
-  // no ?term=...&year=... Set these to the term and year of your courses.
-  // term must be Fall, Spring, SummerA, SummerB or SummerC.
-  const FALLBACK = { term: 'Fall', year: 2026 };
+  const NOTES_MAX =
+    1000;
 
-  // The professor API returns 403 taas_stage_closed outside the
-  // professor_ranking stage, and this page shows that as a "not open"
-  // message either way. Set to true to also check GET /application-cycle
-  // up front. Leave false while the demo cycle's stage may not be set.
-  const ENFORCE_STAGE = false;
-
-  const RANKING_REASONS = {
-    duplicate_rank: 'Two applicants share the same rank.',
-    duplicate_application: 'An applicant appears twice in your ranking.',
-    rank_gap: 'Ranks must be 1, 2, 3… with no gaps.',
-    ineligible_application:
-      'One of the ranked applicants is no longer available (they may have withdrawn). Reload the page and try again.'
+  const FALLBACK = {
+    term:'Fall',
+    year:2026
   };
+
+  const ENFORCE_STAGE =
+    false;
+
 
   /*
    * HELPERS
    */
 
-  const esc = (v) =>
-    String(v ?? '').replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    }[c]));
+  const esc = (value) =>
+    String(value ?? '').replace(
+      /[\u0026<>"']/g,
+      (character) => ({
+        '\u0026':'\u0026amp;',
+        '<':'\u0026lt;',
+        '>':'\u0026gt;',
+        '"':'\u0026quot;',
+        "'":'\u0026#39;'
+      }[character])
+    );
 
-  const yn = (v) => (v === true ? 'Yes' : 'No');
 
-  const fmtGpa = (g) =>
-    g === null || g === undefined ? '—' : Number(g).toFixed(2);
+  /*
+   * Yes / No, or a dash when the answer is not known
+   * (for example, a course the student did not apply to).
+   */
 
-  // Ask WordPress for a REST nonce when the page wasn't given one.
+  const yesNo = (value) => {
+
+    if (value === true) {
+      return 'Yes';
+    }
+
+    if (value === false) {
+      return 'No';
+    }
+
+    return '—';
+  };
+
+
+  const fmtGpa = (value) => {
+
+    if (value === null) {
+      return '—';
+    }
+
+    if (value === undefined) {
+      return '—';
+    }
+
+    return Number(value)
+      .toFixed(2);
+  };
+
+
+  const normalizeProgram = (value) =>
+    String(value || '')
+      .trim()
+      .toLowerCase();
+
+
+  /*
+   * The professor API gives no student id, so the same student
+   * is recognised across courses by these profile fields.
+   * Replace this once the API returns a shared student id.
+   */
+
+  const studentKey = (applicant) =>
+    [
+      applicant.student_name,
+      applicant.major,
+      applicant.gpa,
+      applicant.enrollment_status
+    ]
+      .map(
+        (part) =>
+          String(part ?? '')
+            .trim()
+            .toLowerCase()
+      )
+      .join('|');
+
+
+  function fwsValue(applicant) {
+
+    const program =
+      normalizeProgram(
+        applicant.enrollment_status
+      );
+
+
+    if (
+      program !==
+      'undergraduate'
+    ) {
+
+      return '—';
+    }
+
+
+    const value =
+      String(
+        applicant.fws_eligibility
+        ?? ''
+      )
+        .trim()
+        .toLowerCase();
+
+
+    if (
+      value === 'yes'
+    ) {
+
+      return 'Yes';
+    }
+
+
+    if (
+      value === 'no'
+    ) {
+
+      return 'No';
+    }
+
+
+    if (
+      value === 'not_applicable'
+    ) {
+
+      return 'N/A';
+    }
+
+
+    return '—';
+  }
+
+
   async function ensureNonce() {
-    if (nonce) return;
+
+    if (nonce) {
+      return;
+    }
+
+
     try {
-      const res = await fetch('/wp-admin/admin-ajax.php?action=rest-nonce', {
-        credentials: 'same-origin'
-      });
-      const text = (await res.text()).trim();
-      if (res.ok && /^[a-z0-9]{6,20}$/i.test(text)) nonce = text;
-    } catch (e) {
-      /* fall through: the request goes without a nonce */
+
+      const response =
+        await fetch(
+          '/wp-admin/admin-ajax.php?action=rest-nonce',
+          {
+            credentials:'same-origin'
+          }
+        );
+
+
+      const text =
+        (await response.text())
+          .trim();
+
+
+      if (response.ok) {
+
+        if (
+          /^[a-z0-9]{6,20}$/i
+            .test(text)
+        ) {
+
+          nonce =
+            text;
+        }
+      }
+
+    } catch (error) {
+
+      console.warn(
+        'Could not retrieve REST nonce.',
+        error
+      );
     }
   }
 
-  async function api(path, options = {}) {
+
+  async function api(
+    path,
+    options = {}
+  ) {
+
     await ensureNonce();
 
-    const headers = { 'Content-Type': 'application/json' };
-    if (nonce) headers['X-WP-Nonce'] = nonce; // never send an empty nonce
 
-    const res = await fetch(API_BASE + path, {
-      credentials: 'same-origin',
-      ...options,
-      headers: { ...headers, ...(options.headers || {}) }
-    });
+    const headers = {
+      'Content-Type':'application/json'
+    };
 
-    const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      const err = new Error(errorText(data, res.status));
-      err.status = res.status;
-      err.code = data.code;
-      throw err;
+    if (nonce) {
+
+      headers['X-WP-Nonce'] =
+        nonce;
     }
+
+
+    const response =
+      await fetch(
+        API_BASE + path,
+        {
+          credentials:'same-origin',
+          ...options,
+
+          headers:{
+            ...headers,
+            ...(options.headers || {})
+          }
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
+
+
+    if (!response.ok) {
+
+      const error =
+        new Error(
+          errorText(
+            data,
+            response.status
+          )
+        );
+
+
+      error.status =
+        response.status;
+
+
+      error.code =
+        data.code;
+
+
+      throw error;
+    }
+
+
     return data;
   }
 
-  function errorText(data, status) {
-    switch (data.code) {
+
+  function errorText(
+    data,
+    status
+  ) {
+
+    switch (
+      data.code
+    ) {
+
       case 'taas_stage_closed':
-        return 'Professor ranking is not open right now. Check back when the ranking stage begins.';
+
+        return 'Professor ranking is not open right now.';
+
+
       case 'taas_not_found':
+
         return 'That course or applicant could not be found.';
+
+
       case 'taas_no_current_cycle':
+
         return 'No application cycle has been set up yet.';
+
+
       case 'taas_invalid_ranking':
-        return (
-          RANKING_REASONS[data.data && data.data.reason] ||
-          'Your ranking is not valid.'
-        );
-      case 'rest_invalid_param': {
-        const details = data.data && data.data.params
-          ? Object.values(data.data.params).join(' ')
-          : '';
-        return 'Something in your submission was invalid. ' +
-          (details || 'Special requests can be at most ' + NOTES_MAX + ' characters.');
-      }
+
+        return 'Your ranking is not valid.';
+
+
+      case 'rest_invalid_param':
+
+        return 'Something in your submission was invalid.';
+
+
       case 'rest_missing_callback_param':
+
         return 'Your submission was missing required data.';
+
+
       case 'rest_cookie_invalid_nonce':
+
         return 'Your session expired. Please refresh the page.';
+
+
       case 'taas_unauthorized':
-        return 'You are not signed in. Please sign in and refresh.';
+
+        return 'You are not signed in.';
+
+
       case 'taas_forbidden':
-        return 'Your account does not have the professor role for this page.';
+
+        return 'Your account does not have access to this page.';
     }
-    if (status === 401 || status === 403) {
-      return 'You do not have access to this page. Please sign in as a professor.';
-    }
-    return data.message || `Request failed (${status}).`;
+
+
+    return (
+      data.message
+      || `Request failed (${status}).`
+    );
   }
+
 
   /*
    * STATE
-   * One entry per course_id so unsaved edits survive switching courses.
    */
 
-  const courseState = new Map();
-  let courses = [];
-  let courseId = null;
-  let current = null;
-  let cycleLabel = '';
-  let el = {};
+  const courseState =
+    new Map();
 
-  const say = (text, state = '') => {
-    el.msg.textContent = text;
-    el.msg.dataset.state = state;
+
+  let courses =
+    [];
+
+
+  let courseId =
+    null;
+
+
+  let current =
+    null;
+
+
+  let cycleLabel =
+    '';
+
+
+  let el =
+    {};
+
+
+  const say = (
+    text,
+    state = ''
+  ) => {
+
+    el.msg.textContent =
+      text;
+
+
+    el.msg.dataset.state =
+      state;
   };
 
-  const detailUrl = (applicationId) => {
-    const sep = DETAIL_PAGE_URL.includes('?') ? '&' : '?';
-    return `${DETAIL_PAGE_URL}${sep}id=${encodeURIComponent(applicationId)}&course=${encodeURIComponent(courseId)}`;
-  };
+
+  function detailUrl(
+    applicationId,
+    forCourseId
+  ) {
+
+    const params =
+      new URLSearchParams();
+
+
+    params.set(
+      'id',
+      applicationId
+    );
+
+
+    params.set(
+      'course',
+      forCourseId ?? courseId
+    );
+
+
+    return (
+      DETAIL_PAGE_URL
+      + '?'
+      + params.toString()
+    );
+  }
+
 
   /*
-   * FILTERING (all selected filters must match)
+   * FILTERING
    */
 
-  function passesFilters(a) {
-    const name = el.name.value.trim().toLowerCase();
+  function passesSharedFilters(
+    applicant
+  ) {
 
-    if (name && !String(a.student_name).toLowerCase().includes(name)) return false;
-    if (el.filterTaken.checked && !a.has_taken_course) return false;
-    if (el.filterTa.checked && !a.has_ta_for_course) return false;
-    if (el.filterGpa.checked && !(Number(a.gpa) >= 3.5)) return false;
+    const name =
+      el.name.value
+        .trim()
+        .toLowerCase();
+
+
+    if (name) {
+
+      if (
+        !String(
+          applicant.student_name
+          || ''
+        )
+          .toLowerCase()
+          .includes(name)
+      ) {
+
+        return false;
+      }
+    }
+
+
+    if (
+      el.filterTaken.checked
+    ) {
+
+      if (
+        !applicant.has_taken_course
+      ) {
+
+        return false;
+      }
+    }
+
+
+    if (
+      el.filterTa.checked
+    ) {
+
+      if (
+        !applicant.has_ta_for_course
+      ) {
+
+        return false;
+      }
+    }
+
+
+    if (
+      el.filterGpa.checked
+    ) {
+
+      if (
+        applicant.gpa === null
+      ) {
+
+        return false;
+      }
+
+
+      if (
+        applicant.gpa === undefined
+      ) {
+
+        return false;
+      }
+
+
+      if (
+        Number(applicant.gpa)
+        < 3.5
+      ) {
+
+        return false;
+      }
+    }
+
 
     return true;
   }
 
-  /*
-   * RENDERING
-   */
 
-  function renderPool() {
-    if (!current) return;
+  function passesProgramFilter(
+    applicant
+  ) {
 
-    if (!current.applicants.length) {
-      el.all.innerHTML = '<p>No applicants for this course yet.</p>';
-      return;
+    const selected =
+      el.filterProgram.value;
+
+
+    if (!selected) {
+      return true;
     }
 
-    const rows = current.applicants.filter(passesFilters);
+
+    const program =
+      normalizeProgram(
+        applicant.enrollment_status
+      );
+
+
+    return (
+      program === selected
+    );
+  }
+
+
+  /*
+   * TABLE
+   *
+   * showApplied adds an "Applied To" column. The all applicants
+   * table uses it. The course only table does not.
+   */
+
+  function applicantTable(
+    rows,
+    showApplied
+  ) {
 
     if (!rows.length) {
-      el.all.innerHTML = '<p>No applicants match the selected filters.</p>';
-      return;
+
+      return (
+        '<p>No applicants match the selected filters.</p>'
+      );
     }
 
-    el.all.innerHTML = `
+
+    return `
       <table class="ta-apps-table">
+
         <thead>
           <tr>
-            <th><span class="ta-apps-sr">Ranking</span></th>
+
+            <th>
+              <span class="ta-apps-sr">
+                Ranking
+              </span>
+            </th>
+
             <th>Name</th>
-            <th>Major</th>
-            <th>GPA</th>
+
             <th>Program</th>
-            <th>Taken Class Before</th>
-            <th>TA'd This Course Before</th>
+
+            <th>Major</th>
+
+            <th>GPA</th>
+
+            <th>FWS</th>
+
+            ${showApplied
+              ? '<th>Applied To</th>'
+              : ''}
+
+            <th>
+              Taken Class Before
+            </th>
+
+            <th>
+              TA'd This Course Before
+            </th>
+
           </tr>
         </thead>
-        <tbody>
-          ${rows.map((a) => {
-            const pos = current.ranking.indexOf(a.application_id);
-            const action = pos >= 0
-              ? `<span class="ta-apps-ranked">Ranked #${pos + 1}</span>`
-              : `<button type="button" class="ta-apps-add" data-add="${a.application_id}">Add to ranking</button>`;
-            const href = esc(detailUrl(a.application_id));
 
-            return `
-              <tr class="ta-apps-row" data-href="${href}">
-                <td>${action}</td>
-                <td class="name"><a class="ta-apps-link" href="${href}">${esc(a.student_name)}</a></td>
-                <td>${esc(a.major ?? '—')}</td>
-                <td>${fmtGpa(a.gpa)}</td>
-                <td>${esc(a.enrollment_status ?? '—')}</td>
-                <td>${yn(a.has_taken_course)}</td>
-                <td>${yn(a.has_ta_for_course)}</td>
-              </tr>`;
-          }).join('')}
+        <tbody>
+
+          ${rows.map(
+            (applicant) => {
+
+              /*
+               * id is the application for the course being
+               * ranked. It is missing for a student who did
+               * not apply to this course.
+               */
+
+              const hasCurrent =
+                (
+                  applicant.application_id
+                  ?? null
+                ) !== null;
+
+
+              const id =
+                hasCurrent
+                  ? Number(
+                      applicant.application_id
+                    )
+                  : NaN;
+
+
+              const detailId =
+                Number(
+                  applicant.detail_application_id
+                  ?? applicant.application_id
+                );
+
+
+              const detailCourse =
+                applicant.detail_course_id
+                ?? courseId;
+
+
+              const canRank =
+                hasCurrent
+                  ? current.byId.has(id)
+                  : false;
+
+
+              const position =
+                canRank
+                  ? current.ranking.indexOf(id)
+                  : -1;
+
+
+              let action =
+                `
+                  <span class="ta-apps-unavailable">
+                    Did not apply to this course
+                  </span>
+                `;
+
+
+              if (canRank) {
+
+                if (
+                  position >= 0
+                ) {
+
+                  action = `
+                    <span class="ta-apps-ranked">
+                      Ranked #${position + 1}
+                    </span>
+                  `;
+
+                } else {
+
+                  action = `
+                    <button
+                      type="button"
+                      class="ta-apps-add"
+                      data-add="${id}">
+                      Add to ranking
+                    </button>
+                  `;
+                }
+              }
+
+
+              let href =
+                '#';
+
+
+              if (
+                Number.isFinite(detailId)
+              ) {
+
+                href =
+                  esc(
+                    detailUrl(
+                      detailId,
+                      detailCourse
+                    )
+                  );
+              }
+
+
+              return `
+                <tr
+                  class="ta-apps-row"
+                  ${Number.isFinite(detailId)
+                    ? `data-href="${href}"`
+                    : ''}>
+
+                  <td>
+                    ${action}
+                  </td>
+
+                  <td class="name">
+
+                    ${Number.isFinite(detailId)
+
+                      ? `
+                        <a
+                          class="ta-apps-link"
+                          href="${href}">
+                          ${esc(
+                            applicant.student_name
+                          )}
+                        </a>
+                      `
+
+                      : esc(
+                          applicant.student_name
+                          || '—'
+                        )
+                    }
+
+                  </td>
+
+                  <td>
+                    ${esc(
+                      applicant.enrollment_status
+                      ?? '—'
+                    )}
+                  </td>
+
+                  <td>
+                    ${esc(
+                      applicant.major
+                      ?? '—'
+                    )}
+                  </td>
+
+                  <td>
+                    ${fmtGpa(
+                      applicant.gpa
+                    )}
+                  </td>
+
+                  <td>
+                    ${esc(
+                      fwsValue(
+                        applicant
+                      )
+                    )}
+                  </td>
+
+                  ${showApplied
+                    ? `
+                      <td>
+                        ${esc(
+                          (
+                            applicant.applied_courses
+                            || []
+                          ).join(', ')
+                        )}
+                      </td>
+                    `
+                    : ''}
+
+                  <td>
+                    ${yesNo(
+                      applicant.has_taken_course
+                    )}
+                  </td>
+
+                  <td>
+                    ${yesNo(
+                      applicant.has_ta_for_course
+                    )}
+                  </td>
+
+                </tr>
+              `;
+            }
+          ).join('')}
+
         </tbody>
-      </table>`;
+
+      </table>
+    `;
   }
 
-  function renderRanking() {
-    if (!current) return;
 
-    el.counter.textContent = `${current.ranking.length} selected`;
+  /*
+   * ALL APPLICANTS
+   */
 
-    if (!current.ranking.length) {
-      el.ranking.innerHTML = `
-        <li class="ta-apps-slot empty">
-          <span>No applicants ranked yet. Add applicants from the list above.</span>
-        </li>`;
+  function renderAllApplicants() {
+
+    if (!current) {
       return;
     }
 
-    el.ranking.innerHTML = current.ranking.map((id, i) => {
-      const a = current.byId.get(id);
-      const href = esc(detailUrl(id));
 
-      return `
-        <li class="ta-apps-slot">
-          <span class="ta-apps-slot-num">${i + 1}</span>
+    if (
+      !current.allApplicantsSupported
+    ) {
 
-          <span class="ta-apps-slot-name">
-            <a class="ta-apps-link" href="${href}">${esc(a.student_name)}</a>
-            <span class="ta-apps-slot-meta">
-              ${esc(a.major ?? '—')} · GPA ${fmtGpa(a.gpa)}
-            </span>
-          </span>
+      el.allApplicants.innerHTML = `
+        <p>
+          The full applicant list could not be loaded.
+        </p>
+      `;
 
-          <span class="ta-apps-slot-actions">
-            <button type="button" data-move="up" data-index="${i}"
-              aria-label="Move ${esc(a.student_name)} up" ${i === 0 ? 'disabled' : ''}>▲</button>
-            <button type="button" data-move="down" data-index="${i}"
-              aria-label="Move ${esc(a.student_name)} down" ${i === current.ranking.length - 1 ? 'disabled' : ''}>▼</button>
-            <button type="button" class="remove" data-remove="${i}"
-              aria-label="Remove ${esc(a.student_name)} from ranking">×</button>
-          </span>
-        </li>`;
-    }).join('');
+      return;
+    }
+
+
+    if (
+      !current.allApplicants.length
+    ) {
+
+      el.allApplicants.innerHTML =
+        '<p>No students have applied to any of your courses yet.</p>';
+
+      return;
+    }
+
+
+    const rows =
+      current.allApplicants
+        .filter(
+          passesSharedFilters
+        )
+        .filter(
+          passesProgramFilter
+        );
+
+
+    el.allApplicants.innerHTML =
+      applicantTable(
+        rows,
+        true
+      );
   }
 
-  const renderAll = () => {
-    renderPool();
-    renderRanking();
-  };
-
-  function updateNotesCount() {
-    el.requestsCount.textContent = `${el.requests.value.length} / ${NOTES_MAX}`;
-  }
 
   /*
-   * LOADING A COURSE FROM THE API
+   * COURSE APPLICANTS
    */
 
-  function saveNotes() {
-    if (current) current.notes = el.requests.value;
+  function renderCourseApplicants() {
+
+    if (!current) {
+      return;
+    }
+
+
+    if (
+      !current.courseApplicants.length
+    ) {
+
+      el.courseApplicants.innerHTML =
+        '<p>No students have applied for this course yet.</p>';
+
+      return;
+    }
+
+
+    const rows =
+      current.courseApplicants
+        .filter(
+          passesSharedFilters
+        )
+        .filter(
+          passesProgramFilter
+        );
+
+
+    el.courseApplicants.innerHTML =
+      applicantTable(
+        rows,
+        false
+      );
   }
 
-  function applyCourseToPage() {
-    const course = courses.find((c) => c.course_id === courseId);
-    const index = courses.findIndex((c) => c.course_id === courseId);
 
-    el.title.textContent = `${course.course_code} – ${course.course_name}`;
+  /*
+   * RANKING
+   */
+
+  function renderRanking() {
+
+    if (!current) {
+      return;
+    }
+
+
+    el.counter.textContent =
+      `${current.ranking.length} selected`;
+
+
+    if (
+      !current.ranking.length
+    ) {
+
+      el.ranking.innerHTML = `
+        <li class="ta-apps-slot empty">
+
+          <span>
+            No applicants ranked yet.
+            Add applicants from the lists above.
+          </span>
+
+        </li>
+      `;
+
+      return;
+    }
+
+
+    el.ranking.innerHTML =
+      current.ranking.map(
+        (id, index) => {
+
+          const applicant =
+            current.byId.get(id);
+
+
+          if (!applicant) {
+            return '';
+          }
+
+
+          const href =
+            esc(
+              detailUrl(id)
+            );
+
+
+          return `
+            <li class="ta-apps-slot">
+
+              <span class="ta-apps-slot-num">
+                ${index + 1}
+              </span>
+
+
+              <span class="ta-apps-slot-name">
+
+                <a
+                  class="ta-apps-link"
+                  href="${href}">
+
+                  ${esc(
+                    applicant.student_name
+                  )}
+
+                </a>
+
+
+                <span class="ta-apps-slot-meta">
+
+                  ${esc(
+                    applicant.enrollment_status
+                    ?? '—'
+                  )}
+
+                  ·
+
+                  ${esc(
+                    applicant.major
+                    ?? '—'
+                  )}
+
+                  ·
+
+                  GPA ${fmtGpa(
+                    applicant.gpa
+                  )}
+
+                </span>
+
+              </span>
+
+
+              <span class="ta-apps-slot-actions">
+
+                <button
+                  type="button"
+                  data-move="up"
+                  data-index="${index}"
+                  aria-label="Move ${esc(applicant.student_name)} up"
+                  ${index === 0
+                    ? 'disabled'
+                    : ''}>
+
+                  ▲
+
+                </button>
+
+
+                <button
+                  type="button"
+                  data-move="down"
+                  data-index="${index}"
+                  aria-label="Move ${esc(applicant.student_name)} down"
+                  ${index === current.ranking.length - 1
+                    ? 'disabled'
+                    : ''}>
+
+                  ▼
+
+                </button>
+
+
+                <button
+                  type="button"
+                  class="remove"
+                  data-remove="${index}"
+                  aria-label="Remove ${esc(applicant.student_name)} from ranking">
+
+                  ×
+
+                </button>
+
+              </span>
+
+            </li>
+          `;
+        }
+      ).join('');
+  }
+
+
+  function renderAll() {
+
+    renderAllApplicants();
+
+    renderCourseApplicants();
+
+    renderRanking();
+  }
+
+
+  /*
+   * NOTES
+   */
+
+  function updateNotesCount() {
+
+    el.requestsCount.textContent =
+      `${el.requests.value.length} / ${NOTES_MAX}`;
+  }
+
+
+  function saveNotes() {
+
+    if (current) {
+
+      current.notes =
+        el.requests.value;
+    }
+  }
+
+
+  /*
+   * ALL APPLICANTS
+   *
+   * Built from the applications route of every course the
+   * professor teaches this term. A student who applied to
+   * several of those courses is listed once.
+   *
+   * application_id is the student's application for the
+   * course being ranked, or null if they did not apply to it.
+   * The ranking API only accepts applications for that course.
+   */
+
+  async function fetchAllApplicants(
+    currentCourseId
+  ) {
+
+    try {
+
+      const lists =
+        await Promise.all(
+          courses.map(
+            async (course) => {
+
+              const data =
+                await api(
+                  `/professor/courses/${course.course_id}/applications`
+                );
+
+              return {
+                course,
+                applications:
+                  data.applications
+              };
+            }
+          )
+        );
+
+
+      const students =
+        new Map();
+
+
+      lists.forEach(
+        (entry) => {
+
+          entry.applications.forEach(
+            (application) => {
+
+              const key =
+                studentKey(
+                  application
+                );
+
+
+              if (
+                !students.has(key)
+              ) {
+
+                students.set(
+                  key,
+                  {
+
+                    ...application,
+
+                    application_id:
+                      null,
+
+                    detail_application_id:
+                      Number(
+                        application.application_id
+                      ),
+
+                    detail_course_id:
+                      entry.course.course_id,
+
+                    has_taken_course:
+                      null,
+
+                    has_ta_for_course:
+                      null,
+
+                    applied_courses:
+                      []
+
+                  }
+                );
+              }
+
+
+              const student =
+                students.get(key);
+
+
+              student.applied_courses
+                .push(
+                  entry.course.course_code
+                );
+
+
+              if (
+                entry.course.course_id
+                === currentCourseId
+              ) {
+
+                student.application_id =
+                  Number(
+                    application.application_id
+                  );
+
+
+                student.has_taken_course =
+                  application.has_taken_course;
+
+
+                student.has_ta_for_course =
+                  application.has_ta_for_course;
+              }
+            }
+          );
+        }
+      );
+
+
+      const applicants =
+        Array.from(
+          students.values()
+        ).sort(
+          (first, second) =>
+            String(
+              first.student_name
+              || ''
+            ).localeCompare(
+              String(
+                second.student_name
+                || ''
+              )
+            )
+        );
+
+
+      return {
+        supported:true,
+        applicants
+      };
+
+
+    } catch (error) {
+
+      console.warn(
+        'TA page: could not build the all applicants list',
+        error
+      );
+
+
+      return {
+        supported:false,
+        applicants:[]
+      };
+    }
+  }
+
+
+  /*
+   * APPLY COURSE
+   */
+
+  function applyCourseToPage() {
+
+    const course =
+      courses.find(
+        (item) =>
+          item.course_id
+          === courseId
+      );
+
+
+    const index =
+      courses.findIndex(
+        (item) =>
+          item.course_id
+          === courseId
+      );
+
+
+    el.title.textContent =
+      `${course.course_code} – ${course.course_name}`;
+
+
     el.progress.textContent =
       `${cycleLabel} · Course ${index + 1} of ${courses.length}`;
 
-    el.requests.value = current.notes;
+
+    el.submit.textContent =
+      `Submit Preferences for ${course.course_code}`;
+
+
+    el.requests.value =
+      current.notes;
+
+
     updateNotesCount();
 
-    el.name.value = '';
-    [el.filterTaken, el.filterTa, el.filterGpa].forEach((f) => (f.checked = false));
+
+    el.name.value =
+      '';
+
+
+    el.filterProgram.value =
+      '';
+
+
+    el.filterTaken.checked =
+      false;
+
+
+    el.filterTa.checked =
+      false;
+
+
+    el.filterGpa.checked =
+      false;
+
 
     renderAll();
   }
 
-  async function loadCourse(id) {
+
+  /*
+   * LOAD COURSE
+   */
+
+  async function loadCourse(
+    id
+  ) {
+
     saveNotes();
-    courseId = id;
+
+
+    courseId =
+      id;
+
+
     say('');
 
-    if (courseState.has(id)) {
-      current = courseState.get(id);
+
+    if (
+      courseState.has(id)
+    ) {
+
+      current =
+        courseState.get(id);
+
+
       applyCourseToPage();
+
       return;
     }
 
-    current = null;
-    el.all.textContent = 'Loading applicants…';
-    el.ranking.innerHTML = '';
-    el.counter.textContent = '';
+
+    current =
+      null;
+
+
+    el.allApplicants.textContent =
+      'Loading applicants…';
+
+
+    el.courseApplicants.textContent =
+      'Loading applicants…';
+
+
+    el.ranking.innerHTML =
+      '';
+
+
+    el.counter.textContent =
+      '';
+
 
     try {
-      const [apps, saved] = await Promise.all([
-        api(`/professor/courses/${id}/applications`),
-        api(`/professor/courses/${id}/ranking`)
-      ]);
 
-      if (courseId !== id) return;
+      const results =
+        await Promise.all([
 
-      // Ids are numbers in the API; Number() keeps lookups safe if any
-      // arrive as strings.
-      const applicants = apps.applications.map((a) => ({
-        ...a,
-        application_id: Number(a.application_id)
-      }));
-      const byId = new Map(applicants.map((a) => [a.application_id, a]));
+          api(
+            `/professor/courses/${id}/applications`
+          ),
 
-      const ranking = [...saved.ranking]
-        .sort((a, b) => a.rank - b.rank)
-        .map((r) => Number(r.application_id))
-        .filter((appId) => byId.has(appId));
+          api(
+            `/professor/courses/${id}/ranking`
+          ),
+
+          fetchAllApplicants(id)
+
+        ]);
+
+
+      if (
+        courseId !== id
+      ) {
+
+        return;
+      }
+
+
+      const courseData =
+        results[0];
+
+
+      const saved =
+        results[1];
+
+
+      const allData =
+        results[2];
+
+
+      const courseApplicants =
+        courseData.applications
+          .map(
+            (applicant) => ({
+
+              ...applicant,
+
+              application_id:
+                Number(
+                  applicant.application_id
+                )
+
+            })
+          );
+
+
+      const byId =
+        new Map(
+          courseApplicants.map(
+            (applicant) => [
+
+              applicant.application_id,
+
+              applicant
+
+            ]
+          )
+        );
+
+
+      const ranking =
+        [...saved.ranking]
+          .sort(
+            (first, second) =>
+              first.rank
+              - second.rank
+          )
+          .map(
+            (item) =>
+              Number(
+                item.application_id
+              )
+          )
+          .filter(
+            (applicationId) =>
+              byId.has(
+                applicationId
+              )
+          );
+
 
       current = {
-        applicants,
+
+        courseApplicants,
+
+        allApplicants:
+          allData.applicants
+          || [],
+
+        allApplicantsSupported:
+          allData.supported
+          === true,
+
         byId,
+
         ranking,
-        notes: saved.course_notes ?? ''
+
+        notes:
+          saved.course_notes
+          ?? ''
+
       };
-      courseState.set(id, current);
+
+
+      courseState.set(
+        id,
+        current
+      );
+
 
       applyCourseToPage();
-    } catch (err) {
-      console.error('TA page: could not load course', err);
-      if (courseId !== id) return;
-      el.all.textContent = '';
-      say(err.message, 'error');
+
+
+    } catch (error) {
+
+      console.error(
+        'TA page: could not load course',
+        error
+      );
+
+
+      if (
+        courseId !== id
+      ) {
+
+        return;
+      }
+
+
+      el.allApplicants.textContent =
+        '';
+
+
+      el.courseApplicants.textContent =
+        '';
+
+
+      say(
+        error.message,
+        'error'
+      );
     }
   }
+
 
   /*
    * CLICK EVENTS
    */
 
-  function onClick(event) {
-    const t = event.target;
-    const add = t.closest('[data-add]');
-    const move = t.closest('[data-move]');
-    const remove = t.closest('[data-remove]');
+  function onClick(
+    event
+  ) {
 
-    if (add && current) {
-      const id = Number(add.dataset.add);
-      if (!current.ranking.includes(id)) current.ranking.push(id);
-      say('');
-      renderAll();
+    const target =
+      event.target;
+
+
+    const add =
+      target.closest(
+        '[data-add]'
+      );
+
+
+    const move =
+      target.closest(
+        '[data-move]'
+      );
+
+
+    const remove =
+      target.closest(
+        '[data-remove]'
+      );
+
+
+    if (add) {
+
+      if (current) {
+
+        const id =
+          Number(
+            add.dataset.add
+          );
+
+
+        if (
+          !current.ranking
+            .includes(id)
+        ) {
+
+          current.ranking
+            .push(id);
+        }
+
+
+        say('');
+
+        renderAll();
+      }
+
+
       return;
     }
 
-    if (move && current) {
-      const i = Number(move.dataset.index);
-      const j = move.dataset.move === 'up' ? i - 1 : i + 1;
-      if (j < 0 || j >= current.ranking.length) return;
 
-      [current.ranking[i], current.ranking[j]] = [current.ranking[j], current.ranking[i]];
-      say('');
-      renderAll();
+    if (move) {
+
+      if (current) {
+
+        const index =
+          Number(
+            move.dataset.index
+          );
+
+
+        const newIndex =
+          move.dataset.move
+          === 'up'
+
+            ? index - 1
+            : index + 1;
+
+
+        if (
+          newIndex < 0
+        ) {
+
+          return;
+        }
+
+
+        if (
+          newIndex
+          >= current.ranking.length
+        ) {
+
+          return;
+        }
+
+
+        const temp =
+          current.ranking[index];
+
+
+        current.ranking[index] =
+          current.ranking[newIndex];
+
+
+        current.ranking[newIndex] =
+          temp;
+
+
+        say('');
+
+        renderAll();
+      }
+
+
       return;
     }
 
-    if (remove && current) {
-      current.ranking.splice(Number(remove.dataset.remove), 1);
-      say('');
-      renderAll();
+
+    if (remove) {
+
+      if (current) {
+
+        current.ranking.splice(
+          Number(
+            remove.dataset.remove
+          ),
+          1
+        );
+
+
+        say('');
+
+        renderAll();
+      }
+
+
       return;
     }
 
-    if (t.closest('input, a, label, button, select, textarea')) return;
 
-    const row = t.closest('tr[data-href]');
-    if (row) window.location.href = row.dataset.href;
+    if (
+      target.closest(
+        'input, a, label, button, select, textarea'
+      )
+    ) {
+
+      return;
+    }
+
+
+    const row =
+      target.closest(
+        'tr[data-href]'
+      );
+
+
+    if (row) {
+
+      window.location.href =
+        row.dataset.href;
+    }
   }
 
+
   /*
-   * SUBMIT (full replace; an empty list clears the ranking)
+   * SUBMIT
    */
 
   async function submit() {
-    if (!current) return;
 
-    saveNotes();
-
-    if (
-      !current.ranking.length &&
-      !window.confirm('Your ranking is empty. Submitting will clear any saved ranking for this course. Continue?')
-    ) {
+    if (!current) {
       return;
     }
 
-    el.submit.disabled = true;
-    say('Submitting…');
 
-    try {
-      const saved = await api(`/professor/courses/${courseId}/ranking`, {
-        method: 'POST',
-        body: JSON.stringify({
-          ranking: current.ranking.map((application_id, i) => ({
-            rank: i + 1,
-            application_id
-          })),
-          course_notes: current.notes.trim()
-        })
-      });
+    saveNotes();
 
-      current.ranking = [...saved.ranking]
-        .sort((a, b) => a.rank - b.rank)
-        .map((r) => Number(r.application_id))
-        .filter((id) => current.byId.has(id));
-      current.notes = saved.course_notes ?? '';
 
-      el.requests.value = current.notes;
-      updateNotesCount();
-      renderAll();
+    if (
+      !current.ranking.length
+    ) {
 
-      const course = courses.find((c) => c.course_id === courseId);
-      say(`Your preferences for ${course.course_code} were submitted.`, 'success');
-    } catch (err) {
-      console.error('TA page: submit failed', err);
-      say(err.message, 'error');
+      const confirmed =
+        window.confirm(
+          'Your ranking is empty. Submitting will clear any saved ranking for this course. Continue?'
+        );
+
+
+      if (!confirmed) {
+        return;
+      }
     }
 
-    el.submit.disabled = false;
+
+    el.submit.disabled =
+      true;
+
+
+    say(
+      'Submitting…'
+    );
+
+
+    try {
+
+      const saved =
+        await api(
+          `/professor/courses/${courseId}/ranking`,
+          {
+            method:'POST',
+
+            body:
+              JSON.stringify({
+
+                ranking:
+                  current.ranking.map(
+                    (
+                      applicationId,
+                      index
+                    ) => ({
+
+                      rank:
+                        index + 1,
+
+                      application_id:
+                        applicationId
+
+                    })
+                  ),
+
+                course_notes:
+                  current.notes.trim()
+
+              })
+          }
+        );
+
+
+      current.ranking =
+        [...saved.ranking]
+          .sort(
+            (first, second) =>
+              first.rank
+              - second.rank
+          )
+          .map(
+            (item) =>
+              Number(
+                item.application_id
+              )
+          )
+          .filter(
+            (id) =>
+              current.byId.has(id)
+          );
+
+
+      current.notes =
+        saved.course_notes
+        ?? '';
+
+
+      el.requests.value =
+        current.notes;
+
+
+      updateNotesCount();
+
+      renderAll();
+
+
+      const course =
+        courses.find(
+          (item) =>
+            item.course_id
+            === courseId
+        );
+
+
+      say(
+        `Your preferences for ${course.course_code} were submitted.`,
+        'success'
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        'TA page: submit failed',
+        error
+      );
+
+
+      say(
+        error.message,
+        'error'
+      );
+    }
+
+
+    el.submit.disabled =
+      false;
   }
+
 
   /*
    * START
    */
 
   async function start() {
+
     try {
-      // /application-cycle may not be deployed yet. A 404 is fine here.
-      let cycle = null;
+
+      let cycle =
+        null;
+
+
       try {
-        cycle = await api('/application-cycle');
-      } catch (err) {
-        if (err.status !== 404) throw err;
-        console.warn('TA page: /application-cycle not available, using fallback term/year.');
-      }
 
-      // Term and year: page URL first (?term=Fall&year=2026), then the cycle, then FALLBACK.
-      const params = new URLSearchParams(window.location.search);
-      const term = params.get('term') || (cycle && cycle.term) || FALLBACK.term;
-      const year = params.get('year') || (cycle && cycle.year) || FALLBACK.year;
-      cycleLabel = `${term} ${year}`;
+        cycle =
+          await api(
+            '/application-cycle'
+          );
 
-      if (ENFORCE_STAGE && cycle && cycle.stage !== 'professor_ranking') {
-        el.title.textContent = 'Ranking is not open';
-        el.progress.textContent = cycleLabel;
-        el.courseSelect.innerHTML = '<option value="">Unavailable</option>';
-        el.all.textContent = '';
-        el.submit.disabled = true;
-        say(
-          'Professor ranking is not open right now. Check back when the ranking stage begins.',
-          'error'
+      } catch (error) {
+
+        if (
+          error.status !== 404
+        ) {
+
+          throw error;
+        }
+
+
+        console.warn(
+          'TA page: /application-cycle unavailable, using fallback term/year.'
         );
-        return;
       }
 
-      const courseList = await api(
-        `/professor/courses?term=${encodeURIComponent(term)}&year=${encodeURIComponent(year)}`
+
+      const params =
+        new URLSearchParams(
+          window.location.search
+        );
+
+
+      const term =
+        params.get('term')
+        || cycle?.term
+        || FALLBACK.term;
+
+
+      const year =
+        params.get('year')
+        || cycle?.year
+        || FALLBACK.year;
+
+
+      cycleLabel =
+        `${term} ${year}`;
+
+
+      if (ENFORCE_STAGE) {
+
+        if (cycle) {
+
+          if (
+            cycle.stage
+            !== 'professor_ranking'
+          ) {
+
+            el.title.textContent =
+              'Ranking is not open';
+
+
+            el.progress.textContent =
+              cycleLabel;
+
+
+            el.submit.disabled =
+              true;
+
+
+            say(
+              'Professor ranking is not open right now.',
+              'error'
+            );
+
+
+            return;
+          }
+        }
+      }
+
+
+      const courseParams =
+        new URLSearchParams();
+
+
+      courseParams.set(
+        'term',
+        term
       );
-      courses = courseList.map((c) => ({ ...c, course_id: Number(c.course_id) }));
 
-      if (!courses.length) {
-        el.title.textContent = 'No courses found';
-        el.progress.textContent = cycleLabel;
-        el.courseSelect.innerHTML = '<option value="">No courses</option>';
-        el.all.textContent = '';
-        el.submit.disabled = true;
-        say(`You are not listed as teaching any courses for ${cycleLabel}.`);
+
+      courseParams.set(
+        'year',
+        year
+      );
+
+
+      const courseList =
+        await api(
+          '/professor/courses?'
+          + courseParams.toString()
+        );
+
+
+      courses =
+        courseList.map(
+          (course) => ({
+
+            ...course,
+
+            course_id:
+              Number(
+                course.course_id
+              )
+
+          })
+        );
+
+
+      if (
+        !courses.length
+      ) {
+
+        el.title.textContent =
+          'No courses found';
+
+
+        el.progress.textContent =
+          cycleLabel;
+
+
+        el.courseSelect.innerHTML =
+          '<option value="">No courses</option>';
+
+
+        el.submit.disabled =
+          true;
+
+
+        say(
+          `You are not listed as teaching any courses for ${cycleLabel}.`
+        );
+
+
         return;
       }
 
-      el.courseSelect.innerHTML = courses.map((c) =>
-        `<option value="${c.course_id}">${esc(c.course_code)} – ${esc(c.course_name)}</option>`
-      ).join('');
 
-      await loadCourse(courses[0].course_id);
-    } catch (err) {
-      console.error('TA page: could not start', err);
-      el.title.textContent = err.code === 'taas_stage_closed'
-        ? 'Ranking is not open'
-        : 'Could not load courses';
-      el.all.textContent = '';
-      el.submit.disabled = true;
-      say(err.message, 'error');
+      el.courseSelect.innerHTML =
+        courses.map(
+          (course) => `
+            <option value="${course.course_id}">
+              ${esc(course.course_code)}
+              –
+              ${esc(course.course_name)}
+            </option>
+          `
+        ).join('');
+
+
+      await loadCourse(
+        courses[0].course_id
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        'TA page: could not start',
+        error
+      );
+
+
+      el.title.textContent =
+        error.code
+        === 'taas_stage_closed'
+
+          ? 'Ranking is not open'
+          : 'Could not load courses';
+
+
+      el.submit.disabled =
+        true;
+
+
+      say(
+        error.message,
+        'error'
+      );
     }
   }
 
+
+  /*
+   * INIT
+   */
+
   function init() {
+
     el = {
-      root: document.querySelector('#ta-apps'),
-      courseSelect: document.querySelector('#ta-course-select'),
-      name: document.querySelector('#ta-search-name'),
-      title: document.querySelector('#ta-course-title'),
-      progress: document.querySelector('#ta-apps-progress'),
-      filterTaken: document.querySelector('#filter-taken'),
-      filterTa: document.querySelector('#filter-ta'),
-      filterGpa: document.querySelector('#filter-gpa'),
-      clearFilters: document.querySelector('#clear-filters'),
-      all: document.querySelector('#ta-all'),
-      ranking: document.querySelector('#ta-ranking'),
-      counter: document.querySelector('#ta-rank-counter'),
-      requests: document.querySelector('#ta-requests'),
-      requestsCount: document.querySelector('#ta-requests-count'),
-      msg: document.querySelector('#ta-apps-message'),
-      submit: document.querySelector('#ta-apps-submit')
+
+      root:
+        document.querySelector(
+          '#ta-apps'
+        ),
+
+      courseSelect:
+        document.querySelector(
+          '#ta-course-select'
+        ),
+
+      name:
+        document.querySelector(
+          '#ta-search-name'
+        ),
+
+      title:
+        document.querySelector(
+          '#ta-course-title'
+        ),
+
+      progress:
+        document.querySelector(
+          '#ta-apps-progress'
+        ),
+
+      filterProgram:
+        document.querySelector(
+          '#filter-program'
+        ),
+
+      filterTaken:
+        document.querySelector(
+          '#filter-taken'
+        ),
+
+      filterTa:
+        document.querySelector(
+          '#filter-ta'
+        ),
+
+      filterGpa:
+        document.querySelector(
+          '#filter-gpa'
+        ),
+
+      clearFilters:
+        document.querySelector(
+          '#clear-filters'
+        ),
+
+      allApplicants:
+        document.querySelector(
+          '#ta-all-applicants'
+        ),
+
+      courseApplicants:
+        document.querySelector(
+          '#ta-course-applicants'
+        ),
+
+      ranking:
+        document.querySelector(
+          '#ta-ranking'
+        ),
+
+      counter:
+        document.querySelector(
+          '#ta-rank-counter'
+        ),
+
+      requests:
+        document.querySelector(
+          '#ta-requests'
+        ),
+
+      requestsCount:
+        document.querySelector(
+          '#ta-requests-count'
+        ),
+
+      msg:
+        document.querySelector(
+          '#ta-apps-message'
+        ),
+
+      submit:
+        document.querySelector(
+          '#ta-apps-submit'
+        )
+
     };
 
-    if (Object.values(el).some((node) => !node)) {
-      console.error('TA applications page: HTML elements not found.');
+
+    if (
+      Object.values(el)
+        .some(
+          (node) =>
+            !node
+        )
+    ) {
+
+      console.error(
+        'TA applications page: HTML elements not found.'
+      );
+
+
       return;
     }
 
-    el.root.addEventListener('click', onClick);
 
-    el.courseSelect.addEventListener('change', () => {
-      if (el.courseSelect.value) loadCourse(Number(el.courseSelect.value));
-    });
-
-    el.name.addEventListener('input', renderPool);
-    [el.filterTaken, el.filterTa, el.filterGpa].forEach((f) =>
-      f.addEventListener('change', renderPool)
+    el.root.addEventListener(
+      'click',
+      onClick
     );
 
-    el.clearFilters.addEventListener('click', () => {
-      [el.filterTaken, el.filterTa, el.filterGpa].forEach((f) => (f.checked = false));
-      renderPool();
-    });
 
-    el.requests.addEventListener('input', () => {
-      saveNotes();
-      updateNotesCount();
-    });
+    el.courseSelect.addEventListener(
+      'change',
+      () => {
 
-    el.submit.addEventListener('click', submit);
+        if (
+          el.courseSelect.value
+        ) {
+
+          loadCourse(
+            Number(
+              el.courseSelect.value
+            )
+          );
+        }
+      }
+    );
+
+
+    el.name.addEventListener(
+      'input',
+      renderAll
+    );
+
+
+    el.filterProgram.addEventListener(
+      'change',
+      renderAll
+    );
+
+
+    [
+      el.filterTaken,
+      el.filterTa,
+      el.filterGpa
+    ].forEach(
+      (filter) =>
+        filter.addEventListener(
+          'change',
+          renderAll
+        )
+    );
+
+
+    el.clearFilters.addEventListener(
+      'click',
+      () => {
+
+        el.name.value =
+          '';
+
+
+        el.filterProgram.value =
+          '';
+
+
+        el.filterTaken.checked =
+          false;
+
+
+        el.filterTa.checked =
+          false;
+
+
+        el.filterGpa.checked =
+          false;
+
+
+        renderAll();
+      }
+    );
+
+
+    el.requests.addEventListener(
+      'input',
+      () => {
+
+        saveNotes();
+
+        updateNotesCount();
+      }
+    );
+
+
+    el.submit.addEventListener(
+      'click',
+      submit
+    );
+
 
     start();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+
+  if (
+    document.readyState
+    === 'loading'
+  ) {
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      init
+    );
+
   } else {
+
     init();
   }
+
 })();
 </script>
 <!-- /wp:html -->

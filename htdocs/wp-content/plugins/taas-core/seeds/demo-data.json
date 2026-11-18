@@ -7,7 +7,10 @@
   "students": [
     { "student_ufid": "20000001", "student_name": "Jordan Blake", "student_email": "jblake@ufl.edu" },
     { "student_ufid": "20000002", "student_name": "Priya Raman", "student_email": "praman@ufl.edu" },
-    { "student_ufid": "20000003", "student_name": "Sam Ortiz", "student_email": "sortiz@ufl.edu" }
+    { "student_ufid": "20000003", "student_name": "Sam Ortiz", "student_email": "sortiz@ufl.edu" },
+    { "student_ufid": "20000004", "student_name": "Maya Chen", "student_email": "mchen@ufl.edu" },
+    { "student_ufid": "20000005", "student_name": "Devon Carter", "student_email": "dcarter@ufl.edu" },
+    { "student_ufid": "20000006", "student_name": "Lena Park", "student_email": "lpark@ufl.edu" }
   ],
   "student_profiles": [
     {
@@ -18,6 +21,8 @@
       "major": "Computer Science",
       "gpa": 3.72,
       "enrollment_status": 2,
+      "fws_eligibility": "no",
+      "fws_award_letter_url": null,
       "resume_url": "https://example.com/resume/jblake",
       "has_ta_experience": 1,
       "country_code": "US",
@@ -31,6 +36,8 @@
       "major": "Computer Science",
       "gpa": 3.85,
       "enrollment_status": 3,
+      "fws_eligibility": "no",
+      "fws_award_letter_url": null,
       "english_test_score": null,
       "has_ta_experience": 0,
       "eap5836_status": 1,
@@ -41,54 +48,117 @@
       "student_ufid": "20000003",
       "admitted_semester": "Fall 2026",
       "major": "Computer Science",
-      "gpa": 3.40,
+      "gpa": 3.4,
       "enrollment_status": 1,
+      "fws_eligibility": "yes",
+      "fws_award_letter_url": "https://example.com/fws/awards/sortiz-fall-2026.pdf",
       "has_ta_experience": 0,
       "country_code": "US"
+    },
+    {
+      "student_ufid": "20000004",
+      "phone": "3525550104",
+      "admitted_semester": "Fall 2025",
+      "available_hours": 10,
+      "major": "Computer Science",
+      "gpa": 3.55,
+      "enrollment_status": 1,
+      "fws_eligibility": "no",
+      "fws_award_letter_url": null,
+      "has_ta_experience": 0,
+      "country_code": "US"
+    },
+    {
+      "student_ufid": "20000005",
+      "phone": "3525550105",
+      "admitted_semester": "Fall 2025",
+      "available_hours": 10,
+      "major": "Information Systems",
+      "gpa": 3.2,
+      "enrollment_status": 1,
+      "fws_eligibility": "not_applicable",
+      "fws_award_letter_url": null,
+      "has_ta_experience": 0,
+      "country_code": "US"
+    },
+    {
+      "student_ufid": "20000006",
+      "phone": "3525550106",
+      "admitted_semester": "Spring 2026",
+      "available_hours": 20,
+      "major": "Computer Science",
+      "gpa": 3.9,
+      "enrollment_status": 2,
+      "fws_eligibility": "no",
+      "fws_award_letter_url": null,
+      "has_ta_experience": 1,
+      "country_code": "KR"
     }
   ],
   "academic_background": [
     { "student_ufid": "20000001", "university": "University of Florida", "degree_type": 2, "major": "Computer Science", "grad_date": "2025-05-01", "gpa": 3.72 },
     { "student_ufid": "20000002", "university": "IIT Madras", "degree_type": 2, "major": "Electrical Engineering", "grad_date": "2024-06-01", "gpa": 3.91 },
     { "student_ufid": "20000002", "university": "University of Florida", "degree_type": 3, "major": "Computer Science", "grad_date": "2026-12-01", "gpa": 3.85 },
-    { "student_ufid": "20000003", "university": "Santa Fe College", "degree_type": 1, "major": "Computer Science", "grad_date": "2025-12-01", "gpa": 3.40 }
+    { "student_ufid": "20000003", "university": "Santa Fe College", "degree_type": 1, "major": "Computer Science", "grad_date": "2025-12-01", "gpa": 3.4 },
+    { "student_ufid": "20000004", "university": "University of Florida", "degree_type": 2, "major": "Computer Science", "grad_date": "2027-05-01", "gpa": 3.55 },
+    { "student_ufid": "20000005", "university": "University of Florida", "degree_type": 2, "major": "Information Systems", "grad_date": "2027-12-01", "gpa": 3.2 },
+    { "student_ufid": "20000006", "university": "University of Florida", "degree_type": 3, "major": "Computer Science", "grad_date": "2026-12-01", "gpa": 3.9 },
+    { "student_ufid": "20000006", "university": "Seoul National University", "degree_type": 2, "major": "Computer Science", "grad_date": "2023-02-01", "gpa": 3.8 }
   ],
   "student_submissions": [
     {
       "student_ufid": "20000001",
       "semester": 1,
       "year": 2026,
-      "submitted_details": "{\"student_name\":\"Jordan Blake\",\"student_email\":\"jblake@ufl.edu\",\"profile\":{\"phone\":\"3525550101\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2025\",\"available_hours\":20,\"enrollment_status\":2,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":\"https://example.com/resume/jblake\",\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. Prefers morning lab sections.\",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":2,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-05-01\",\"gpa\":3.72}]}"
+      "submitted_details": "{\"student_name\":\"Jordan Blake\",\"student_email\":\"jblake@ufl.edu\",\"profile\":{\"phone\":\"3525550101\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2025\",\"available_hours\":20,\"enrollment_status\":2,\"fws_eligibility\":\"no\",\"fws_award_letter_url\":null,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":\"https://example.com/resume/jblake\",\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. Prefers morning lab sections.\",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":2,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-05-01\",\"gpa\":3.72}]}"
     },
     {
       "student_ufid": "20000001",
       "semester": 4,
       "year": 2026,
-      "submitted_details": "{\"student_name\":\"Jordan Blake\",\"student_email\":\"jblake@ufl.edu\",\"profile\":{\"phone\":\"3525550101\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2025\",\"available_hours\":20,\"enrollment_status\":2,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":\"https://example.com/resume/jblake\",\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. Prefers morning lab sections.\",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":2,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-05-01\",\"gpa\":3.72}]}"
+      "submitted_details": "{\"student_name\":\"Jordan Blake\",\"student_email\":\"jblake@ufl.edu\",\"profile\":{\"phone\":\"3525550101\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2025\",\"available_hours\":20,\"enrollment_status\":2,\"fws_eligibility\":\"no\",\"fws_award_letter_url\":null,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":\"https://example.com/resume/jblake\",\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. Prefers morning lab sections.\",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":2,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-05-01\",\"gpa\":3.72}]}"
     },
     {
       "student_ufid": "20000002",
       "semester": 1,
       "year": 2026,
-      "submitted_details": "{\"student_name\":\"Priya Raman\",\"student_email\":\"praman@ufl.edu\",\"profile\":{\"phone\":\"3525550102\",\"country_code\":\"IN\",\"admitted_semester\":\"Spring 2026\",\"available_hours\":10,\"enrollment_status\":3,\"eap5836_status\":1,\"eap5837_status\":2,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":3,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2026-12-01\",\"gpa\":3.85},{\"university\":\"IIT Madras\",\"degree_type\":2,\"major\":\"Electrical Engineering\",\"minor\":\"\",\"grad_date\":\"2024-06-01\",\"gpa\":3.91}]}"
+      "submitted_details": "{\"student_name\":\"Priya Raman\",\"student_email\":\"praman@ufl.edu\",\"profile\":{\"phone\":\"3525550102\",\"country_code\":\"IN\",\"admitted_semester\":\"Spring 2026\",\"available_hours\":10,\"enrollment_status\":3,\"fws_eligibility\":\"no\",\"fws_award_letter_url\":null,\"eap5836_status\":1,\"eap5837_status\":2,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":3,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2026-12-01\",\"gpa\":3.85},{\"university\":\"IIT Madras\",\"degree_type\":2,\"major\":\"Electrical Engineering\",\"minor\":\"\",\"grad_date\":\"2024-06-01\",\"gpa\":3.91}]}"
     },
     {
       "student_ufid": "20000002",
       "semester": 4,
       "year": 2026,
-      "submitted_details": "{\"student_name\":\"Priya Raman\",\"student_email\":\"praman@ufl.edu\",\"profile\":{\"phone\":\"3525550102\",\"country_code\":\"IN\",\"admitted_semester\":\"Spring 2026\",\"available_hours\":10,\"enrollment_status\":3,\"eap5836_status\":1,\"eap5837_status\":2,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":3,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2026-12-01\",\"gpa\":3.85},{\"university\":\"IIT Madras\",\"degree_type\":2,\"major\":\"Electrical Engineering\",\"minor\":\"\",\"grad_date\":\"2024-06-01\",\"gpa\":3.91}]}"
+      "submitted_details": "{\"student_name\":\"Priya Raman\",\"student_email\":\"praman@ufl.edu\",\"profile\":{\"phone\":\"3525550102\",\"country_code\":\"IN\",\"admitted_semester\":\"Spring 2026\",\"available_hours\":10,\"enrollment_status\":3,\"fws_eligibility\":\"no\",\"fws_award_letter_url\":null,\"eap5836_status\":1,\"eap5837_status\":2,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":3,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2026-12-01\",\"gpa\":3.85},{\"university\":\"IIT Madras\",\"degree_type\":2,\"major\":\"Electrical Engineering\",\"minor\":\"\",\"grad_date\":\"2024-06-01\",\"gpa\":3.91}]}"
     },
     {
       "student_ufid": "20000003",
       "semester": 1,
       "year": 2026,
-      "submitted_details": "{\"student_name\":\"Sam Ortiz\",\"student_email\":\"sortiz@ufl.edu\",\"profile\":{\"phone\":\"3525550199\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2026\",\"available_hours\":10,\"enrollment_status\":1,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"Santa Fe College\",\"degree_type\":1,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-12-01\",\"gpa\":3.4}]}"
+      "submitted_details": "{\"student_name\":\"Sam Ortiz\",\"student_email\":\"sortiz@ufl.edu\",\"profile\":{\"phone\":\"3525550199\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2026\",\"available_hours\":10,\"enrollment_status\":1,\"fws_eligibility\":\"yes\",\"fws_award_letter_url\":\"https://example.com/fws/awards/sortiz-fall-2026.pdf\",\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"Santa Fe College\",\"degree_type\":1,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-12-01\",\"gpa\":3.4}]}"
     },
     {
       "student_ufid": "20000003",
       "semester": 4,
       "year": 2026,
-      "submitted_details": "{\"student_name\":\"Sam Ortiz\",\"student_email\":\"sortiz@ufl.edu\",\"profile\":{\"phone\":\"3525550199\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2026\",\"available_hours\":10,\"enrollment_status\":1,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"Santa Fe College\",\"degree_type\":1,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-12-01\",\"gpa\":3.4}]}"
+      "submitted_details": "{\"student_name\":\"Sam Ortiz\",\"student_email\":\"sortiz@ufl.edu\",\"profile\":{\"phone\":\"3525550199\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2026\",\"available_hours\":10,\"enrollment_status\":1,\"fws_eligibility\":\"not_applicable\",\"fws_award_letter_url\":null,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"Santa Fe College\",\"degree_type\":1,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2025-12-01\",\"gpa\":3.4}]}"
+    },
+    {
+      "student_ufid": "20000004",
+      "semester": 1,
+      "year": 2026,
+      "submitted_details": "{\"student_name\":\"Maya Chen\",\"student_email\":\"mchen@ufl.edu\",\"profile\":{\"phone\":\"3525550104\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2025\",\"available_hours\":10,\"enrollment_status\":1,\"fws_eligibility\":\"no\",\"fws_award_letter_url\":null,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":2,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2027-05-01\",\"gpa\":3.55}]}"
+    },
+    {
+      "student_ufid": "20000005",
+      "semester": 1,
+      "year": 2026,
+      "submitted_details": "{\"student_name\":\"Devon Carter\",\"student_email\":\"dcarter@ufl.edu\",\"profile\":{\"phone\":\"3525550105\",\"country_code\":\"US\",\"admitted_semester\":\"Fall 2025\",\"available_hours\":10,\"enrollment_status\":1,\"fws_eligibility\":\"not_applicable\",\"fws_award_letter_url\":null,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":2,\"major\":\"Information Systems\",\"minor\":\"\",\"grad_date\":\"2027-12-01\",\"gpa\":3.2}]}"
+    },
+    {
+      "student_ufid": "20000006",
+      "semester": 1,
+      "year": 2026,
+      "submitted_details": "{\"student_name\":\"Lena Park\",\"student_email\":\"lpark@ufl.edu\",\"profile\":{\"phone\":\"3525550106\",\"country_code\":\"KR\",\"admitted_semester\":\"Spring 2026\",\"available_hours\":20,\"enrollment_status\":2,\"fws_eligibility\":\"no\",\"fws_award_letter_url\":null,\"eap5836_status\":3,\"eap5837_status\":3,\"resume_url\":null,\"additional_info\":\"Demo snapshot fixture for local testing; not historical student data. \",\"english_test_score\":null},\"academic_background\":[{\"university\":\"University of Florida\",\"degree_type\":3,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2026-12-01\",\"gpa\":3.9},{\"university\":\"Seoul National University\",\"degree_type\":2,\"major\":\"Computer Science\",\"minor\":\"\",\"grad_date\":\"2023-02-01\",\"gpa\":3.8}]}"
     }
   ],
   "courses": [
@@ -163,12 +233,27 @@
       "enrollment": 35,
       "max_enrollment": 40,
       "professor_email": "test.professor@ufl.edu"
+    },
+    {
+      "course_id": 18239,
+      "course_code": "COP6770",
+      "course_name": "Distributed Systems",
+      "course_semester": 1,
+      "course_year": 2026,
+      "is_online": 0,
+      "course_description": "Graduate study of distributed systems and consensus.",
+      "course_notes": "Looking for TAs with distributed systems experience.",
+      "weekly_hours": 15,
+      "lab_hours": 0,
+      "enrollment": 60,
+      "max_enrollment": 80,
+      "professor_email": "test.professor@ufl.edu"
     }
   ],
   "applications": [
     {
       "student_ufid": "20000001",
-      "applied_course_id":1234,
+      "applied_course_id": 1234,
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_statement": "I tutored this course content for two semesters.",
@@ -179,7 +264,7 @@
     },
     {
       "student_ufid": "20000001",
-      "applied_course_id":5678,
+      "applied_course_id": 5678,
       "has_taken_course": 1,
       "has_ta_for_course": 0,
       "student_preference_rank": 2,
@@ -188,7 +273,7 @@
     },
     {
       "student_ufid": "20000002",
-      "applied_course_id":5678,
+      "applied_course_id": 5678,
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_statement": "Strong hardware background from my BS.",
@@ -199,7 +284,7 @@
     },
     {
       "student_ufid": "20000003",
-      "applied_course_id":1234,
+      "applied_course_id": 1234,
       "has_taken_course": 1,
       "has_ta_for_course": 1,
       "student_preference_rank": 1,
@@ -244,6 +329,68 @@
       "has_taken_course": 0,
       "has_ta_for_course": 0,
       "student_statement": "My MS research is in distributed systems.",
+      "student_preference_rank": 3,
+      "match_status": 1,
+      "assigned_hours": 0
+    },
+    {
+      "student_ufid": "20000002",
+      "applied_course_id": 18239,
+      "has_taken_course": 0,
+      "has_ta_for_course": 0,
+      "match_status": 1,
+      "assigned_hours": 0
+    },
+    {
+      "student_ufid": "20000003",
+      "applied_course_id": 18238,
+      "has_taken_course": 1,
+      "has_ta_for_course": 0,
+      "student_preference_rank": 2,
+      "match_status": 1,
+      "assigned_hours": 0
+    },
+    {
+      "student_ufid": "20000006",
+      "applied_course_id": 18238,
+      "has_taken_course": 1,
+      "has_ta_for_course": 1,
+      "student_preference_rank": 1,
+      "match_status": 1,
+      "assigned_hours": 0
+    },
+    {
+      "student_ufid": "20000005",
+      "applied_course_id": 18238,
+      "has_taken_course": 1,
+      "has_ta_for_course": 0,
+      "student_preference_rank": 1,
+      "match_status": 1,
+      "assigned_hours": 0
+    },
+    {
+      "student_ufid": "20000005",
+      "applied_course_id": 18239,
+      "has_taken_course": 0,
+      "has_ta_for_course": 0,
+      "student_preference_rank": 2,
+      "match_status": 1,
+      "assigned_hours": 0
+    },
+    {
+      "student_ufid": "20000004",
+      "applied_course_id": 18239,
+      "has_taken_course": 1,
+      "has_ta_for_course": 1,
+      "student_preference_rank": 1,
+      "match_status": 1,
+      "assigned_hours": 0
+    },
+    {
+      "student_ufid": "20000001",
+      "applied_course_id": 18239,
+      "has_taken_course": 1,
+      "has_ta_for_course": 0,
       "student_preference_rank": 3,
       "match_status": 1,
       "assigned_hours": 0
