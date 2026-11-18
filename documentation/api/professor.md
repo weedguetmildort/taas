@@ -66,9 +66,10 @@ Routes for a signed-in professor to list their courses, review applicants, and s
       "student_name": "Jordan Blake",
       "major": "Computer Science",
       "gpa": 3.72,
-      "enrollment_status": "Masters",
+      "enrollment_status": "Undergraduate",
       "has_taken_course": true,
-      "has_ta_for_course": false
+      "has_ta_for_course": false,
+      "fws_eligibility": "yes"
     },
     {
       "application_id": 6,
@@ -77,7 +78,8 @@ Routes for a signed-in professor to list their courses, review applicants, and s
       "gpa": 3.85,
       "enrollment_status": "PhD",
       "has_taken_course": false,
-      "has_ta_for_course": false
+      "has_ta_for_course": false,
+      "fws_eligibility": "no"
     }
   ]
 }
@@ -91,6 +93,7 @@ Routes for a signed-in professor to list their courses, review applicants, and s
 | `enrollment_status` | string, *nullable* | The student's current program |
 | `has_taken_course` | boolean | Has taken this course |
 | `has_ta_for_course` | boolean | Has TA'd this course before |
+| `fws_eligibility` | string | Federal Work-Study answer for this term: `yes`, `no` or `not_applicable`. Only undergraduates are asked, and everyone else is always `no`, so show it only when `enrollment_status` is `Undergraduate` |
 
 A student with no profile still appears, with `major`, `gpa` and `enrollment_status` all `null`.
 
@@ -222,7 +225,9 @@ WordPress's own validation usually catches the last three first, and returns `re
   "eap5837_status": "Currently Enrolled",
   "resume_url": null,
   "student_statement": null,
-  "english_test_score": 2
+  "english_test_score": 2,
+  "fws_eligibility": "no",
+  "fws_award_letter_url": null
 }
 ```
 
@@ -239,6 +244,10 @@ WordPress's own validation usually catches the last three first, and returns `re
 | `resume_url` | string, *nullable* | An external link. Open it in a new tab |
 | `english_test_score` | integer, *nullable* | Category 1–4 as defined in the [student API](student.md); null means unanswered |
 | `student_statement` | string, *nullable* | Up to 500 characters |
+| `fws_eligibility` | string | Same as GET: applicants for a course. Only meaningful for undergraduates |
+| `fws_award_letter_url` | string, *nullable* | Link to the FWS award letter, separate from `resume_url`. Only set when `fws_eligibility` is `yes`. An external link. Open it in a new tab |
+
+Both FWS fields are what the student submitted for this course's term, so they always match the applicant list.
 
 ## Changelog
 
@@ -246,3 +255,5 @@ Changes to these routes, newest first.
 
 | Date | Route | Change |
 | --- | --- | --- |
+| 2026-11-17 | `GET /professor/courses/{course_id}/applications` | Added `fws_eligibility` to each applicant |
+| 2026-11-17 | `GET /professor/applications/{application_id}` | Added `fws_eligibility` and `fws_award_letter_url` |

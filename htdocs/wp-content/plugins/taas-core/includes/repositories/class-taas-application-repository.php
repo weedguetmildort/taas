@@ -193,7 +193,8 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *     gpa: ?float,
 	 *     enrollment_status: ?TAAS_Enrollment_Status,
 	 *     has_taken_course: bool,
-	 *     has_ta_for_course: bool
+	 *     has_ta_for_course: bool,
+	 *     fws_eligibility: string
 	 * }>
 	 * @throws RuntimeException If the query fails or an applicant has no snapshot.
 	 * @throws UnexpectedValueException If the stored enrollment status is invalid.
@@ -209,6 +210,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.academic_background[0].major')) AS major,"
 				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.academic_background[0].gpa')), 'null') AS gpa,"
 				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.enrollment_status')) AS enrollment_status,"
+				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.fws_eligibility')), 'null') AS fws_eligibility,"
 				. ' a.has_taken_course, a.has_ta_for_course'
 				. ' FROM %i a'
 				. ' INNER JOIN %i c ON c.course_id = a.applied_course_id'
@@ -239,6 +241,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 				'enrollment_status' => TAAS_Cast::enum_or_null( TAAS_Enrollment_Status::class, $r['enrollment_status'] ?? null ),
 				'has_taken_course'  => TAAS_Cast::bool( $r['has_taken_course'] ?? 0 ),
 				'has_ta_for_course' => TAAS_Cast::bool( $r['has_ta_for_course'] ?? 0 ),
+				'fws_eligibility'   => TAAS_Cast::string_or_null( $r['fws_eligibility'] ?? null ) ?? 'no',
 			),
 			$rows
 		);
