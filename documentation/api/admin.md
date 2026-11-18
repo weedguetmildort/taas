@@ -480,6 +480,8 @@ Every course in the term, with what the matching algorithm's last run recommende
     "course_id": 101,
     "course_code": "COP3502C",
     "course_name": "Programming Fundamentals 1",
+    "professor_name": "Dr. Smith",
+    "top_ranked_student": "Sam Lee",
     "weekly_hours": 70,
     "unfilled_hours": 30,
     "recommendations": [
@@ -497,6 +499,7 @@ Every course in the term, with what the matching algorithm's last run recommende
 
 | Field | Notes |
 | --- | --- |
+| `top_ranked_student` | Name of the course's highest ranked non-withdrawn applicant, or `null` if none is ranked |
 | `unfilled_hours` | How many of the course's `weekly_hours` the recommendations leave uncovered. It does not reflect matches the admin has made |
 | `recommendations` | In the order the algorithm chose the students |
 | `hours` | How many hours the algorithm recommends for that student |

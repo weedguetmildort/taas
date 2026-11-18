@@ -41,6 +41,53 @@ final class TAAS_Match_Recommendation_Repository extends TAAS_Repository {
 	}
 
 	/**
+	 * Professor names and top ranked applicants for a page of courses.
+	 *
+	 * @param int[] $course_ids Course IDs.
+	 * @return array<int, array{professor_name: string, top_ranked_student: ?string}> Details keyed by course ID.
+	 */
+	public function course_details( array $course_ids ): array {
+		global $wpdb;
+
+		if ( empty( $course_ids ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $course_ids ), '%d' ) );
+		$rows         = $this->select_rows(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Only %d placeholders are joined in; every value is bound.
+			$wpdb->prepare(
+				'SELECT c.course_id, p.professor_name, s.student_name'
+				. ' FROM %i c INNER JOIN %i p ON p.professor_id = c.professor_id'
+				. ' LEFT JOIN %i a ON a.application_id = ('
+				. ' SELECT ranked.application_id FROM %i ranked'
+				. ' WHERE ranked.applied_course_id = c.course_id AND ranked.professor_preference_rank IS NOT NULL'
+				. ' AND ranked.match_status <> %d ORDER BY ranked.professor_preference_rank, ranked.application_id LIMIT 1)'
+				. ' LEFT JOIN %i s ON s.student_ufid = a.student_ufid'
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only %d placeholders are joined in.
+				. " WHERE c.course_id IN ({$placeholders})",
+				TAAS_Schema::table( 'courses' ),
+				TAAS_Schema::table( 'professors' ),
+				TAAS_Schema::table( 'applications' ),
+				TAAS_Schema::table( 'applications' ),
+				TAAS_Match_Status::Withdrawn->value,
+				TAAS_Schema::table( 'students' ),
+				...$course_ids
+			)
+		);
+
+		$details = array();
+		foreach ( $rows as $row ) {
+			$details[ (int) $row['course_id'] ] = array(
+				'professor_name'     => (string) $row['professor_name'],
+				'top_ranked_student' => $row['student_name'],
+			);
+		}
+
+		return $details;
+	}
+
+	/**
 	 * Every recommendation for the given courses, in the order the algorithm made them.
 	 *
 	 * @param int[] $course_ids Course IDs.

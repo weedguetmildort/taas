@@ -144,7 +144,9 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 				$per_page = (int) $request['per_page'];
 				$offset   = ( (int) $request['page'] - 1 ) * $per_page;
 
-				return $this->paged_response( array_slice( $items, $offset, $per_page ), count( $items ), $per_page );
+				$page = $this->with_course_details( array_slice( $items, $offset, $per_page ) );
+
+				return $this->paged_response( $page, count( $items ), $per_page );
 			}
 		);
 	}
@@ -160,7 +162,7 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 			function () use ( $request ) {
 				$course = $this->courses->find( (int) $this->path_param( $request, 'course_id' ) );
 
-				return null === $course ? $this->not_found() : $this->course_recommendations( array( $course ) )[0];
+				return null === $course ? $this->not_found() : $this->with_course_details( $this->course_recommendations( array( $course ) ) )[0];
 			}
 		);
 	}
@@ -441,6 +443,24 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 				);
 			},
 			$courses
+		);
+	}
+
+	/**
+	 * Add the professor and top ranked applicant to each returned course.
+	 *
+	 * @param array<int, array<string, mixed>> $items Recommendation items.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function with_course_details( array $items ): array {
+		$details = $this->recommendations->course_details( array_column( $items, 'course_id' ) );
+
+		return array_map(
+			static fn( array $item ) => $item + ( $details[ $item['course_id'] ] ?? array(
+				'professor_name'     => null,
+				'top_ranked_student' => null,
+			) ),
+			$items
 		);
 	}
 
