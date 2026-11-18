@@ -31,6 +31,7 @@ function taas_admin_matching_portal_assets(): void {
 		'recommendationsEndpoint' => rest_url( 'taas/v1/matching/recommendations' ),
 		'courseMatchesEndpoint'   => rest_url( 'taas/v1/matching/courses' ),
 		'studentMatchesEndpoint'  => rest_url( 'taas/v1/matching/students' ),
+		'progressEndpoint'        => rest_url( 'taas/v1/matching/progress' ),
 		'runEndpoint'             => rest_url( 'taas/v1/matching/run' ),
 		'cycleEndpoint'           => rest_url( 'taas/v1/application-cycle' ),
 		'applicationEndpoint'     => rest_url( 'taas/v1/applications/__application_id__' ),

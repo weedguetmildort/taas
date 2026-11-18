@@ -47,12 +47,12 @@
             initializeMatchingControls(matchingForm, viewSelector, {
                 course: courseView.querySelector("tbody"),
                 student: studentView.querySelector("tbody"),
-            }, matchingConfig);
+            }, matchingConfig, container.querySelector(".ta-approval-progress"));
         }
 
     }
 
-    async function initializeMatchingControls(form, viewSelector, tables, config) {
+    async function initializeMatchingControls(form, viewSelector, tables, config, progress) {
         const controls = form.querySelector("fieldset");
         const term = form.querySelector("#admin-matching-term");
         const year = form.querySelector("#admin-matching-year");
@@ -60,6 +60,7 @@
         const status = form.querySelector("#admin-matching-run-status");
         let cycleLoaded = false;
         let request;
+        let progressRequest;
 
         function selectedUrl(endpoint) {
             const url = new URL(endpoint, window.location.href);
@@ -90,6 +91,22 @@
                 request.signal,
                 byStudent ? renderStudentResults : renderCourseResults
             );
+        }
+
+        function reloadProgress() {
+            if (!progress?.querySelector("#approval-progress-metrics")) return;
+            progressRequest?.abort();
+
+            const termLabel = progress.querySelector("#approval-progress-term");
+            if (!cycleLoaded || !form.checkValidity()) {
+                termLabel.textContent = "";
+                showProgressMessage(progress, cycleLoaded ? "Select a term and year to see review progress." : "Loading review progress…");
+                return;
+            }
+
+            termLabel.textContent = `${term.value} ${year.valueAsNumber}`;
+            progressRequest = new AbortController();
+            return loadReviewProgress(progress, selectedUrl(config.progressEndpoint), config.nonce, progressRequest.signal);
         }
 
         function updateRunButton() {
@@ -128,6 +145,7 @@
                 updateMatchStatus(row.querySelector(".match-status"), data.match_status);
                 row.querySelector(".admin-match-actions").remove();
                 feedback.textContent = "Decision saved.";
+                reloadProgress();
             } catch (error) {
                 feedback.textContent = error.message;
             } finally {
@@ -143,6 +161,7 @@
         form.addEventListener("change", function () {
             status.textContent = "";
             reloadResults();
+            reloadProgress();
         });
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
@@ -164,6 +183,7 @@
         });
 
         reloadResults();
+        reloadProgress();
         try {
             const { data } = await matchingRequest(config.cycleEndpoint, config.nonce);
             term.value = data.term;
@@ -175,6 +195,48 @@
             controls.disabled = false;
             updateRunButton();
             reloadResults();
+            reloadProgress();
+        }
+    }
+
+    function showProgressMessage(panel, text) {
+        panel.querySelector("#approval-progress-metrics").hidden = true;
+        panel.querySelector("#approval-progress-message").textContent = text;
+    }
+
+    async function loadReviewProgress(panel, url, nonce, signal) {
+        showProgressMessage(panel, "Loading review progress…");
+
+        try {
+            const { data } = await matchingRequest(url, nonce, { signal });
+            if (signal.aborted) return;
+
+            const { matches_made: approved, applications_declined: declined, applications_pending: pending } = data;
+            if (![approved, declined, pending].every(value => Number.isSafeInteger(value) && value >= 0)) {
+                throw new Error("The review totals are unavailable.");
+            }
+
+            const reviewed = approved + declined;
+            const total = reviewed + pending;
+            if (!total) {
+                showProgressMessage(panel, "No applications to review for the selected term.");
+                return;
+            }
+
+            const bar = panel.querySelector('[role="progressbar"]');
+            bar.setAttribute("aria-valuemax", String(total));
+            bar.setAttribute("aria-valuenow", String(reviewed));
+            bar.setAttribute("aria-valuetext", `${reviewed} of ${total} applications reviewed`);
+            panel.querySelector("#approval-progress-fill").style.width = `${reviewed / total * 100}%`;
+            panel.querySelector("#reviewed-count").textContent = reviewed;
+            panel.querySelector("#total-applications").textContent = total;
+            panel.querySelector("#approval-percentage").textContent = `${Math.floor(reviewed * 1000 / total) / 10}% Reviewed`;
+            panel.querySelector("#approval-decisions").textContent = `${approved} Approved · ${declined} Declined`;
+            panel.querySelector("#remaining-count").textContent = `${pending} Remaining`;
+            panel.querySelector("#approval-progress-message").textContent = "";
+            panel.querySelector("#approval-progress-metrics").hidden = false;
+        } catch (error) {
+            if (!signal.aborted) showProgressMessage(panel, `Could not load review progress. ${error.message}`);
         }
     }
 

@@ -484,11 +484,11 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	}
 
 	/**
-	 * Count a term's matches and pending applications, and add up its assigned hours.
+	 * Count a term's applications by review status and add up its assigned hours.
 	 *
 	 * @param TAAS_Semester $semester Semester to match.
 	 * @param int           $year     Year to match.
-	 * @return array{matches_made: int, applications_pending: int, hours_assigned: int}
+	 * @return array{matches_made: int, applications_pending: int, applications_declined: int, hours_assigned: int}
 	 * @throws RuntimeException If the query fails.
 	 */
 	public function progress_for_term( TAAS_Semester $semester, int $year ): array {
@@ -498,11 +498,13 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 			$wpdb->prepare(
 				'SELECT COALESCE(SUM(a.match_status = %d), 0) AS matches_made,'
 				. ' COALESCE(SUM(a.match_status = %d), 0) AS applications_pending,'
+				. ' COALESCE(SUM(a.match_status = %d), 0) AS applications_declined,'
 				. ' COALESCE(SUM(CASE WHEN a.match_status = %d THEN a.assigned_hours ELSE 0 END), 0) AS hours_assigned'
 				. ' FROM %i a INNER JOIN %i c ON c.course_id = a.applied_course_id'
 				. ' WHERE c.course_semester = %d AND c.course_year = %d',
 				TAAS_Match_Status::Matched->value,
 				TAAS_Match_Status::Pending->value,
+				TAAS_Match_Status::Rejected->value,
 				TAAS_Match_Status::Matched->value,
 				$this->table(),
 				TAAS_Schema::table( 'courses' ),
@@ -512,9 +514,10 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 		);
 
 		return array(
-			'matches_made'         => TAAS_Cast::int( $rows[0]['matches_made'] ?? 0 ),
-			'applications_pending' => TAAS_Cast::int( $rows[0]['applications_pending'] ?? 0 ),
-			'hours_assigned'       => TAAS_Cast::int( $rows[0]['hours_assigned'] ?? 0 ),
+			'matches_made'          => TAAS_Cast::int( $rows[0]['matches_made'] ?? 0 ),
+			'applications_pending'  => TAAS_Cast::int( $rows[0]['applications_pending'] ?? 0 ),
+			'applications_declined' => TAAS_Cast::int( $rows[0]['applications_declined'] ?? 0 ),
+			'hours_assigned'        => TAAS_Cast::int( $rows[0]['hours_assigned'] ?? 0 ),
 		);
 	}
 

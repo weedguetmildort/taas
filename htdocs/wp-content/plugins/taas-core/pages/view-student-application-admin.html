@@ -16,39 +16,35 @@
     </div>
 
     <!-- TA APPROVAL PROGRESS -->
-    <div class="ta-approval-progress">
+    <section class="ta-approval-progress" aria-labelledby="approval-progress-title">
 
         <div class="approval-progress-header">
-            <h3>TA Match Approval Progress</h3>
-            <span class="approval-progress-label">
-                Demo Progress
-            </span>
+            <h3 id="approval-progress-title">TA Match Approval Progress</h3>
+            <span id="approval-progress-term" class="approval-progress-label"></span>
         </div>
 
-        <div class="approval-progress-count">
-            <span id="approved-count">15</span>
-            <span class="progress-divider">/</span>
-            <span id="total-applicants">200</span>
-            <span class="progress-description">
-                Matches Approved
-            </span>
-        </div>
+        <p id="approval-progress-message" role="status">Approval progress is available to administrators.</p>
 
-        <div class="approval-progress-bar">
-            <div id="approval-progress-fill" class="approval-progress-fill" style="width: 7.5%;">
+        <div id="approval-progress-metrics" hidden>
+            <div class="approval-progress-count">
+                <span id="reviewed-count"></span>
+                <span class="progress-divider">/</span>
+                <span id="total-applications"></span>
+                <span class="progress-description">Applications Reviewed</span>
+            </div>
+
+            <div class="approval-progress-bar" role="progressbar" aria-labelledby="approval-progress-title">
+                <div id="approval-progress-fill" class="approval-progress-fill"></div>
+            </div>
+
+            <div class="approval-progress-footer" aria-live="polite">
+                <span id="approval-percentage"></span>
+                <span id="approval-decisions"></span>
+                <span id="remaining-count"></span>
             </div>
         </div>
 
-        <div class="approval-progress-footer">
-            <span id="approval-percentage">
-                7.5% Completed
-            </span>
-            <span id="remaining-count">
-                185 Remaining
-            </span>
-        </div>
-
-    </div>
+    </section>
 
     <h3 id="admin-matching-view-title">Course Recommendations</h3>
     <div class="admin-applications-toolbar">
@@ -149,10 +145,6 @@
             </table>
         </div>
     </div>
-
-    <p class="admin-applications-note">
-        Note: The approval progress panel displays demo data.
-    </p>
 
 </div>
 

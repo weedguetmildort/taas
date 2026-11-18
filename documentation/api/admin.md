@@ -664,6 +664,7 @@ This lists every student with a non-withdrawn application that term. A student c
 {
   "matches_made": 15,
   "applications_pending": 40,
+  "applications_declined": 5,
   "hours_assigned": 300,
   "hours_required": 2400
 }
@@ -673,10 +674,11 @@ This lists every student with a non-withdrawn application that term. A student c
 | --- | --- |
 | `matches_made` | `Matched` applications for the term |
 | `applications_pending` | `Pending` applications for the term, which is how many finalizing would reject |
+| `applications_declined` | `Rejected` applications for the term |
 | `hours_assigned` | Total `assigned_hours` on `Matched` applications |
 | `hours_required` | Total of the term's `weekly_hours` |
 
-For one course's hours, use GET: current matches for one course.
+Review progress counts matched and rejected applications as reviewed, and pending applications as remaining. Withdrawn applications are excluded. For one course's hours, use GET: current matches for one course.
 
 ### POST: run the matching algorithm
 
