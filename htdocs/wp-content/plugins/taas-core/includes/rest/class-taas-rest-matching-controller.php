@@ -540,26 +540,41 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 	 * @throws RuntimeException If the query fails.
 	 */
 	private function student_matches( array $students, TAAS_Semester $semester, int $year ): array {
-		$by_student = array();
+		$decisions = array();
+		$top_rank  = array();
 
-		$matches = $this->applications->matches_for_students( array_column( $students, 'student_ufid' ), $semester, $year );
+		$applications = $this->applications->ranked_or_decided_for_students( array_column( $students, 'student_ufid' ), $semester, $year );
+		foreach ( $applications as $application ) {
+			$ufid = $application['student_ufid'];
+			$rank = $application['rank'];
+			if ( null !== $rank && ( ! isset( $top_rank[ $ufid ] ) || $rank < $top_rank[ $ufid ]['rank'] ) ) {
+				$top_rank[ $ufid ] = array(
+					'rank'        => $rank,
+					'course_code' => $application['course_code'],
+				);
+			}
 
-		foreach ( $matches as $match ) {
-			$by_student[ $match['student_ufid'] ][] = array(
-				'application_id' => $match['application_id'],
-				'course_id'      => $match['course_id'],
-				'course_code'    => $match['course_code'],
-				'assigned_hours' => $match['assigned_hours'],
+			if ( TAAS_Match_Status::Pending === $application['status'] ) {
+				continue;
+			}
+			$decisions[ $ufid ][ $application['status']->value ][] = array(
+				'application_id' => $application['application_id'],
+				'course_id'      => $application['course_id'],
+				'course_code'    => $application['course_code'],
+				'assigned_hours' => $application['assigned_hours'],
 			);
 		}
 
 		return array_map(
-			static function ( array $student ) use ( $by_student ) {
-				$matches = $by_student[ $student['student_ufid'] ] ?? array();
+			static function ( array $student ) use ( $decisions, $top_rank ) {
+				$ufid    = $student['student_ufid'];
+				$matches = $decisions[ $ufid ][ TAAS_Match_Status::Matched->value ] ?? array();
 
 				return $student + array(
-					'assigned_hours' => array_sum( array_column( $matches, 'assigned_hours' ) ),
-					'matches'        => $matches,
+					'assigned_hours'        => array_sum( array_column( $matches, 'assigned_hours' ) ),
+					'matches'               => $matches,
+					'top_ranked_course'     => $top_rank[ $ufid ]['course_code'] ?? null,
+					'declined_applications' => $decisions[ $ufid ][ TAAS_Match_Status::Rejected->value ] ?? array(),
 				);
 			},
 			$students

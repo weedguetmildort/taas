@@ -403,6 +403,10 @@
     margin: 0;
 }
 
+#admin-matching-form [hidden] {
+    display: none;
+}
+
 /* COURSE / STUDENT VIEW SELECTOR */
 
 .admin-applications-filter {
@@ -491,18 +495,26 @@
     min-width: 54rem;
 }
 
+#admin-student-view .admin-applications-table {
+    min-width: 40rem;
+}
+
 #admin-course-view .admin-applications-table th,
 #admin-course-view .match-status,
-#admin-course-view .approve-match-button {
+#admin-course-view .approve-match-button,
+#admin-student-view .admin-applications-table th {
     white-space: normal;
 }
 
-#admin-course-view .admin-applications-table td {
+#admin-course-view .admin-applications-table td,
+#admin-student-view .admin-applications-table td {
     overflow-wrap: anywhere;
 }
 
 #admin-course-view .admin-applications-table th,
-#admin-course-view .admin-applications-table td {
+#admin-course-view .admin-applications-table td,
+#admin-student-view .admin-applications-table th,
+#admin-student-view .admin-applications-table td {
     padding: 12px 10px;
 }
 
@@ -510,7 +522,7 @@
     display: none;
 }
 
-#admin-course-view .admin-applications-table-wrapper:focus-visible {
+.admin-applications-table-wrapper:focus-visible {
     outline: 3px solid #0021a5;
     outline-offset: 3px;
 }
@@ -523,15 +535,21 @@
         color: #555;
     }
 
-    #admin-course-view .admin-applications-table-wrapper {
+    .admin-applications-table-wrapper {
         max-height: min(70vh, 42rem);
         overflow: auto;
     }
 
-    #admin-course-view .admin-applications-table thead th {
+    .admin-applications-table thead th {
         position: sticky;
         top: 0;
         z-index: 1;
+    }
+}
+
+@media (min-width: 721px) {
+    #admin-student-view .admin-matching-scroll-hint {
+        display: none;
     }
 }
 

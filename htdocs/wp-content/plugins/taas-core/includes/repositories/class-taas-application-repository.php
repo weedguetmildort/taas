@@ -343,8 +343,8 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 
 	/**
 	 * One page of the students with a non-withdrawn application in a term, by name.
-	 * Student details come from that term's submission snapshot, so past terms show
-	 * what the student submitted then.
+	 * Prefer the term's submission snapshot, with current details for older applications
+	 * that have no snapshot.
 	 *
 	 * @param TAAS_Semester $semester     Semester to match.
 	 * @param int           $year         Year to match.
@@ -363,20 +363,25 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 		$rows = $this->select_rows(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The clause's one placeholder is bound through $student_args.
 			$wpdb->prepare(
-				'SELECT DISTINCT s.student_ufid,'
-				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.student_name')) AS student_name,"
-				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.student_email')) AS student_email,"
-				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.available_hours')), 'null') AS available_hours"
+				'SELECT DISTINCT a.student_ufid,'
+				. " COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(ss.submitted_details, '$.student_name')), 'null'), s.student_name) AS student_name,"
+				. " COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(ss.submitted_details, '$.student_email')), 'null'), s.student_email) AS student_email,"
+				. ' CASE WHEN ss.submission_id IS NULL THEN p.available_hours'
+				. " ELSE NULLIF(JSON_UNQUOTE(JSON_EXTRACT(ss.submitted_details, '$.profile.available_hours')), 'null') END AS available_hours"
 				. ' FROM %i a'
 				. ' INNER JOIN %i c ON c.course_id = a.applied_course_id'
 				. ' INNER JOIN %i s ON s.student_ufid = a.student_ufid'
-				. ' AND s.semester = c.course_semester AND s.year = c.course_year'
+				. ' LEFT JOIN %i p ON p.student_ufid = a.student_ufid'
+				. ' LEFT JOIN %i ss ON ss.student_ufid = a.student_ufid'
+				. ' AND ss.semester = c.course_semester AND ss.year = c.course_year'
 				. ' WHERE c.course_semester = %d AND c.course_year = %d AND a.match_status <> %d'
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only the fixed clause above is joined in.
 				. $student_clause
-				. ' ORDER BY student_name, s.student_ufid LIMIT %d OFFSET %d',
+				. ' ORDER BY student_name, a.student_ufid LIMIT %d OFFSET %d',
 				$this->table(),
 				TAAS_Schema::table( 'courses' ),
+				TAAS_Schema::table( 'students' ),
+				TAAS_Schema::table( 'student_profiles' ),
 				TAAS_Schema::table( 'student_submissions' ),
 				$semester->value,
 				$year,
@@ -425,15 +430,15 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	}
 
 	/**
-	 * Every match the given students have in a term, by course code.
+	 * Ranked, matched, or rejected applications for the given students in a term.
 	 *
 	 * @param string[]      $student_ufids Students' UFIDs.
 	 * @param TAAS_Semester $semester      Semester to match.
 	 * @param int           $year          Year to match.
-	 * @return array<int, array{application_id: int, student_ufid: string, course_id: int, course_code: string, assigned_hours: int}>
+	 * @return array<int, array{application_id: int, student_ufid: string, course_id: int, course_code: string, assigned_hours: int, rank: ?int, status: TAAS_Match_Status}>
 	 * @throws RuntimeException If the query fails.
 	 */
-	public function matches_for_students( array $student_ufids, TAAS_Semester $semester, int $year ): array {
+	public function ranked_or_decided_for_students( array $student_ufids, TAAS_Semester $semester, int $year ): array {
 		global $wpdb;
 
 		if ( empty( $student_ufids ) ) {
@@ -445,9 +450,11 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 		$rows = $this->select_rows(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Only %s placeholders are joined in; every value is bound.
 			$wpdb->prepare(
-				'SELECT a.application_id, a.student_ufid, c.course_id, c.course_code, a.assigned_hours'
+				'SELECT a.application_id, a.student_ufid, c.course_id, c.course_code, a.assigned_hours,'
+				. ' a.student_preference_rank, a.match_status'
 				. ' FROM %i a INNER JOIN %i c ON c.course_id = a.applied_course_id'
-				. ' WHERE c.course_semester = %d AND c.course_year = %d AND a.match_status = %d'
+				. ' WHERE c.course_semester = %d AND c.course_year = %d AND a.match_status <> %d'
+				. ' AND (a.student_preference_rank IS NOT NULL OR a.match_status IN (%d, %d))'
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only %s placeholders are joined in.
 				. " AND a.student_ufid IN ({$placeholders})"
 				. ' ORDER BY c.course_code, a.application_id',
@@ -455,7 +462,9 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 				TAAS_Schema::table( 'courses' ),
 				$semester->value,
 				$year,
+				TAAS_Match_Status::Withdrawn->value,
 				TAAS_Match_Status::Matched->value,
+				TAAS_Match_Status::Rejected->value,
 				...$student_ufids
 			)
 		);
@@ -467,6 +476,8 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 				'course_id'      => TAAS_Cast::int( $r['course_id'] ),
 				'course_code'    => (string) $r['course_code'],
 				'assigned_hours' => TAAS_Cast::int( $r['assigned_hours'] ),
+				'rank'           => TAAS_Cast::int_or_null( $r['student_preference_rank'] ),
+				'status'         => TAAS_Match_Status::from( TAAS_Cast::int( $r['match_status'] ) ),
 			),
 			$rows
 		);

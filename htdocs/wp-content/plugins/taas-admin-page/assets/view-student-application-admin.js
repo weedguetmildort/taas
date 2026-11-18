@@ -22,6 +22,8 @@
         const matchingForm = container.querySelector("#admin-matching-form");
         const matchingConfig = window.TAASMatchingPortal;
         const viewTitle = container.querySelector("#admin-matching-view-title");
+        const runButton = matchingForm.querySelector(".run-matching-button");
+        const runNote = matchingForm.querySelector("#admin-matching-run-note");
 
         // SWITCH BETWEEN COURSE AND STUDENT VIEWS
         viewSelector.addEventListener("change", function () {
@@ -30,7 +32,9 @@
 
             courseView.hidden = !showCourse;
             studentView.hidden = showCourse;
-            matchingForm.hidden = !showCourse || !matchingConfig;
+            matchingForm.hidden = !matchingConfig;
+            runButton.hidden = !showCourse;
+            runNote.hidden = !showCourse;
             if (viewTitle) {
                 viewTitle.textContent = showCourse ? "Course Recommendations" : "Student Applications";
             }
@@ -40,17 +44,21 @@
         // APPLY INITIAL VIEW
         viewSelector.dispatchEvent(new Event("change"));
         if (matchingConfig) {
-            initializeMatchingControls(matchingForm, courseView.querySelector("tbody"), matchingConfig);
+            initializeMatchingControls(matchingForm, viewSelector, {
+                course: courseView.querySelector("tbody"),
+                student: studentView.querySelector("tbody"),
+            }, matchingConfig);
         }
 
     }
 
-    async function initializeMatchingControls(form, rows, config) {
+    async function initializeMatchingControls(form, viewSelector, tables, config) {
         const controls = form.querySelector("fieldset");
         const term = form.querySelector("#admin-matching-term");
         const year = form.querySelector("#admin-matching-year");
         const run = form.querySelector(".run-matching-button");
         const status = form.querySelector("#admin-matching-run-status");
+        let cycleLoaded = false;
         let request;
 
         function selectedUrl(endpoint) {
@@ -60,36 +68,44 @@
             return url;
         }
 
-        function reloadCourseResults() {
+        function reloadResults() {
             request?.abort();
+            const byStudent = viewSelector.value === "student";
+            const rows = byStudent ? tables.student : tables.course;
+            if (!cycleLoaded) {
+                showTableMessage(rows, "Loading the current application cycle…");
+                return;
+            }
             if (!form.checkValidity()) {
-                showCourseMessage(rows, "Select a term and year to see matching results.");
+                showTableMessage(rows, "Select a term and year to see matching results.");
                 return;
             }
 
             request = new AbortController();
-            return loadCourseResults(
+            return loadMatchingResults(
                 rows,
                 selectedUrl(config.recommendationsEndpoint),
-                selectedUrl(config.courseMatchesEndpoint),
+                selectedUrl(byStudent ? config.studentMatchesEndpoint : config.courseMatchesEndpoint),
                 config.nonce,
-                request.signal
+                request.signal,
+                byStudent ? renderStudentResults : renderCourseResults
             );
         }
 
         function updateRunButton() {
-            run.disabled = controls.disabled || !form.checkValidity();
+            run.disabled = controls.disabled || run.hidden || !form.checkValidity();
         }
 
         function setSaving(saving) {
             controls.disabled = saving;
+            viewSelector.disabled = saving;
             updateRunButton();
-            rows.querySelectorAll("button[data-match-status]").forEach(button => {
+            tables.course.querySelectorAll("button[data-match-status]").forEach(button => {
                 button.disabled = saving;
             });
         }
 
-        rows.addEventListener("click", async function (event) {
+        tables.course.addEventListener("click", async function (event) {
             const button = event.target.closest("button[data-match-status]");
             if (!button || controls.disabled) return;
 
@@ -119,14 +135,18 @@
             }
         });
 
+        viewSelector.addEventListener("change", function () {
+            updateRunButton();
+            reloadResults();
+        });
         form.addEventListener("input", updateRunButton);
         form.addEventListener("change", function () {
             status.textContent = "";
-            reloadCourseResults();
+            reloadResults();
         });
         form.addEventListener("submit", async function (event) {
             event.preventDefault();
-            if (controls.disabled || !form.reportValidity()) return;
+            if (controls.disabled || run.hidden || !form.reportValidity()) return;
 
             const url = selectedUrl(config.runEndpoint);
             setSaving(true);
@@ -134,7 +154,7 @@
 
             try {
                 const { data } = await matchingRequest(url, config.nonce, { method: "POST" });
-                await reloadCourseResults();
+                await reloadResults();
                 status.textContent = `Matching complete. Recommendations saved: ${data.recommendations_made}.`;
             } catch (error) {
                 status.textContent = error.message;
@@ -143,7 +163,7 @@
             }
         });
 
-        showCourseMessage(rows, "Loading the current application cycle…");
+        reloadResults();
         try {
             const { data } = await matchingRequest(config.cycleEndpoint, config.nonce);
             term.value = data.term;
@@ -151,9 +171,10 @@
         } catch (error) {
             status.textContent = error.message;
         } finally {
+            cycleLoaded = true;
             controls.disabled = false;
             updateRunButton();
-            reloadCourseResults();
+            reloadResults();
         }
     }
 
@@ -166,7 +187,7 @@
         return { data, pages: Number(response.headers.get("X-WP-TotalPages") ?? 1) };
     }
 
-    function showCourseMessage(rows, text) {
+    function showTableMessage(rows, text) {
         rows.replaceChildren();
         const cell = rows.insertRow().insertCell();
         cell.colSpan = rows.parentElement.tHead.rows[0].cells.length;
@@ -174,9 +195,9 @@
         cell.textContent = text;
     }
 
-    async function fetchCoursePages(url, nonce, signal) {
+    async function fetchMatchingPages(url, nonce, signal) {
         url.searchParams.set("per_page", "100");
-        const courses = [];
+        const items = [];
 
         let pages = 1;
         for (let page = 1; page <= pages; page++) {
@@ -186,29 +207,31 @@
                 throw new Error("Could not load matching results.");
             }
             pages = result.pages;
-            courses.push(...result.data);
+            items.push(...result.data);
         }
-        return courses;
+        return items;
     }
 
-    async function loadCourseResults(rows, recommendationsUrl, matchesUrl, nonce, signal) {
-        showCourseMessage(rows, "Loading matching results…");
+    async function loadMatchingResults(rows, recommendationsUrl, matchesUrl, nonce, signal, render) {
+        showTableMessage(rows, "Loading matching results…");
 
-        let courses, approvedCourses;
+        let recommendations, matches;
         try {
-            [courses, approvedCourses] = await Promise.all([
-                fetchCoursePages(recommendationsUrl, nonce, signal),
-                fetchCoursePages(matchesUrl, nonce, signal),
+            [recommendations, matches] = await Promise.all([
+                fetchMatchingPages(recommendationsUrl, nonce, signal),
+                fetchMatchingPages(matchesUrl, nonce, signal),
             ]);
         } catch (error) {
-            if (!signal.aborted) showCourseMessage(rows, error.message);
+            if (!signal.aborted) showTableMessage(rows, error.message);
             return;
         }
 
-        if (signal.aborted) return;
+        if (!signal.aborted) render(rows, recommendations, matches);
+    }
 
+    function renderCourseResults(rows, courses, approvedCourses) {
         if (!courses.length) {
-            showCourseMessage(rows, "No courses are listed for the selected term.");
+            showTableMessage(rows, "No courses are listed for the selected term.");
             return;
         }
 
@@ -227,6 +250,66 @@
                 addCourseRow(rows, course, application);
             }
         }
+    }
+
+    function renderStudentResults(rows, courses, students) {
+        if (!students.length) {
+            showTableMessage(rows, "No student applications are listed for the selected term.");
+            return;
+        }
+
+        const recommendationsByStudent = new Map();
+        for (const course of courses) {
+            for (const recommendation of course.recommendations) {
+                if (recommendation.match_status === "Withdrawn") continue;
+                const ufid = recommendation.student_ufid;
+                if (!recommendationsByStudent.has(ufid)) {
+                    recommendationsByStudent.set(ufid, new Map());
+                }
+                recommendationsByStudent.get(ufid).set(recommendation.application_id, {
+                    course_code: course.course_code,
+                    match_status: recommendation.match_status,
+                });
+            }
+        }
+
+        rows.replaceChildren();
+        for (const student of students) {
+            const applications = recommendationsByStudent.get(student.student_ufid) ?? new Map();
+            for (const match of student.matches) {
+                applications.set(match.application_id, { ...match, match_status: "Matched" });
+            }
+            for (const declined of student.declined_applications) {
+                applications.set(declined.application_id, { ...declined, match_status: "Rejected" });
+            }
+
+            if (!applications.size) addStudentRow(rows, student, null);
+            for (const application of applications.values()) {
+                addStudentRow(rows, student, application);
+            }
+        }
+    }
+
+    function addStudentRow(rows, student, application) {
+        const row = rows.insertRow();
+        row.insertCell().textContent = student.student_name;
+        row.insertCell().textContent = student.student_ufid;
+
+        const emailCell = row.insertCell();
+        if (student.student_email) {
+            const link = document.createElement("a");
+            link.href = "mailto:" + encodeURIComponent(student.student_email).replace("%40", "@");
+            link.textContent = student.student_email;
+            emailCell.append(link);
+        } else {
+            emailCell.textContent = "—";
+        }
+
+        row.insertCell().textContent = student.top_ranked_course ?? "Not Ranked Yet";
+        row.insertCell().textContent = application?.course_code ?? "—";
+        const badge = document.createElement("span");
+        updateMatchStatus(badge, application?.match_status);
+        row.insertCell().append(badge);
     }
 
     function addCourseRow(rows, course, application) {

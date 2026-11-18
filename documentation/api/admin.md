@@ -626,6 +626,8 @@ This lists every non-withdrawn applicant. Students the professor ranked come fir
     "student_email": "jane@ufl.edu",
     "available_hours": 20,
     "assigned_hours": 20,
+    "top_ranked_course": "COP3502C",
+    "declined_applications": [],
     "matches": [
       {
         "application_id": 1,
@@ -639,6 +641,8 @@ This lists every non-withdrawn applicant. Students the professor ranked come fir
 ```
 
 This lists every student with a non-withdrawn application that term. A student can have several matches, for example 10 hours on each of two courses, and `assigned_hours` is their total. `matches` is `[]` for a student with no matches.
+
+`top_ranked_course` is the code of the student's highest ranked non-withdrawn course, or `null` if none was ranked. `declined_applications` lists rejected course applications in the same shape as `matches`. Both fields come from applications and remain available after another matching run replaces the recommendations.
 
 ### GET: current matches for one student
 
