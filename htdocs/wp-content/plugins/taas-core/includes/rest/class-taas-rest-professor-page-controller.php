@@ -70,6 +70,13 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	private TAAS_Academic_Background_Repository $backgrounds;
 
 	/**
+	 * Student term submission snapshots.
+	 *
+	 * @var TAAS_Student_Submission_Repository
+	 */
+	private TAAS_Student_Submission_Repository $submissions;
+
+	/**
 	 * Create the controller.
 	 */
 	public function __construct() {
@@ -80,6 +87,7 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 		$this->students     = new TAAS_Student_Repository();
 		$this->profiles     = new TAAS_Student_Profile_Repository();
 		$this->backgrounds  = new TAAS_Academic_Background_Repository();
+		$this->submissions  = new TAAS_Student_Submission_Repository();
 	}
 
 	/**
@@ -351,7 +359,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	 *
 	 * TODO: Read submitted fields from the course-term snapshot, matching the
 	 * applicant list. First agree how to handle TA experience, which the current
-	 * snapshot contract does not capture as a profile field.
+	 * snapshot contract does not capture as a profile field. The FWS fields
+	 * already come from the snapshot, matching the applicant list.
 	 *
 	 * @param WP_REST_Request $request Current request.
 	 * @return WP_REST_Response|WP_Error
@@ -365,7 +374,9 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 					return $this->not_found();
 				}
 
-				if ( null === $this->owned_course( $application->applied_course_id ) ) {
+				$course = $this->owned_course( $application->applied_course_id );
+
+				if ( null === $course ) {
 					return $this->not_found();
 				}
 
@@ -377,6 +388,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
 				$profile     = $this->profiles->find( $student->student_ufid );
 				$backgrounds = $this->backgrounds->find_by_student( $student->student_ufid );
+				$submission  = $this->submissions->find_by_student_and_term( $student->student_ufid, $course->course_semester, $course->course_year );
+				$snapshot    = (array) ( $submission?->submitted_details['profile'] ?? array() );
 
 				// Most recent degree first.
 				usort(
@@ -385,16 +398,16 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 				);
 
 				return array(
-					'application_id'      => $application->application_id,
-					'student_email'       => $student->student_email,
-					'student_name'        => $student->student_name,
-					'major'               => $profile?->major,
-					'gpa'                 => $profile?->gpa,
-					'enrollment_status'   => $profile?->enrollment_status?->label(),
-					'has_taken_course'    => $application->has_taken_course,
-					'has_ta_experience'   => $profile?->has_ta_experience ?? false,
-					'has_ta_for_course'   => $application->has_ta_for_course,
-					'academic_background' => array_map(
+					'application_id'       => $application->application_id,
+					'student_email'        => $student->student_email,
+					'student_name'         => $student->student_name,
+					'major'                => $profile?->major,
+					'gpa'                  => $profile?->gpa,
+					'enrollment_status'    => $profile?->enrollment_status?->label(),
+					'has_taken_course'     => $application->has_taken_course,
+					'has_ta_experience'    => $profile?->has_ta_experience ?? false,
+					'has_ta_for_course'    => $application->has_ta_for_course,
+					'academic_background'  => array_map(
 						static fn( TAAS_Academic_Background $background ) => array(
 							'university'  => $background->university,
 							'degree_type' => $background->degree_type->label(),
@@ -404,12 +417,14 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 						),
 						$backgrounds
 					),
-					'country_code'        => $profile?->country_code,
-					'eap5836_status'      => $profile?->eap5836_status?->label(),
-					'eap5837_status'      => $profile?->eap5837_status?->label(),
-					'resume_url'          => $profile?->resume_url,
-					'english_test_score'  => $profile?->english_test_score?->value,
-					'student_statement'   => $application->student_statement,
+					'country_code'         => $profile?->country_code,
+					'eap5836_status'       => $profile?->eap5836_status?->label(),
+					'eap5837_status'       => $profile?->eap5837_status?->label(),
+					'resume_url'           => $profile?->resume_url,
+					'english_test_score'   => $profile?->english_test_score?->value,
+					'student_statement'    => $application->student_statement,
+					'fws_eligibility'      => TAAS_Cast::string_or_null( $snapshot['fws_eligibility'] ?? null ) ?? 'no',
+					'fws_award_letter_url' => TAAS_Cast::string_or_null( $snapshot['fws_award_letter_url'] ?? null ),
 				);
 			}
 		);
