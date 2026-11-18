@@ -9,9 +9,14 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'template_redirect', 'taas_admin_pages_require_admin', 1 );
 
-/** Recognize the managed page by its saved ID, with a slug fallback. */
-function taas_admin_pages_is_page(): bool {
-	foreach ( array( 'admin-page', 'manage-course-listings-admin' ) as $slug ) {
+/**
+ * Recognize a managed admin page by its saved ID, with a slug fallback.
+ *
+ * @param string[] $slugs Page slugs to check.
+ * @return bool
+ */
+function taas_admin_pages_is_page( array $slugs = array( 'admin-page', 'manage-course-listings-admin', 'application-cycle-admin' ) ): bool {
+	foreach ( $slugs as $slug ) {
 		$id = TAAS_Pages::id( $slug );
 		if ( ( $id > 0 && is_page( $id ) ) || is_page( $slug ) ) {
 			return true;

@@ -25,5 +25,6 @@ function taas_admin_pages_init(): void {
 
 	require_once TAAS_ADMIN_PAGES_PATH . 'includes/access.php';
 	require_once TAAS_ADMIN_PAGES_PATH . 'pages/admin-page.php';
+	require_once TAAS_ADMIN_PAGES_PATH . 'pages/application-cycle-admin.php';
 	require_once TAAS_ADMIN_PAGES_PATH . 'pages/view-student-application-admin.php';
 }

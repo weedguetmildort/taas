@@ -11,7 +11,7 @@ add_action( 'wp_enqueue_scripts', 'taas_admin_page_assets' );
 
 /** Load the admin-page interactions for admin users only. */
 function taas_admin_page_assets(): void {
-	if ( ! taas_admin_pages_is_page() ) {
+	if ( ! taas_admin_pages_is_page( array( 'admin-page', 'manage-course-listings-admin' ) ) ) {
 		return;
 	}
 	if ( ! TAAS_Auth::has_role( TAAS_Auth::ROLE_ADMIN ) ) {
@@ -36,11 +36,16 @@ function taas_admin_page_assets(): void {
 	if ( TAAS_Auth::is_local_dev() ) {
 		$endpoints = array_map( static fn( $url ) => add_query_arg( 'taas_role', 'admin', $url ), $endpoints );
 	}
+	$cycle_url = TAAS_Pages::url( 'application-cycle-admin' );
+	if ( '' !== $cycle_url && TAAS_Auth::is_local_dev() ) {
+		$cycle_url = add_query_arg( 'taas_role', 'admin', $cycle_url );
+	}
 	$config = $endpoints + array(
 		'urls'  => array(
 			'professor-page'                 => TAAS_Pages::url( 'professor-page' ),
 			'manage-course-listings-admin'   => TAAS_Pages::url( 'manage-course-listings-admin' ),
 			'view-student-application-admin' => TAAS_Pages::url( 'view-student-application-admin' ),
+			'application-cycle-admin'        => $cycle_url,
 		),
 		'nonce' => wp_create_nonce( 'wp_rest' ),
 	);

@@ -1,0 +1,92 @@
+<div class="admin-cycle-page">
+    <header class="admin-cycle-header">
+        <h2>Application Cycle</h2>
+        <a class="admin-cycle-back" id="admin-cycle-home" hidden>Back to Admin Home</a>
+    </header>
+
+    <p class="admin-cycle-preview-note">Preview only. The sample cycle and your changes are not saved.</p>
+
+    <section class="admin-cycle-summary" aria-labelledby="admin-cycle-current">
+        <h3 id="admin-cycle-current">Current Cycle</h3>
+        <dl>
+            <div>
+                <dt>Term</dt>
+                <dd id="admin-cycle-current-term">Spring 2027</dd>
+            </div>
+            <div>
+                <dt>Active Stage</dt>
+                <dd>HR Review</dd>
+            </div>
+        </dl>
+    </section>
+
+    <div class="admin-cycle-modes" role="group" aria-label="Cycle action">
+        <button type="button" class="admin-cycle-mode" data-cycle-mode="edit" aria-pressed="true">Edit Stage Dates</button>
+        <button type="button" class="admin-cycle-mode" data-cycle-mode="new" aria-pressed="false">Start New Cycle</button>
+    </div>
+
+    <form id="admin-cycle-form" aria-labelledby="admin-cycle-form-title">
+        <h3 id="admin-cycle-form-title">Stage Schedule</h3>
+        <fieldset id="admin-cycle-new-term" hidden disabled>
+            <legend>New Cycle</legend>
+            <p>Starting a new cycle replaces the current schedule.</p>
+            <div class="admin-cycle-fields">
+                <div class="admin-cycle-field">
+                    <label for="admin-cycle-term">Term</label>
+                    <select id="admin-cycle-term" name="term" required>
+                        <option value="">Select term</option>
+                        <option value="Spring">Spring</option>
+                        <option value="Summer A">Summer A</option>
+                        <option value="Summer B">Summer B</option>
+                        <option value="Summer C">Summer C</option>
+                        <option value="Fall">Fall</option>
+                    </select>
+                </div>
+                <div class="admin-cycle-field">
+                    <label for="admin-cycle-year">Year</label>
+                    <input id="admin-cycle-year" name="year" type="number" min="1901" max="2155" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <p class="admin-cycle-date-note">Dates and times are in Eastern Time. Leave a date blank if it is not set.</p>
+
+        <fieldset class="admin-cycle-stage" data-cycle-stage>
+            <legend>Student Applications</legend>
+            <div class="admin-cycle-fields">
+                <label>Starts <input type="datetime-local" name="student_application_start" value="2026-10-15T00:00" data-start></label>
+                <label>Ends <input type="datetime-local" name="student_application_end" value="2026-11-15T23:59" data-end></label>
+            </div>
+        </fieldset>
+
+        <fieldset class="admin-cycle-stage" data-cycle-stage>
+            <legend>HR Review</legend>
+            <div class="admin-cycle-fields">
+                <label>Starts <input type="datetime-local" name="hr_review_start" value="2026-11-16T00:00" data-start></label>
+                <label>Ends <input type="datetime-local" name="hr_review_end" value="2026-11-22T23:59" data-end></label>
+            </div>
+        </fieldset>
+
+        <fieldset class="admin-cycle-stage" data-cycle-stage>
+            <legend>Professor Ranking</legend>
+            <div class="admin-cycle-fields">
+                <label>Starts <input type="datetime-local" name="professor_ranking_start" value="2026-11-23T00:00" data-start></label>
+                <label>Ends <input type="datetime-local" name="professor_ranking_end" value="2026-12-06T23:59" data-end></label>
+            </div>
+        </fieldset>
+
+        <fieldset class="admin-cycle-stage" data-cycle-stage>
+            <legend>Admin Matching</legend>
+            <div class="admin-cycle-fields">
+                <label>Starts <input type="datetime-local" name="admin_matching_start" data-start></label>
+                <label>Ends <input type="datetime-local" name="admin_matching_end" data-end></label>
+            </div>
+        </fieldset>
+
+        <div class="admin-cycle-actions">
+            <button type="submit" id="admin-cycle-check" disabled>Run Stage Dates Check</button>
+            <button type="button" id="admin-cycle-save" hidden>Save Changes</button>
+            <p id="admin-cycle-status" role="status"></p>
+        </div>
+    </form>
+</div>
