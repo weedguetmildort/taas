@@ -501,6 +501,7 @@ class AdminRoutesTest extends TestCase {
 						'hours'        => 10,
 					),
 				),
+				'skipped_courses'          => array(),
 			),
 			$data
 		);
@@ -509,12 +510,21 @@ class AdminRoutesTest extends TestCase {
 		$this->assertSame( 10, $this->db->write['data']['recommended_hours'] );
 	}
 
-	public function test_run_with_a_course_under_10_students_is_409_and_saves_nothing(): void {
-		$result = $this->run_matching_with_enrollment( 5 );
+	public function test_run_skips_a_course_under_10_students(): void {
+		$data = $this->run_matching_with_enrollment( 5 )->get_data();
 
-		$this->assertSame( 'taas_matching_failed', $result->get_error_code() );
-		$this->assertSame( 409, $result->get_error_data()['status'] );
-		$this->assertSame( array(), $this->db->queries );
+		$this->assertSame( 0, $data['recommendations_made'] );
+		$this->assertSame( 0, $data['unfilled_hours'] );
+		$this->assertSame( array( 101 ), $data['skipped_courses'] );
+		$this->assertSame(
+			array(
+				array(
+					'student_ufid' => '12345678',
+					'hours'        => 20,
+				),
+			),
+			$data['students_with_hours_left']
+		);
 	}
 
 	public function test_recommendations_are_empty_for_a_term_with_no_courses(): void {
