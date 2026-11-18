@@ -278,6 +278,7 @@ class RepositoryTest extends TestCase {
 				'enrollment_status' => '3',
 				'has_taken_course'  => '0',
 				'has_ta_for_course' => '1',
+				'fws_eligibility'   => 'not_applicable',
 			),
 			array(
 				'application_id'    => '8',
@@ -303,6 +304,7 @@ class RepositoryTest extends TestCase {
 				'enrollment_status' => TAAS_Enrollment_Status::Phd,
 				'has_taken_course'  => false,
 				'has_ta_for_course' => true,
+				'fws_eligibility'   => 'not_applicable',
 			),
 			$rows[0]
 		);
@@ -310,6 +312,7 @@ class RepositoryTest extends TestCase {
 		$this->assertNull( $rows[1]['gpa'] );
 		$this->assertNull( $rows[1]['enrollment_status'] );
 		$this->assertTrue( $rows[1]['has_taken_course'] );
+		$this->assertSame( 'no', $rows[1]['fws_eligibility'] );
 	}
 
 	/**
