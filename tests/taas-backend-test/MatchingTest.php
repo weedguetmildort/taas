@@ -170,41 +170,39 @@ class MatchingTest extends TestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// taas_calc_course_ta_hours()
+	// taas_calc_weekly_hours()
 	// ---------------------------------------------------------------------
 
 	/**
 	 * Test course calculations
 	 */
 	public function test_hours_formula_and_rounding(): void {
-		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( 1, 70, 0 ) ) );
-		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( 1, 60, 1 ) ) );
-		$this->assertSame( 20, taas_calc_course_ta_hours( $this->course_with( 1, 50, 2 ) ) );
-		$this->assertSame( 30, taas_calc_course_ta_hours( $this->course_with( 1, 100, 0 ) ) ); // 28.57 -> 30
-		$this->assertSame( 10, taas_calc_course_ta_hours( $this->course_with( 1, 31, 2 ) ) );  // 12.4  -> 10
-		$this->assertSame( 5, taas_calc_course_ta_hours( $this->course_with( 1, 10, 0 ) ) );   // 2.86  -> 5
+		$this->assertSame( 20, taas_calc_weekly_hours( 70, 0 ) );
+		$this->assertSame( 20, taas_calc_weekly_hours( 60, 1 ) );
+		$this->assertSame( 20, taas_calc_weekly_hours( 50, 2 ) );
+		$this->assertSame( 30, taas_calc_weekly_hours( 100, 0 ) ); // 28.57 -> 30
+		$this->assertSame( 10, taas_calc_weekly_hours( 31, 2 ) );  // 12.4  -> 10
+		$this->assertSame( 5, taas_calc_weekly_hours( 10, 0 ) );   // 2.86  -> 5
 	}
 
 	/**
-	 * Enrollment under 10 and lab lengths other than 0, 1, or 2 are rejected
+	 * Enrollment under 10 and lab lengths other than 0, 1, or 2 give no hours
 	 */
-	public function test_hours_reject_invalid_course(): void {
+	public function test_hours_null_for_invalid_course(): void {
 		foreach ( array( array( 9, 0 ), array( -10, 0 ), array( 50, 3 ) ) as [ $enrollment, $lab_hours ] ) {
-			try {
-				taas_calc_course_ta_hours( $this->course_with( 1, $enrollment, $lab_hours ) );
-				$this->fail( "No exception for enrollment $enrollment, lab $lab_hours" );
-			} catch ( InvalidArgumentException $e ) {
-				$this->addToAssertionCount( 1 );
-			}
+			$this->assertNull(
+				taas_calc_weekly_hours( $enrollment, $lab_hours ),
+				"Hours for enrollment $enrollment, lab $lab_hours"
+			);
 		}
 	}
 
 	// ---------------------------------------------------------------------
-	// taas_match_candidates()
+	// taas_match_candidate()
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Test matching candidates of a mix of assigned status/various hours, including edge cases
+	 * Test matching a sequence of candidates of a mix of assigned status/various hours, including edge cases
 	 */
 	public function test_candidates_skip_unavailable_and_update_state(): void {
 		$hours_left = array(
@@ -212,23 +210,23 @@ class MatchingTest extends TestCase {
 			'SPLIT'  => 10, // Gave 10 of their 20 hours to an earlier course
 		);
 		$cth        = 50;
-
-		$matches = taas_match_candidates(
-			$this->course( 1, 50 ),
-			array( 'USEDUP', 'NOHOURS', 'ZERO', 'FIT20', 'SPLIT', 'PARTIAL', 'AFTER' ),
-			'test_reason',
-			$this->by_ufid(
-				$this->profile( 'USEDUP' ),
-				$this->profile( 'NOHOURS', hours: null ),
-				$this->profile( 'ZERO', hours: 0 ),
-				$this->profile( 'FIT20', hours: 20 ),
-				$this->profile( 'SPLIT', hours: 20 ),   // Only their 10 leftover hours count
-				$this->profile( 'PARTIAL', hours: 20 ), // Only 20 course hours are left, so all 20 are used
-				$this->profile( 'AFTER', hours: 10 ),   // Course is full by now
-			),
-			$hours_left,
-			$cth
+		$profiles   = $this->by_ufid(
+			$this->profile( 'USEDUP' ),
+			$this->profile( 'NOHOURS', hours: null ),
+			$this->profile( 'ZERO', hours: 0 ),
+			$this->profile( 'FIT20', hours: 20 ),
+			$this->profile( 'SPLIT', hours: 20 ),   // Only their 10 leftover hours count
+			$this->profile( 'PARTIAL', hours: 20 ), // Only 20 course hours are left, so all 20 are used
+			$this->profile( 'AFTER', hours: 10 ),   // Course is full by now
 		);
+
+		$matches = array();
+		foreach ( array( 'USEDUP', 'NOHOURS', 'ZERO', 'FIT20', 'SPLIT', 'PARTIAL', 'AFTER' ) as $ufid ) {
+			$match = taas_match_candidate( $ufid, 'test_reason', $profiles, $hours_left, $cth );
+			if ( null !== $match ) {
+				$matches[ $ufid ] = $match;
+			}
+		}
 
 		$this->assertSame( array( 'FIT20', 'SPLIT', 'PARTIAL' ), $this->ufids( $matches ) );
 		$this->assertSame( array( 20, 10, 20 ), array_column( $matches, 'hours' ) );
@@ -258,18 +256,14 @@ class MatchingTest extends TestCase {
 	public function test_candidates_student_partially_used(): void {
 		$hours_left = array();
 		$cth        = 10;
+		$profiles   = $this->by_ufid( $this->profile( 'BIG', hours: 20 ), $this->profile( 'NEXT', hours: 10 ) );
 
-		$matches = taas_match_candidates(
-			$this->course( 1, 10 ),
-			array( 'BIG', 'NEXT' ),
-			'test_reason',
-			$this->by_ufid( $this->profile( 'BIG', hours: 20 ), $this->profile( 'NEXT', hours: 10 ) ),
-			$hours_left,
-			$cth
-		);
+		$match = taas_match_candidate( 'BIG', 'test_reason', $profiles, $hours_left, $cth );
+		$this->assertSame( 10, $match['hours'] );
 
-		$this->assertSame( array( 'BIG' ), $this->ufids( $matches ) );
-		$this->assertSame( 10, $matches['BIG']['hours'] );
+		// Course is full, so the next student is not matched
+		$this->assertNull( taas_match_candidate( 'NEXT', 'test_reason', $profiles, $hours_left, $cth ) );
+
 		$this->assertSame( array( 'BIG' => 10 ), $hours_left );
 		$this->assertSame( 0, $cth );
 	}
@@ -281,16 +275,15 @@ class MatchingTest extends TestCase {
 		$hours_left = array();
 		$cth        = 20;
 
-		$matches = taas_match_candidates(
-			$this->course( 1, 20 ),
-			array( 'SMALL' ),
+		$match = taas_match_candidate(
+			'SMALL',
 			'test_reason',
 			$this->by_ufid( $this->profile( 'SMALL', hours: 10 ) ),
 			$hours_left,
 			$cth
 		);
 
-		$this->assertSame( 10, $matches['SMALL']['hours'] );
+		$this->assertSame( 10, $match['hours'] );
 		$this->assertSame( array( 'SMALL' => 0 ), $hours_left );
 		$this->assertSame( 10, $cth );
 	}
@@ -302,16 +295,15 @@ class MatchingTest extends TestCase {
 		$assigned = array();
 		$cth      = 20;
 
-		$matches = taas_match_candidates(
-			$this->course( 1, 20 ),
-			array( 'EXACT' ),
+		$match = taas_match_candidate(
+			'EXACT',
 			'test_reason',
 			$this->by_ufid( $this->profile( 'EXACT', hours: 20 ) ),
 			$assigned,
 			$cth
 		);
 
-		$this->assertSame( array( 'EXACT' ), $this->ufids( $matches ) );
+		$this->assertSame( 20, $match['hours'] );
 		$this->assertSame( 0, $cth );
 	}
 
@@ -528,6 +520,25 @@ class MatchingTest extends TestCase {
 		);
 		$this->assertSame( array( 1, 2, 3 ), array_keys( $result['matches'] ) );
 		$this->assertSame( array(), $result['matches'][3] );
+	}
+
+	/**
+	 * A course whose hours cannot be calculated is skipped, and its applicants stay free for later courses
+	 */
+	public function test_invalid_course_is_skipped(): void {
+		$result = taas_run_matching(
+			array( $this->course_with( 1, 5, 0 ), $this->course( 2, 10 ), $this->course_with( 3, 50, 3 ) ),
+			array(
+				$this->app( 'S1', 1, student_rank: 1 ),
+				$this->app( 'S1', 2, student_rank: 2 ),
+			),
+			array( $this->profile( 'S1', hours: 10, status: TAAS_Enrollment_Status::Phd ) )
+		);
+
+		$this->assertSame( array( 1, 3 ), $result['skipped_courses'] );
+		$this->assertSame( array( 2 ), array_keys( $result['matches'] ) );
+		$this->assertSame( array( 2 => 0 ), $result['unfilled_hours'] );
+		$this->assertSame( 10, $result['matches'][2]['S1']['hours'] );
 	}
 
 	/**

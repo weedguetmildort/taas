@@ -58,73 +58,46 @@ function taas_calc_weekly_hours( int $enrollment, int $lab_hours ): ?int {
 }
 
 /**
- * Return the total weekly TA hours a course needs
+ * Try to match one student to a course
  *
- * @param TAAS_Course $course Course to staff
- * @return int hours
- * @throws InvalidArgumentException If enrollment is under 10 or lab_hours is not 0, 1, or 2.
- */
-function taas_calc_course_ta_hours( TAAS_Course $course ): int {
-	if ( $course->enrollment < 10 ) {
-		throw new InvalidArgumentException( sprintf( 'Course %d has enrollment under 10.', (int) $course->course_id ) );
-	}
-
-	$hours = taas_calc_weekly_hours( $course->enrollment, $course->lab_hours );
-
-	if ( null === $hours ) {
-		throw new InvalidArgumentException( sprintf( 'Course %d has unsupported lab_hours: %d.', (int) $course->course_id, (int) $course->lab_hours ) );
-	}
-
-	return $hours;
-}
-
-/**
- * Match students to a course from a list of candidates, in order
- *
- * Matches can be partial. Each student gets the smaller of their hours left and the
+ * Matches can be partial. The student gets the smaller of their hours left and the
  * course's hours left. A student with hours left over stays available to other
  * courses, and a course that is only partly filled keeps looking.
  *
- * @param TAAS_Course                         $course     Course to staff
- * @param string[]                            $ufids      Candidate student UFIDs, in priority order
- * @param string                              $reason     Reason recorded on each match
- * @param array<string, TAAS_Student_Profile> $profiles   Profiles keyed by student_ufid
- * @param array<string, int>                  $hours_left Student UFID => hours not yet assigned, updated in place.
- *                                                        A student missing from it has their full available_hours.
- * @param int                                 $cth        Course hours left to fill, updated in place
- * @return array<string, array{student_ufid: string, hours: int, reason: string}> Matches keyed by student UFID
+ * @param string                              $student_ufid Candidate student UFID
+ * @param string                              $reason       Reason recorded on the match
+ * @param array<string, TAAS_Student_Profile> $profiles     Profiles keyed by student_ufid
+ * @param array<string, int>                  $hours_left   Student UFID => hours not yet assigned, updated in place.
+ *                                                          A student missing from it has their full available_hours.
+ * @param int                                 $cth          Course hours left to fill, updated in place
+ * @return array{student_ufid: string, hours: int, reason: string}|null The match, or null if the course is
+ *                                                                      full or the student has no hours left
  */
-function taas_match_candidates( TAAS_Course $course, array $ufids, string $reason, array $profiles, array &$hours_left, int &$cth ): array {
-	$matches = array();
-
-	foreach ( $ufids as $student_ufid ) {
-		// Stop once there are no course hours left to assign
-		if ( $cth <= 0 ) {
-			break;
-		}
-
-		// Hours the student can still give, from their profile if they have not been matched yet
-		$available = $hours_left[ $student_ufid ] ?? $profiles[ $student_ufid ]->available_hours ?? null;
-
-		// Skip students with no stated availability or no hours left
-		if ( null === $available || $available <= 0 ) {
-			continue;
-		}
-
-		// Give the course as many of the student's hours as it still needs
-		$hours = min( $available, $cth );
-
-		$matches[ $student_ufid ] = array(
-			'student_ufid' => $student_ufid,
-			'hours'        => $hours,
-			'reason'       => $reason,
-		);
-
-		$hours_left[ $student_ufid ] = $available - $hours;
-		$cth                        -= $hours;
+function taas_match_candidate( string $student_ufid, string $reason, array $profiles, array &$hours_left, int &$cth ): ?array {
+	// No course hours left to assign
+	if ( $cth <= 0 ) {
+		return null;
 	}
 
-	return $matches;
+	// Hours the student can still give, from their profile if they have not been matched yet
+	$available = $hours_left[ $student_ufid ] ?? $profiles[ $student_ufid ]->available_hours ?? null;
+
+	// Skip students with no stated availability or no hours left
+	if ( null === $available || $available <= 0 ) {
+		return null;
+	}
+
+	// Give the course as many of the student's hours as it still needs
+	$hours = min( $available, $cth );
+
+	$hours_left[ $student_ufid ] = $available - $hours;
+	$cth                        -= $hours;
+
+	return array(
+		'student_ufid' => $student_ufid,
+		'hours'        => $hours,
+		'reason'       => $reason,
+	);
 }
 
 /**
@@ -155,13 +128,13 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 
 	// Go through each tier's applicants in order, adding each eligible student as a match
 	// If rank_field is given, that rank is added to the end of the reason (e.g. professor_preference_1)
-	$run_tier = function ( array $apps, string $reason, ?string $rank_field = null ) use ( &$cth, &$matches, &$hours_left, $profiles, $course ): void {
-		// Skip building the tier once the course is full
-		if ( $cth <= 0 ) {
-			return;
-		}
-
+	$run_tier = function ( array $apps, string $reason, ?string $rank_field = null ) use ( &$cth, &$matches, &$hours_left, $profiles ): void {
 		foreach ( $apps as $app ) {
+			// Stop once the course is full
+			if ( $cth <= 0 ) {
+				return;
+			}
+
 			// Already matched to this course in an earlier tier
 			if ( isset( $matches[ $app->student_ufid ] ) ) {
 				continue;
@@ -173,7 +146,10 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
 				$app_reason = $reason . '_' . $app->$rank_field; // tiers 1–2: add the rank to the end
 			}
 
-			$matches += taas_match_candidates( $course, array( $app->student_ufid ), $app_reason, $profiles, $hours_left, $cth );
+			$match = taas_match_candidate( $app->student_ufid, $app_reason, $profiles, $hours_left, $cth );
+			if ( null !== $match ) {
+				$matches[ $app->student_ufid ] = $match;
+			}
 		}
 	};
 
@@ -232,14 +208,16 @@ function taas_match_course( TAAS_Course $course, array $course_apps, array $prof
  * Propose matches for every course
  *
  * Saves the matches to match_recommendations, replacing whatever an earlier run left there.
+ * Courses whose TA hours cannot be calculated (enrollment under 10, or lab_hours not 0, 1,
+ * or 2) are skipped: they get no matches and are listed in skipped_courses instead.
  *
  * @param TAAS_Course[]          $courses  Courses to staff, which is ordered by admin's choice
  * @param TAAS_Application[]     $apps     Applications across all courses
  * @param TAAS_Student_Profile[] $profiles Profiles of the applicants
- * @return array{matches: array<int, array>, unfilled_hours: array<int, int>, students_with_hours_left: array<string, int>}
- *         matches and unfilled_hours are keyed by course_id; students_with_hours_left maps the UFID of each
- *         PhD student with hours not given to any course to those hours, in profile order
- * @throws InvalidArgumentException If any course's TA hours cannot be calculated.
+ * @return array{matches: array<int, array>, unfilled_hours: array<int, int>, students_with_hours_left: array<string, int>, skipped_courses: int[]}
+ *         matches and unfilled_hours are keyed by course_id and leave out skipped courses; students_with_hours_left
+ *         maps the UFID of each PhD student with hours not given to any course to those hours, in profile order;
+ *         skipped_courses lists the course_id of skipped courses, in the order given
  * @throws RuntimeException If saving the recommendations fails.
  */
 function taas_run_matching( array $courses, array $apps, array $profiles ): array {
@@ -264,15 +242,29 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 	$hours_left         = array(); // Student UFID => hours not yet assigned, shared across courses
 	$all_matches        = array();
 	$all_unfilled_hours = array();
+	$skipped_courses    = array();
 
 	// Hours left to fill per course, carried across every pass
 	foreach ( $courses as $course ) {
+		$hours = taas_calc_weekly_hours( $course->enrollment, $course->lab_hours );
+
+		// Skip courses whose TA hours cannot be calculated
+		if ( null === $hours ) {
+			$skipped_courses[] = (int) $course->course_id;
+			continue;
+		}
+
 		$all_matches[ $course->course_id ]        = array();
-		$all_unfilled_hours[ $course->course_id ] = taas_calc_course_ta_hours( $course );
+		$all_unfilled_hours[ $course->course_id ] = $hours;
 	}
 
 	// PhD students, to the courses they applied to
 	foreach ( $courses as $course ) {
+		// Skipped course
+		if ( ! isset( $all_unfilled_hours[ $course->course_id ] ) ) {
+			continue;
+		}
+
 		$all_matches[ $course->course_id ] += taas_match_course(
 			$course,
 			$phd_apps_by_course[ $course->course_id ] ?? array(), // If a course has no apps, use an empty array
@@ -319,5 +311,6 @@ function taas_run_matching( array $courses, array $apps, array $profiles ): arra
 		'matches'                  => $all_matches,
 		'unfilled_hours'           => $all_unfilled_hours,
 		'students_with_hours_left' => $students_with_hours_left,
+		'skipped_courses'          => $skipped_courses,
 	);
 }
