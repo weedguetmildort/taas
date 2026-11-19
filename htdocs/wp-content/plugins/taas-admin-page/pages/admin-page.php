@@ -33,16 +33,22 @@ function taas_admin_page_assets(): void {
 		'professorsEndpoint' => rest_url( 'taas/v1/professors' ),
 		'cycleEndpoint'      => rest_url( 'taas/v1/application-cycle' ),
 	);
+	$exports = array();
+	foreach ( array_keys( TAAS_EXPORT_TYPES ) as $type ) {
+		$exports[ $type ] = rest_url( 'taas/v1/exports/' . $type );
+	}
 	if ( TAAS_Auth::is_local_dev() ) {
 		$endpoints = array_map( static fn( $url ) => add_query_arg( 'taas_role', 'admin', $url ), $endpoints );
+		$exports   = array_map( static fn( $url ) => add_query_arg( 'taas_role', 'admin', $url ), $exports );
 	}
 	$config = $endpoints + array(
-		'urls'  => array(
+		'exportEndpoints' => $exports,
+		'urls'            => array(
 			'professor-page'                 => TAAS_Pages::url( 'professor-page' ),
 			'manage-course-listings-admin'   => TAAS_Pages::url( 'manage-course-listings-admin' ),
 			'view-student-application-admin' => TAAS_Pages::url( 'view-student-application-admin' ),
 		),
-		'nonce' => wp_create_nonce( 'wp_rest' ),
+		'nonce'           => wp_create_nonce( 'wp_rest' ),
 	);
 	wp_add_inline_script( 'taas-admin-page', 'window.TAASAdminPage = ' . wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';', 'before' );
 }
