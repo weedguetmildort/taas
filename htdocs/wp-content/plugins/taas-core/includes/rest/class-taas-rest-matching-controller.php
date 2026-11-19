@@ -331,16 +331,11 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 
 				list( $semester, $year ) = $term;
 
-				try {
-					$result = taas_run_matching(
-						$this->courses->find_by_term( $semester, $year ),
-						$this->applications->find_for_matching( $semester, $year ),
-						( new TAAS_Student_Profile_Repository() )->find_for_matching( $semester, $year )
-					);
-				} catch ( InvalidArgumentException $e ) {
-					// A course whose TA hours cannot be calculated, e.g. enrollment under 10
-					return $this->conflict( 'taas_matching_failed', $e->getMessage() );
-				}
+				$result = taas_run_matching(
+					$this->courses->find_by_term( $semester, $year ),
+					$this->applications->find_for_matching( $semester, $year ),
+					( new TAAS_Student_Profile_Repository() )->find_for_matching( $semester, $year )
+				);
 
 				$students_with_hours_left = array();
 
@@ -357,6 +352,7 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 					'recommendations_made'     => array_sum( array_map( 'count', $result['matches'] ) ),
 					'unfilled_hours'           => array_sum( $result['unfilled_hours'] ),
 					'students_with_hours_left' => $students_with_hours_left,
+					'skipped_courses'          => $result['skipped_courses'], // e.g. enrollment under 10
 				);
 			}
 		);
