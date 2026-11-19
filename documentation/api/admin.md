@@ -626,6 +626,8 @@ This lists every non-withdrawn applicant. Students the professor ranked come fir
     "student_email": "jane@ufl.edu",
     "available_hours": 20,
     "assigned_hours": 20,
+    "top_ranked_course": "COP3502C",
+    "declined_applications": [],
     "matches": [
       {
         "application_id": 1,
@@ -639,6 +641,8 @@ This lists every non-withdrawn applicant. Students the professor ranked come fir
 ```
 
 This lists every student with a non-withdrawn application that term. A student can have several matches, for example 10 hours on each of two courses, and `assigned_hours` is their total. `matches` is `[]` for a student with no matches.
+
+`top_ranked_course` is the code of the student's highest ranked non-withdrawn course, or `null` if none was ranked. `declined_applications` lists rejected course applications in the same shape as `matches`. Both fields come from applications and remain available after another matching run replaces the recommendations.
 
 ### GET: current matches for one student
 
@@ -660,6 +664,7 @@ This lists every student with a non-withdrawn application that term. A student c
 {
   "matches_made": 15,
   "applications_pending": 40,
+  "applications_declined": 5,
   "hours_assigned": 300,
   "hours_required": 2400
 }
@@ -669,10 +674,11 @@ This lists every student with a non-withdrawn application that term. A student c
 | --- | --- |
 | `matches_made` | `Matched` applications for the term |
 | `applications_pending` | `Pending` applications for the term, which is how many finalizing would reject |
+| `applications_declined` | `Rejected` applications for the term |
 | `hours_assigned` | Total `assigned_hours` on `Matched` applications |
 | `hours_required` | Total of the term's `weekly_hours` |
 
-For one course's hours, use GET: current matches for one course.
+Review progress counts matched and rejected applications as reviewed, and pending applications as remaining. Withdrawn applications are excluded. For one course's hours, use GET: current matches for one course.
 
 ### POST: run the matching algorithm
 
