@@ -114,6 +114,55 @@
         });
     }
 
+    function initializeExports() {
+        const config = window.TAASAdminPage;
+
+        document.querySelectorAll('[data-export]').forEach(function (button) {
+            button.addEventListener('click', async function () {
+                button.disabled = true;
+                try {
+                    const endpoint = config?.exportEndpoints?.[button.dataset.export];
+                    if (!endpoint || !config.nonce) {
+                        throw new Error('Export configuration is unavailable.');
+                    }
+
+                    const response = await fetch(endpoint, {
+                        credentials: 'same-origin',
+                        headers: { 'X-WP-Nonce': config.nonce }
+                    });
+
+                    if (!response.ok) {
+                        let message = 'Export request failed (' + response.status + ').';
+                        try {
+                            const error = await response.json();
+                            if (error.message) message = error.message;
+                        } catch {}
+                        throw new Error(message);
+                    }
+
+                    const disposition = response.headers.get('Content-Disposition') || '';
+                    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] || 'taas-' + button.dataset.export + '.csv';
+                    const url = URL.createObjectURL(await response.blob());
+                    const link = document.createElement('a');
+
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(function () {
+                        URL.revokeObjectURL(url);
+                    }, 1000);
+                } catch (error) {
+                    console.error('Unable to download export.', error);
+                    window.alert('Unable to download export: ' + error.message);
+                } finally {
+                    button.disabled = false;
+                }
+            });
+        });
+    }
+
     function initializeCourseListings() {
         const listing = document.querySelector('[data-manage-courses]');
         if (!listing) {
@@ -503,6 +552,7 @@
         }
 
         initializeStudentDownload();
+        initializeExports();
         initializeCourseUpload(initializeCourseListings());
     }
 
