@@ -35,6 +35,17 @@ class TAAS_Stage_Gate {
 	);
 
 	/**
+	 * Patterns for routes every signed-in user may GET in any stage once the current cycle's matches are released
+	 *
+	 * These let professors see their matches after their stage. Each route's
+	 * permission callback still decides which roles may read it.
+	 */
+	private const RELEASED_READABLE = array(
+		'#^/taas/v1/professor/courses$#',
+		'#^/taas/v1/professor/courses/[0-9]+/matches$#',
+	);
+
+	/**
 	 * The stage in which each non-admin role has access
 	 */
 	private const ROLE_STAGES = array(
@@ -69,21 +80,25 @@ class TAAS_Stage_Gate {
 		}
 
 		// WordPress serves HEAD with the GET handler, so it is a read too
-		if ( in_array( $request->get_method(), array( 'GET', 'HEAD' ), true ) && self::is_always_readable( rtrim( $route, '/' ) ) ) {
+		$is_read = in_array( $request->get_method(), array( 'GET', 'HEAD' ), true );
+		$route   = rtrim( $route, '/' );
+
+		if ( $is_read && self::matches_any( self::ALWAYS_READABLE, $route ) ) {
 			return $response;
 		}
 
-		return self::closed_error() ?? $response;
+		return self::closed_error( $is_read && self::matches_any( self::RELEASED_READABLE, $route ) ) ?? $response;
 	}
 
 	/**
-	 * Whether a route matches one of the ALWAYS_READABLE patterns
+	 * Whether a route matches one of the given patterns
 	 *
-	 * @param string $route Lowercased route without a trailing slash.
+	 * @param string[] $patterns Route patterns.
+	 * @param string   $route    Lowercased route without a trailing slash.
 	 * @return bool
 	 */
-	private static function is_always_readable( string $route ): bool {
-		foreach ( self::ALWAYS_READABLE as $pattern ) {
+	private static function matches_any( array $patterns, string $route ): bool {
+		foreach ( $patterns as $pattern ) {
 			if ( preg_match( $pattern, $route ) ) {
 				return true;
 			}
@@ -97,9 +112,10 @@ class TAAS_Stage_Gate {
 	 *
 	 * Nobody signed in is left to the route's permission callback, which returns 401.
 	 *
+	 * @param bool $open_once_released Whether the request may continue once the current cycle's matches are released.
 	 * @return WP_Error|null
 	 */
-	public static function closed_error(): ?WP_Error {
+	public static function closed_error( bool $open_once_released = false ): ?WP_Error {
 		$user = TAAS_Auth::current_user();
 
 		if ( null === $user || in_array( TAAS_Auth::ROLE_ADMIN, $user['roles'], true ) ) {
@@ -107,7 +123,8 @@ class TAAS_Stage_Gate {
 		}
 
 		try {
-			$stage = ( new TAAS_Application_Cycle_Repository() )->current()?->active_stage();
+			$cycle = ( new TAAS_Application_Cycle_Repository() )->current();
+			$stage = $cycle?->active_stage();
 		} catch ( RuntimeException | InvalidArgumentException $e ) {
 			TAAS_Logger::error( $e->getMessage(), array( 'route' => 'stage-gate' ) );
 
@@ -116,6 +133,10 @@ class TAAS_Stage_Gate {
 				__( 'The request could not be completed.', 'taas-core' ),
 				array( 'status' => 500 )
 			);
+		}
+
+		if ( $open_once_released && true === $cycle?->matches_released() ) {
+			return null;
 		}
 
 		// Someone with several roles may continue if any one of their stages is active

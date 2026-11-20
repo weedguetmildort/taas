@@ -138,6 +138,10 @@ Admin routes work in every stage. Outside their stage, students, HR and professo
 - `GET /me` and `GET /application-cycle`, so pages can show a "closed" message
 - the student's own application routes, `GET /student/application`, `GET /student/application/terms` and `GET /student/application/{semester}/{year}`, so students can check their status after their stage
 
+Once the admin releases the current cycle's matches, these GETs also stay open in every stage, so professors can see their matches:
+
+- `GET /professor/courses` and `GET /professor/courses/{course_id}/matches`
+
 The route's own role check still applies to these. `data.stage` is the current stage, or `null` if none is active:
 
 ```json

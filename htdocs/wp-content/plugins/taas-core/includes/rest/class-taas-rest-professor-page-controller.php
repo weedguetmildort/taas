@@ -16,6 +16,7 @@ defined( 'ABSPATH' ) || exit;
  *   GET  /professor/courses/{course_id}/applications      applicant list for a course
  *   GET  /professor/courses/{course_id}/ranking           their saved ranking and notes
  *   POST /professor/courses/{course_id}/ranking           replace the ranking (and notes)
+ *   GET  /professor/courses/{course_id}/matches           students matched to a course
  *   GET  /professor/applications/{application_id}         one applicant's full details
  *
  * Unlike the admin-only /professors resource, every route is scoped to the
@@ -24,6 +25,10 @@ defined( 'ABSPATH' ) || exit;
  * not belong to the caller, or (for an application) was withdrawn all return
  * the same 404, so the API never reveals which ids exist. No route takes or
  * returns a UFID: applicants are identified by application_id throughout.
+ *
+ * TAAS_Stage_Gate opens GET /professor/courses and the matches route in every
+ * stage once the current cycle's matches are released. Every other route here
+ * stays closed outside professor_ranking.
  */
 final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
@@ -94,7 +99,8 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 	 * Permission callback for every route here, reads and the ranking write alike.
 	 *
 	 * Professors hold the taas_instructor role in TAAS_Auth. TAAS_Stage_Gate
-	 * closes every route here, reads included, outside professor_ranking.
+	 * closes every route here, reads included, outside professor_ranking, apart
+	 * from the course list and matches once matches are released.
 	 *
 	 * @return callable Returns true or WP_Error when called.
 	 */
@@ -193,6 +199,19 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 							'maxLength'   => self::NOTES_MAX_LENGTH,
 						),
 					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/courses/' . self::COURSE_ID_PATTERN . '/matches',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_matches' ),
+					'permission_callback' => array( $this, 'professor_permissions_check' ),
+					'args'                => $course_id_arg,
 				),
 			)
 		);
@@ -351,6 +370,138 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 
 				return null === $saved ? $this->not_found() : $this->ranking_body( $saved );
 			}
+		);
+	}
+
+	/**
+	 * GET /professor/courses/{course_id}/matches: the students matched to a course.
+	 *
+	 * Each match carries what GET /professor/applications/{application_id}
+	 * returns, plus its assigned hours. Being matched to the caller's course is
+	 * what lets a professor see these details outside professor_ranking.
+	 *
+	 * Student details come from the student's submission snapshot for the
+	 * course's term, so they show what the student submitted for that term, not
+	 * their latest profile. The one exception is has_ta_experience, which the
+	 * snapshot does not capture (see the TODO on get_applicant()).
+	 *
+	 * Only the current cycle's term has released matches, so a course in any
+	 * other term gets taas_matches_not_released, as does every course until the
+	 * admin releases them. This applies in every stage, including
+	 * professor_ranking, when TAAS_Stage_Gate already lets professors in.
+	 *
+	 * @param WP_REST_Request $request Current request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_matches( $request ) {
+		return $this->respond(
+			function () use ( $request ) {
+				$course = $this->owned_course( (int) $this->path_param( $request, 'course_id' ) );
+
+				if ( null === $course ) {
+					return $this->not_found();
+				}
+
+				$cycle = ( new TAAS_Application_Cycle_Repository() )->current();
+
+				$is_released = null !== $cycle
+					&& $cycle->matches_released()
+					&& $course->course_semester === $cycle->cycle_semester
+					&& $course->course_year === $cycle->cycle_year;
+
+				if ( ! $is_released ) {
+					return new WP_Error(
+						'taas_matches_not_released',
+						__( 'Matches for this course have not been released.', 'taas-core' ),
+						array( 'status' => 403 )
+					);
+				}
+
+				$matches = array();
+
+				foreach ( $this->applications->find_active_by_course( $course->course_id ) as $application ) {
+					if ( TAAS_Match_Status::Matched !== $application->match_status ) {
+						continue;
+					}
+
+					$submission = $this->submissions->find_by_student_and_term( $application->student_ufid, $course->course_semester, $course->course_year );
+
+					if ( null === $submission ) {
+						throw new RuntimeException( 'A matched student is missing their term submission snapshot.' );
+					}
+
+					$matches[] = $this->matched_student( $application, $submission->submitted_details );
+				}
+
+				usort(
+					$matches,
+					static fn( array $a, array $b ) => array( $a['student_name'], $a['application_id'] ) <=> array( $b['student_name'], $b['application_id'] )
+				);
+
+				return array(
+					'course_id'      => $course->course_id,
+					'course_code'    => $course->course_code,
+					'course_name'    => $course->course_name,
+					'weekly_hours'   => $course->weekly_hours,
+					'assigned_hours' => array_sum( array_column( $matches, 'assigned_hours' ) ),
+					'matches'        => $matches,
+				);
+			}
+		);
+	}
+
+	/**
+	 * One matched student, in the shape of GET /professor/applications/{application_id}
+	 * plus assigned_hours, read from their term submission snapshot.
+	 *
+	 * @param TAAS_Application $application Matched application.
+	 * @param array            $details     The snapshot's submitted_details.
+	 * @return array<string, mixed>
+	 * @throws RuntimeException If the snapshot holds an invalid value, or the profile query fails.
+	 */
+	private function matched_student( TAAS_Application $application, array $details ): array {
+		$profile     = (array) ( $details['profile'] ?? array() );
+		$backgrounds = array_values( (array) ( $details['academic_background'] ?? array() ) );
+
+		// The first entry is the current or most recent degree, as on the applicant list.
+		$current = (array) ( $backgrounds[0] ?? array() );
+
+		// Most recent degree first, as on GET /professor/applications/{application_id}.
+		usort(
+			$backgrounds,
+			static fn( array $a, array $b ) => (string) ( $b['grad_date'] ?? '' ) <=> (string) ( $a['grad_date'] ?? '' )
+		);
+
+		return array(
+			'application_id'       => $application->application_id,
+			'student_email'        => (string) ( $details['student_email'] ?? '' ),
+			'student_name'         => (string) ( $details['student_name'] ?? '' ),
+			'major'                => TAAS_Cast::string_or_null( $current['major'] ?? null ),
+			'gpa'                  => TAAS_Cast::float_or_null( $current['gpa'] ?? null ),
+			'enrollment_status'    => TAAS_Cast::enum_or_null( TAAS_Enrollment_Status::class, $profile['enrollment_status'] ?? null )?->label(),
+			'has_taken_course'     => $application->has_taken_course,
+			// The snapshot has no TA experience, so this is the student's current profile.
+			'has_ta_experience'    => $this->profiles->find( $application->student_ufid )?->has_ta_experience ?? false,
+			'has_ta_for_course'    => $application->has_ta_for_course,
+			'academic_background'  => array_map(
+				static fn( array $background ) => array(
+					'university'  => (string) ( $background['university'] ?? '' ),
+					'degree_type' => TAAS_Cast::enum_or_null( TAAS_Degree_Type::class, $background['degree_type'] ?? null )?->label(),
+					'major'       => TAAS_Cast::string_or_null( $background['major'] ?? null ),
+					'minor'       => '' === ( $background['minor'] ?? '' ) ? null : (string) $background['minor'],
+					'grad_date'   => (string) ( $background['grad_date'] ?? '' ),
+				),
+				$backgrounds
+			),
+			'country_code'         => TAAS_Cast::string_or_null( $profile['country_code'] ?? null ),
+			'eap5836_status'       => TAAS_Cast::enum_or_null( TAAS_Course_Taken_Status::class, $profile['eap5836_status'] ?? null )?->label(),
+			'eap5837_status'       => TAAS_Cast::enum_or_null( TAAS_Course_Taken_Status::class, $profile['eap5837_status'] ?? null )?->label(),
+			'resume_url'           => TAAS_Cast::string_or_null( $profile['resume_url'] ?? null ),
+			'english_test_score'   => TAAS_Cast::int_or_null( $profile['english_test_score'] ?? null ),
+			'student_statement'    => $application->student_statement,
+			'fws_eligibility'      => TAAS_Cast::string_or_null( $profile['fws_eligibility'] ?? null ) ?? 'no',
+			'fws_award_letter_url' => TAAS_Cast::string_or_null( $profile['fws_award_letter_url'] ?? null ),
+			'assigned_hours'       => $application->assigned_hours,
 		);
 	}
 
