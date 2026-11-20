@@ -95,6 +95,8 @@ class TypesTest extends TestCase {
 				'additional_info',
 				'fws_eligibility',
 				'fws_award_letter_url',
+				'advisor_name',
+				'advisor_email',
 			),
 			array_keys( $row )
 		);

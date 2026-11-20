@@ -35,6 +35,8 @@ final class TAAS_Student_Profile {
 	 * @param string|null                   $additional_info   Notes from the student for professors and HR.
 	 * @param string                        $fws_eligibility   Yes, no, or not_applicable; defaults to no.
 	 * @param string|null                   $fws_award_letter_url Link to the FWS award letter, separate from the resume.
+	 * @param string|null                   $advisor_name      Current advisor name.
+	 * @param string|null                   $advisor_email     Current advisor email.
 	 * @throws InvalidArgumentException If the UFID, GPA or country code is invalid.
 	 */
 	public function __construct(
@@ -54,6 +56,8 @@ final class TAAS_Student_Profile {
 		public readonly ?string $additional_info = null,
 		public readonly string $fws_eligibility = 'no',
 		public readonly ?string $fws_award_letter_url = null,
+		public readonly ?string $advisor_name = null,
+		public readonly ?string $advisor_email = null,
 	) {
 		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
 		TAAS_Guard::gpa( $gpa );
@@ -88,6 +92,8 @@ final class TAAS_Student_Profile {
 			additional_info: TAAS_Cast::string_or_null( $r['additional_info'] ?? null ),
 			fws_eligibility: TAAS_Cast::string_or_null( $r['fws_eligibility'] ?? null ) ?? 'no',
 			fws_award_letter_url: TAAS_Cast::string_or_null( $r['fws_award_letter_url'] ?? null ),
+			advisor_name: TAAS_Cast::string_or_null( $r['advisor_name'] ?? null ),
+			advisor_email: TAAS_Cast::string_or_null( $r['advisor_email'] ?? null ),
 		);
 	}
 
@@ -114,6 +120,8 @@ final class TAAS_Student_Profile {
 			'additional_info'      => $this->additional_info,
 			'fws_eligibility'      => $this->fws_eligibility,
 			'fws_award_letter_url' => $this->fws_award_letter_url,
+			'advisor_name'         => $this->advisor_name,
+			'advisor_email'        => $this->advisor_email,
 		);
 	}
 }

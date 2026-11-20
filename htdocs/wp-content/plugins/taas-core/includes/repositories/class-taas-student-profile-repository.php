@@ -14,6 +14,32 @@ defined( 'ABSPATH' ) || exit;
 final class TAAS_Student_Profile_Repository extends TAAS_Repository {
 
 	/**
+	 * Change only the advisor, preserving every other shared profile field.
+	 *
+	 * @param string      $student_ufid Verified submission owner.
+	 * @param string      $advisor_name Validated advisor name.
+	 * @param string|null $advisor_email Validated advisor email.
+	 * @throws RuntimeException If persistence fails.
+	 */
+	public function save_advisor_name( string $student_ufid, string $advisor_name, ?string $advisor_email = null ): void {
+		global $wpdb;
+		TAAS_Guard::ufid( 'student_ufid', $student_ufid );
+		$sql = $wpdb->prepare(
+			'INSERT INTO %i (student_ufid, advisor_name, advisor_email) VALUES (%s, %s, NULLIF(%s, \'\')) ON DUPLICATE KEY UPDATE advisor_name = %s, advisor_email = NULLIF(%s, \'\')',
+			$this->table(),
+			$student_ufid,
+			$advisor_name,
+			$advisor_email ?? '',
+			$advisor_name,
+			$advisor_email ?? ''
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared immediately above.
+		if ( false === $wpdb->query( $sql ) ) {
+			throw new RuntimeException( 'Saving advisor name failed.' );
+		}
+	}
+
+	/**
 	 * Bare table name.
 	 *
 	 * @return string

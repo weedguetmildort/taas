@@ -9,6 +9,8 @@ CREATE TABLE `{prefix}student_profiles` (
   `resume_url` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `fws_eligibility` varchar(14) COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT 'no',
   `fws_award_letter_url` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `advisor_name` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `advisor_email` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `english_test_score` tinyint unsigned DEFAULT NULL,
   `has_ta_experience` tinyint(1) NOT NULL DEFAULT '0',
   `eap5836_status` tinyint unsigned DEFAULT NULL,

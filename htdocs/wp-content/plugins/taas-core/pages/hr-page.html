@@ -81,6 +81,15 @@
                 </select>
             </div>
             <div>
+                <label for="hr-fws-filter">Filter Applicants by FWS Eligibility</label>
+                <select id="hr-fws-filter" disabled>
+                    <option value="all">All</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                    <option value="not_applicable">N/A</option>
+                </select>
+            </div>
+            <div>
                 <label for="hr-decision-filter">Filter Applicants by Decision</label>
                 <select id="hr-decision-filter" disabled>
                     <option value="all">All Decisions</option>
@@ -92,15 +101,21 @@
         </div>
 
         <div class="applicants-section">
-            <h3>Current Applicants</h3>
+            <div class="hr-applicants-heading">
+                <h3>Current Applicants</h3>
+                <span class="hr-unsaved-count" data-hr-unsaved-count role="status" hidden></span>
+            </div>
             <p data-hr-applicants-status role="status">Loading applicants…</p>
             <div class="hr-table-wrapper" data-hr-applicants-table hidden>
                 <table class="hr-applicant-table">
                     <thead>
                         <tr>
+                            <th scope="col">Row</th>
                             <th scope="col">Applicant Name</th>
+                            <th scope="col">UFID</th>
                             <th scope="col">View Application</th>
                             <th scope="col">Student Type</th>
+                            <th scope="col">FWS eligibility</th>
                             <th scope="col">GPA</th>
                             <th scope="col">SPEAK / TOEFL iBT Score</th>
                             <th scope="col">Country of Origin</th>
@@ -111,11 +126,26 @@
                     <tbody></tbody>
                 </table>
             </div>
+            <nav class="hr-pagination" aria-label="Applicant pagination" data-hr-pagination hidden>
+                <label for="hr-page-size">Applicants per page
+                    <select id="hr-page-size">
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                    </select>
+                </label>
+                <span data-hr-page-status role="status"></span>
+                <button type="button" data-hr-previous-page>Previous</button>
+                <button type="button" data-hr-next-page>Next</button>
+            </nav>
             <template data-hr-applicant-row>
                 <tr class="student-row">
+                    <td data-row-number></td>
                     <td data-name></td>
+                    <td data-ufid></td>
                     <td><button type="button" class="view-button" aria-haspopup="dialog" aria-controls="hr-application-details">View</button></td>
                     <td data-student-type></td>
+                    <td data-fws-eligibility></td>
                     <td data-gpa></td>
                     <td data-score></td>
                     <td data-country></td>
@@ -129,7 +159,7 @@
                     </td>
                 </tr>
                 <tr class="hr-comment-row" hidden>
-                    <td colspan="8">
+                    <td colspan="11">
                         <div class="hr-comment-panel">
                             <label class="hr-review-comment">
                                 <span class="hr-review-comment-label">Comment <span>(optional)</span></span>

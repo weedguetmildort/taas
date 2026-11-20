@@ -92,6 +92,7 @@ try {
 	$cycles->save( new TAAS_Application_Cycle( TAAS_Semester::Spring, 2026, $open ) );
 	$expected = array(
 		'submission_id'      => (string) $spring_id,
+		'student_ufid'       => $ufid,
 		'decision'           => null,
 		'version'            => 0,
 		'comment'            => null,
@@ -101,6 +102,8 @@ try {
 		'english_test_score' => null,
 		'country_code'       => 'US',
 		'advisor_name'       => 'Dr. Example',
+		'advisor_email'      => null,
+		'fws_eligibility'    => null,
 	);
 	foreach ( array( 'hr', 'admin' ) as $role ) {
 		$response = taas_hr_applicants_get( $role );
@@ -113,6 +116,8 @@ try {
 		$detail = taas_hr_applicants_get( $role, $spring_id );
 		$saved  = $detail->get_data()['details'] ?? array();
 		taas_hr_applicants_check( 200 === $detail->get_status() && 'Submitted Spring name' === $saved['student_name'], 'Expected the selected term snapshot.' );
+		taas_hr_applicants_check( $ufid === $saved['student_ufid'], 'Expected the verified submission owner UFID in details.' );
+		taas_hr_applicants_check( null === $saved['reviewed_by_email'], 'An unreviewed application must have no reviewer email.' );
 		taas_hr_applicants_check( 'hr-fixture@example.invalid' === $saved['student_email'] && 'US' === $saved['profile']->country_code && 3.5 === $saved['academic_background'][0]['gpa'], 'Expected submitted contact and academic fields.' );
 		taas_hr_applicants_check( 'Dr. Example' === $saved['profile']->advisor_name, 'Expected the PhD advisor from the term snapshot.' );
 		taas_hr_applicants_check( ! property_exists( $saved['profile'], 'fws_eligibility' ) && ! property_exists( $saved['profile'], 'fws_award_letter_url' ), 'PhD applicants must not expose FWS fields.' );
@@ -130,10 +135,19 @@ try {
 	taas_hr_applicants_check( 'yes' === $undergraduate->fws_eligibility && 'https://example.invalid/fws-award' === $undergraduate->fws_award_letter_url, 'Undergraduate details must include the submitted FWS information.' );
 	$rows = array_column( taas_hr_applicants_get( 'hr' )->get_data()['applicants'], null, 'submission_id' );
 	taas_hr_applicants_check( null === $rows[ $spring_id ]['advisor_name'], 'The list must omit the advisor name for an undergraduate.' );
+	taas_hr_applicants_check( 'yes' === $rows[ $spring_id ]['fws_eligibility'], 'The list must include the undergraduate submitted FWS eligibility.' );
+	foreach ( array( 'no', 'not_applicable' ) as $eligibility ) {
+		$details['profile']['fws_eligibility'] = $eligibility;
+		$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details );
+		$rows = array_column( taas_hr_applicants_get( 'hr' )->get_data()['applicants'], null, 'submission_id' );
+		taas_hr_applicants_check( $eligibility === $rows[ $spring_id ]['fws_eligibility'], 'The list must preserve each submitted FWS eligibility answer.' );
+	}
 	$details['profile']['enrollment_status'] = TAAS_Enrollment_Status::Masters->value;
 	$submissions->save_for_term( $ufid, TAAS_Semester::Spring, 2026, $details );
 	$masters = taas_hr_applicants_get( 'hr', $spring_id )->get_data()['details']['profile'];
 	taas_hr_applicants_check( ! property_exists( $masters, 'fws_eligibility' ) && ! property_exists( $masters, 'fws_award_letter_url' ), 'Master’s applicants must not expose FWS fields.' );
+	$rows = array_column( taas_hr_applicants_get( 'hr' )->get_data()['applicants'], null, 'submission_id' );
+	taas_hr_applicants_check( null === $rows[ $spring_id ]['fws_eligibility'], 'The list must omit FWS eligibility for a master’s applicant.' );
 
 	$cycles->save( new TAAS_Application_Cycle( TAAS_Semester::Spring, 2026, array() ) );
 	foreach ( array( 'hr', 'admin' ) as $role ) {

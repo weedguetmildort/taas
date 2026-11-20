@@ -40,6 +40,31 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		);
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/advisors',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_advisors' ),
+				'permission_callback' => $permission,
+				'args'                => array(
+					'page' => array(
+						'type'    => 'integer',
+						'minimum' => 1,
+						'default' => 1,
+					),
+				),
+			)
+		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<submission_id>[1-9][0-9]{0,19})/advisor',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'save_advisor' ),
+				'permission_callback' => $permission,
+			)
+		);
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/decisions',
 			array(
 				'methods'             => 'POST',
@@ -95,6 +120,108 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		}
 
 		return $this->with_open_cycle( fn( TAAS_Application_Cycle $cycle ) => $this->save_batch( $cycle, $batch ), true );
+	}
+
+	/**
+	 * Offer professor names and emails to authorized HR reviewers.
+	 *
+	 * @param WP_REST_Request $request Current request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_advisors( WP_REST_Request $request ) {
+		return $this->with_open_cycle(
+			static function () use ( $request ) {
+				$repository = new TAAS_Professor_Repository();
+				$page       = (int) $request['page'];
+				$total      = $repository->count();
+				$page_size  = TAAS_Professor_Repository::MAX_LIMIT;
+				$pages      = max( 1, (int) ceil( $total / $page_size ) );
+				$professors = $page <= $pages ? $repository->search( '', $page_size, ( $page - 1 ) * $page_size ) : array();
+				return self::private_response(
+					array(
+						'professors' => array_map(
+							static fn( TAAS_Professor $professor ) => array(
+								'professor_id'    => (string) $professor->professor_id,
+								'professor_name'  => $professor->professor_name,
+								'professor_email' => $professor->professor_email,
+							),
+							$professors
+						),
+						'pages'      => $pages,
+					)
+				);
+			}
+		);
+	}
+
+	/**
+	 * Correct a PhD applicant's term snapshot and shared profile atomically.
+	 *
+	 * @param WP_REST_Request $request Current request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function save_advisor( WP_REST_Request $request ) {
+		$body = $request->get_json_params();
+		if ( ! is_array( $body )
+			|| array_key_exists( 'professor_id', $body ) === array_key_exists( 'advisor_name', $body )
+			|| ! array_key_exists( 'expected_advisor_name', $body )
+			|| ( isset( $body['expected_advisor_email'] ) && ! is_string( $body['expected_advisor_email'] ) )
+			|| ( null !== $body['expected_advisor_name'] && ! is_string( $body['expected_advisor_name'] ) ) ) {
+			return $this->invalid_param( 'advisor_name', __( 'Select a professor or enter an advisor name, and provide the previously saved name.', 'taas-core' ) );
+		}
+		$professor_id = $body['professor_id'] ?? null;
+		$name = null;
+		$email = null;
+		if ( array_key_exists( 'advisor_name', $body ) ) {
+			if ( ! is_string( $body['advisor_name'] ) || ! preg_match( '/\A[^\r\n\x00]{1,255}\z/u', $body['advisor_name'] ) || '' === trim( $body['advisor_name'] ) ) {
+				return $this->invalid_param( 'advisor_name', __( 'Enter an advisor name of 1 to 255 characters on one line.', 'taas-core' ) );
+			}
+			$name = trim( $body['advisor_name'] );
+			if ( ! isset( $body['advisor_email'] ) || ! is_string( $body['advisor_email'] ) || strlen( $body['advisor_email'] ) > 255 || preg_match( '/[\r\n\x00]/', $body['advisor_email'] ) || ! is_email( trim( $body['advisor_email'] ) ) ) {
+				return $this->invalid_param( 'advisor_email', __( 'Enter a valid advisor email address.', 'taas-core' ) );
+			}
+			$email = trim( $body['advisor_email'] );
+		} elseif ( null !== $professor_id && ( ! is_string( $professor_id ) || ! preg_match( '/^[1-9][0-9]*$/D', $professor_id ) || (string) (int) $professor_id !== $professor_id ) ) {
+			return $this->invalid_param( 'professor_id', __( 'Select a valid professor.', 'taas-core' ) );
+		}
+		$id   = $this->path_param( $request, 'submission_id' );
+		return $this->with_open_cycle(
+			function ( TAAS_Application_Cycle $cycle ) use ( $id, $body, $professor_id, $name, $email ) {
+				if ( (string) (int) $id !== $id || ! ( new TAAS_HR_Review_Repository() )->lock_submission( (int) $id, $cycle ) ) {
+					return $this->not_found();
+				}
+				$repository = new TAAS_Student_Submission_Repository();
+				$submission = $repository->find_by_id_and_term( (int) $id, $cycle->cycle_semester, $cycle->cycle_year );
+				$details    = $submission->submitted_details;
+				if ( TAAS_Enrollment_Status::Phd->value !== ( $details['profile']['enrollment_status'] ?? null ) ) {
+					return $this->invalid_param( 'advisor_name', __( 'Only PhD applicants have an advisor name.', 'taas-core' ) );
+				}
+				if ( ( $details['profile']['advisor_name'] ?? null ) !== $body['expected_advisor_name']
+					|| ( array_key_exists( 'expected_advisor_email', $body ) && ( $details['profile']['advisor_email'] ?? null ) !== $body['expected_advisor_email'] ) ) {
+					return $this->conflict( 'taas_advisor_conflict', __( 'The advisor name has changed. Reload the application before editing it again.', 'taas-core' ) );
+				}
+				if ( TAAS_Cycle_Stage::Hr_Review !== $cycle->active_stage() ) {
+					return self::review_closed( $cycle->active_stage() );
+				}
+				$professor = null !== $professor_id ? ( new TAAS_Professor_Repository() )->find( (int) $professor_id ) : null;
+				if ( null !== $professor_id && null === $professor ) {
+					return $this->invalid_param( 'professor_id', __( 'The selected professor is no longer available.', 'taas-core' ) );
+				}
+				$name = $name ?? $professor?->professor_name ?? 'N/A';
+				$email = $email ?? $professor?->professor_email;
+				$details['profile']['advisor_name'] = $name;
+				$details['profile']['advisor_email'] = $email;
+				$repository->save_for_term( $submission->student_ufid, $cycle->cycle_semester, $cycle->cycle_year, $details );
+				( new TAAS_Student_Profile_Repository() )->save_advisor_name( $submission->student_ufid, $name, $email );
+				return self::private_response(
+					array(
+						'advisor_name'  => $name,
+						'advisor_email' => $email,
+					)
+				);
+			},
+			true
+		);
 	}
 
 	/**
@@ -171,13 +298,14 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 				409
 			);
 		}
-		$reviewer_id = TAAS_Auth::current_user()['wp_user_id'] ?? null;
+		$reviewer = TAAS_Auth::current_user();
+		$reviewer_id = $reviewer['wp_user_id'] ?? null;
 		foreach ( $batch as $id => $change ) {
 			$comment = array_key_exists( 'comment', $change ) ? $change['comment'] : $reviews[ $id ]['comment'];
 			if ( $change['decision'] === $reviews[ $id ]['decision'] && $comment === $reviews[ $id ]['comment'] ) {
 				continue;
 			}
-			$repository->save_review( $id, $change['decision'], $change['version'], $reviewer_id, $comment );
+			$repository->save_review( $id, $change['decision'], $change['version'], $reviewer_id, $comment, $reviewer['email'] ?? null );
 			$reviews[ $id ]['decision'] = $change['decision'];
 			$reviews[ $id ]['comment']  = $comment;
 			++$reviews[ $id ]['version'];
@@ -208,7 +336,14 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 				if ( null === $submission ) {
 					return $this->not_found();
 				}
-				return self::private_response( array( 'details' => self::details( $submission ) ) );
+				$details = self::details( $submission );
+				$review = ( new TAAS_HR_Review_Repository() )->find( $submission_id );
+				$email = $review?->reviewed_email;
+				if ( ! $email && $review?->reviewed_by ) {
+					$email = get_userdata( $review->reviewed_by )->user_email ?? null;
+				}
+				$details['reviewed_by_email'] = $email ? $email : null;
+				return self::private_response( array( 'details' => $details ) );
 			}
 		);
 	}
@@ -275,6 +410,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		$score   = TAAS_English_Test_Score::tryFrom( (int) ( $profile['english_test_score'] ?? 0 ) );
 		return array(
 			'submission_id'      => (string) $submission->submission_id,
+			'student_ufid'       => $submission->student_ufid,
 			'decision'           => $decision,
 			'version'            => $version,
 			'comment'            => $comment,
@@ -289,6 +425,8 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 			'english_test_score' => $score?->label(),
 			'country_code'       => $profile['country_code'] ?? null,
 			'advisor_name'       => TAAS_Enrollment_Status::Phd === $type ? ( $profile['advisor_name'] ?? null ) : null,
+			'advisor_email'      => TAAS_Enrollment_Status::Phd === $type ? ( $profile['advisor_email'] ?? null ) : null,
+			'fws_eligibility'    => TAAS_Enrollment_Status::Undergraduate === $type ? ( $profile['fws_eligibility'] ?? null ) : null,
 		);
 	}
 
@@ -305,6 +443,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		$enrollment   = $profile['enrollment_status'] ?? null;
 		if ( TAAS_Enrollment_Status::Phd->value === $enrollment ) {
 			$profile_keys[] = 'advisor_name';
+			$profile_keys[] = 'advisor_email';
 		}
 		if ( TAAS_Enrollment_Status::Undergraduate->value === $enrollment ) {
 			$profile_keys[] = 'fws_eligibility';
@@ -319,6 +458,7 @@ final class TAAS_REST_HR_Applicants_Controller extends TAAS_REST_Controller {
 		}
 		return array(
 			'student_name'        => $snapshot['student_name'] ?? null,
+			'student_ufid'        => $submission->student_ufid,
 			'student_email'       => $snapshot['student_email'] ?? null,
 			'profile'             => (object) array_intersect_key( $profile, array_flip( $profile_keys ) ),
 			'academic_background' => $degrees,

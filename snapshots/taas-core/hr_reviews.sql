@@ -4,6 +4,7 @@ CREATE TABLE `{prefix}hr_reviews` (
   `version` int unsigned NOT NULL,
   `reviewed_by` bigint unsigned DEFAULT NULL,
   `reviewed_at` datetime DEFAULT NULL,
+  `reviewed_email` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `review_comment` text COLLATE utf8mb4_unicode_520_ci,
   PRIMARY KEY (`submission_id`),
   CONSTRAINT `fk_hr_reviews_submission` FOREIGN KEY (`submission_id`) REFERENCES `{prefix}student_submissions` (`submission_id`) ON DELETE CASCADE,

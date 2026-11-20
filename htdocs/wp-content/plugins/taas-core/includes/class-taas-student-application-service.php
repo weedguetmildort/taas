@@ -184,6 +184,7 @@ final class TAAS_Student_Application_Service {
 					throw new DomainException( 'Applications are closed. Your form has not been saved.', 403 );
 				}
 				$existing_submission = $this->submissions->find_by_student_and_term( $ufid, $semester, $year );
+				$details = $this->preserve_advisor_email( $details, $existing_submission, $ufid );
 				$existing_choices  = $this->applications->find_by_student_and_term( $ufid, $semester, $year );
 				$preferences = array_column( $input['course_preferences'], null, 'course_id' );
 				if ( self::is_phd( $details ) ) {
@@ -240,6 +241,7 @@ final class TAAS_Student_Application_Service {
 					throw new DomainException( 'Your application has changed since it was loaded. Review the latest saved application before submitting again.', 409 );
 				}
 				$previous_choices_by_course = array_column( $existing_choices, null, 'applied_course_id' );
+				$details = $this->preserve_advisor_email( $details, $existing_submission, $ufid );
 				$this->validate_preferences( $input['course_preferences'], $semester, $year );
 				$selected_preferences = array_column( $input['course_preferences'], null, 'course_id' );
 				$was_phd = self::is_phd( $existing_submission->submitted_details );
@@ -403,6 +405,22 @@ final class TAAS_Student_Application_Service {
 	}
 
 	/**
+	 * Keep an HR-saved contact when a student edits unrelated application fields.
+	 *
+	 * @param array                        $details Normalized student details.
+	 * @param TAAS_Student_Submission|null $submission Existing term, if any.
+	 * @param string                       $ufid Verified owner.
+	 * @return array Details with the saved email when the advisor is unchanged.
+	 */
+	private function preserve_advisor_email( array $details, ?TAAS_Student_Submission $submission, string $ufid ): array {
+		$previous = $submission?->submitted_details['profile'] ?? $this->profiles->find( $ufid )?->to_row() ?? array();
+		if ( self::is_phd( $details ) && ( $details['profile']['advisor_name'] ?? null ) === ( $previous['advisor_name'] ?? null ) && array_key_exists( 'advisor_email', $previous ) ) {
+			$details['profile']['advisor_email'] = $previous['advisor_email'];
+		}
+		return $details;
+	}
+
+	/**
 	 * Save validated shared profile/background details inside the caller's transaction.
 	 *
 	 * @param string $ufid Verified authenticated owner.
@@ -424,6 +442,8 @@ final class TAAS_Student_Application_Service {
 			resume_url: $profile_data['resume_url'],
 			fws_eligibility: $profile_data['fws_eligibility'],
 			fws_award_letter_url: $profile_data['fws_award_letter_url'],
+			advisor_name: $profile_data['advisor_name'],
+			advisor_email: $profile_data['advisor_email'] ?? null,
 			english_test_score: TAAS_English_Test_Score::from( $profile_data['english_test_score'] ),
 			has_ta_experience: $previous_profile?->has_ta_experience ?? false,
 			eap5836_status: TAAS_Course_Taken_Status::from( $profile_data['eap5836_status'] ),

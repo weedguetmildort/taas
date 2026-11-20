@@ -62,11 +62,17 @@ try {
 				'version'       => $version,
 			);
 			$comment = array( 'comment' => "First line\nSecond line" );
+			$detail_request = static fn( string $id ) => rest_do_request( new WP_REST_Request( 'GET', '/taas/v1/hr/applicants/' . $id ) )->get_data()['details'];
+			$_GET['taas_role'] = 'hr';
+			taas_hr_review_check( null === $detail_request( $ids[1] )['reviewed_by_email'], 'Unreviewed applications must have no reviewer email.' );
 			$approve = $change( $ids[1], 'approve', 0 ) + $comment;
-			$saved   = taas_hr_review_post( array( $approve ) );
+			$saved   = taas_hr_review_post( array( $approve + array( 'reviewed_email' => 'spoofed@example.invalid' ) ) );
 			taas_hr_review_check( 200 === $saved->get_status(), 'First reviewer should save successfully.' );
 			taas_hr_review_check( $change( $ids[1], 'approve', 1 ) + $comment === $saved->get_data()['reviews'][0], 'First save should return the saved comment and version one.' );
 			taas_hr_review_check( array( 2, 1, 1 ) === array_values( $saved->get_data()['progress'] ), 'First approval should count once.' );
+			taas_hr_review_check( 'test.hr@ufl.edu' === $detail_request( $ids[1] )['reviewed_by_email'], 'The reviewer email must come from the authenticated HR user, not the payload.' );
+			$initial_review = ( new TAAS_HR_Review_Repository() )->find( $ids[1] );
+			taas_hr_review_check( 'test.hr@ufl.edu' === $initial_review->reviewed_email && null !== $initial_review->reviewed_at, 'Reviewer email and timestamp must be persisted.' );
 
 			$other = $change( $ids[0], 'reject', 0 );
 			$stale = taas_hr_review_post( array( $other, $change( $ids[1], 'reject', 0 ) ), 'admin' );
@@ -86,12 +92,14 @@ try {
 
 			$revision = taas_hr_review_post( array( $other, $change( $ids[1], 'reject', 1 ) ), 'admin' );
 			taas_hr_review_check( 200 === $revision->get_status() && array( 2, 2, 0 ) === array_values( $revision->get_data()['progress'] ), 'A revision and another applicant should save together with accurate totals.' );
+			taas_hr_review_check( 'test.admin@ufl.edu' === $detail_request( $ids[1] )['reviewed_by_email'], 'A revised decision must show the latest reviewer email.' );
 			$list = rest_do_request( new WP_REST_Request( 'GET', '/taas/v1/hr/applicants' ) )->get_data();
 			taas_hr_review_check( array( 1, 2 ) === array_column( $list['applicants'], 'version' ) && array( 'reject', 'reject' ) === array_column( $list['applicants'], 'decision' ), 'A fresh list must return both saved decisions.' );
 			taas_hr_review_check( $revision->get_data()['progress'] === $list['progress'], 'A fresh list must return the saved progress.' );
 			taas_hr_review_check( $comment['comment'] === $list['applicants'][1]['comment'], 'A decision update that omits the comment must preserve it.' );
 			$cleared = taas_hr_review_post( array( $change( $ids[1], 'reject', 2 ) + array( 'comment' => null ) ) );
 			taas_hr_review_check( $change( $ids[1], 'reject', 3 ) + array( 'comment' => null ) === $cleared->get_data()['reviews'][0], 'Clearing a comment must advance the version without changing the decision.' );
+			taas_hr_review_check( 'test.hr@ufl.edu' === $detail_request( $ids[1] )['reviewed_by_email'], 'A saved comment change must update the latest reviewer email.' );
 
 			$reviews = new TAAS_HR_Review_Repository();
 			$submissions->save_for_term( '99999017', $cycle->cycle_semester, $cycle->cycle_year, array( 'student_name' => 'Updated fixture' ) );

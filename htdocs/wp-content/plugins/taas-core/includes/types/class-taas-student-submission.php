@@ -44,7 +44,7 @@ final class TAAS_Student_Submission {
 	 *     eap5836_status: int, eap5837_status: int,
 	 *     resume_url: string|null, additional_info: string,
 	 *     fws_eligibility?: string|null, fws_award_letter_url?: string|null,
-	 *     english_test_score?: int|null, advisor_name?: string
+	 *     english_test_score?: int|null, advisor_name?: string, advisor_email?: string|null
 	 *   },
 	 *   academic_background: list<array{
 	 *     university: string, degree_type: int, major: string, minor: string,

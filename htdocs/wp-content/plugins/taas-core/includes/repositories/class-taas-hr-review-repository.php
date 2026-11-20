@@ -102,11 +102,12 @@ final class TAAS_HR_Review_Repository extends TAAS_Repository {
 	 * @param int         $version     Expected version.
 	 * @param int|null    $reviewer_id WordPress user ID, or null for a local mock user.
 	 * @param string|null $comment     Private HR comment.
+	 * @param string|null $reviewer_email Authenticated reviewer's email.
 	 * @throws RuntimeException If the expected row was not updated.
 	 */
-	public function save_review( int $id, string $decision, int $version, ?int $reviewer_id, ?string $comment ): void {
+	public function save_review( int $id, string $decision, int $version, ?int $reviewer_id, ?string $comment, ?string $reviewer_email = null ): void {
 		global $wpdb;
-		$review = new TAAS_HR_Review( $id, $decision, $version + 1, $reviewer_id, current_time( 'mysql', true ), $comment );
+		$review = new TAAS_HR_Review( $id, $decision, $version + 1, $reviewer_id, current_time( 'mysql', true ), $comment, $reviewer_email );
 		if ( 0 === $version ) {
 			$this->insert( $review );
 			return;
@@ -121,7 +122,7 @@ final class TAAS_HR_Review_Repository extends TAAS_Repository {
 				'submission_id' => $id,
 				'version'       => $version,
 			),
-			array( '%s', '%d', '%d', '%s', '%s' ),
+			array( '%s', '%d', '%d', '%s', '%s', '%s' ),
 			array( '%d', '%d' )
 		);
 		if ( 1 !== $updated ) {
