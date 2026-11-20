@@ -40,7 +40,7 @@ final class TAAS_Application_Period {
 			'semester'  => $cycle->cycle_semester->value,
 			'year'      => $cycle->cycle_year,
 			'label'     => $cycle->cycle_semester->label() . ' ' . $cycle->cycle_year,
-			'is_open'   => TAAS_Cycle_Stage::Student_Application === $cycle->active_stage(),
+			'is_open'   => $cycle->is_stage_active( TAAS_Cycle_Stage::Student_Application ),
 			'closes_at' => $deadline?->getTimestamp(),
 		);
 	}

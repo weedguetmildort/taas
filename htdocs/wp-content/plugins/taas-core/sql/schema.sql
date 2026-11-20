@@ -38,6 +38,8 @@ CREATE TABLE {prefix}student_profiles (
 	resume_url varchar(255) DEFAULT NULL,               -- url to something like google docs
 	fws_eligibility varchar(14) NOT NULL DEFAULT 'no',  -- yes, no, not_applicable; graduates/default profiles use no
 	fws_award_letter_url varchar(255) DEFAULT NULL,     -- separate from the resume; required for eligible undergraduates
+	advisor_name varchar(255) DEFAULT NULL,            -- current advisor, also captured in each submitted term
+	advisor_email varchar(255) DEFAULT NULL,           -- advisor contact saved for this student
 	english_test_score tinyint unsigned DEFAULT NULL, -- selected range 1–4; null until answered
 	has_ta_experience tinyint(1) NOT NULL DEFAULT 0,
 	eap5836_status tinyint unsigned DEFAULT NULL,       -- 1 = taken, 2 = enrolled, 3 = not yet taken, 4 = N/A
@@ -88,6 +90,7 @@ CREATE TABLE {prefix}hr_reviews (
 	version int unsigned NOT NULL,
 	reviewed_by bigint(20) unsigned DEFAULT NULL,
 	reviewed_at datetime DEFAULT NULL,
+	reviewed_email varchar(255) DEFAULT NULL,
 	review_comment text,
 	PRIMARY KEY  (submission_id)
 );

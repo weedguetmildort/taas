@@ -103,7 +103,7 @@ class ApplicationPeriodTest extends TestCase {
 		$this->assertSame( gmmktime( 0, 0, 0, 2, 1, 2020 ), $result['closes_at'] );
 	}
 
-	public function test_a_later_stage_closes_applications(): void {
+	public function test_a_later_stage_does_not_close_open_applications(): void {
 		$this->set_cycle(
 			array(
 				'student_application_start_at' => '2020-01-01 00:00:00',
@@ -111,7 +111,7 @@ class ApplicationPeriodTest extends TestCase {
 			)
 		);
 
-		$this->assertFalse( TAAS_Application_Period::current()['is_open'] );
+		$this->assertTrue( TAAS_Application_Period::current()['is_open'] );
 	}
 
 	public function test_a_future_start_is_not_yet_open(): void {

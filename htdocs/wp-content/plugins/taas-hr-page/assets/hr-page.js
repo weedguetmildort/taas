@@ -16,7 +16,7 @@
         return text.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
     }
 
-    async function request(endpoint, { signal, decisions } = {}) {
+    async function request(endpoint, { signal, body } = {}) {
         const nonce = window.TAASHrPage?.nonce;
         if (!endpoint || !nonce) {
             throw new Error("Missing HR request configuration.");
@@ -31,12 +31,12 @@
         const timeout = setTimeout(cancel, REQUEST_TIMEOUT_MS);
         try {
             const response = await fetch(endpoint, {
-                method: decisions ? "POST" : "GET",
+                method: body === undefined ? "GET" : "POST",
                 credentials: "same-origin",
                 cache: "no-store",
                 signal: controller.signal,
-                headers: { "X-WP-Nonce": nonce, ...(decisions ? { "Content-Type": "application/json" } : {}) },
-                body: decisions ? JSON.stringify({ decisions }) : undefined
+                headers: { "X-WP-Nonce": nonce, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+                body: body === undefined ? undefined : JSON.stringify(body)
             });
             return { response, data: await response.json() };
         } finally {
@@ -62,8 +62,18 @@
             }
 
             term.textContent = `${cycle.term} ${cycle.year}`;
-            const isOpen = cycle.stage === "hr_review";
-            status.textContent = isOpen ? "HR review is open." : "HR review is closed.";
+            const isOpen = (cycle.stages ?? [cycle.stage]).includes("hr_review");
+            const endAt = cycle.stage_dates?.hr_review?.end_at;
+            const deadline = typeof endAt === "string" ? new Date(endAt) : null;
+            const closingTime = deadline && Number.isFinite(deadline.getTime())
+                ? new Intl.DateTimeFormat("en-US", {
+                    timeZone: "America/New_York", month: "long", day: "numeric", year: "numeric",
+                    hour: "numeric", minute: "2-digit", timeZoneName: "short"
+                }).format(deadline)
+                : null;
+            status.textContent = isOpen
+                ? closingTime ? `HR review is open until ${closingTime}.` : "HR review is open."
+                : "HR review is closed.";
             return isOpen;
         } catch {
             status.textContent = "The current application cycle could not be loaded. Reload the page to try again.";
@@ -104,13 +114,19 @@
     async function loadApplicants(review, cycleTerm, cycleStatus) {
         const filter = review.querySelector("#student-type-filter");
         const decisionFilter = review.querySelector("#hr-decision-filter");
+        const fwsFilter = review.querySelector("#hr-fws-filter");
         const search = review.querySelector("#hr-applicant-search");
         const status = review.querySelector("[data-hr-applicants-status]");
         const table = review.querySelector("[data-hr-applicants-table]");
         const rows = table?.querySelector("tbody");
         const template = review.querySelector("[data-hr-applicant-row]");
         const dialog = review.querySelector("#hr-application-details");
-        if (!filter || !decisionFilter || !search || !status || !rows || !template || !dialog) {
+        const pagination = review.querySelector("[data-hr-pagination]");
+        const pageSize = pagination?.querySelector("#hr-page-size");
+        const pageStatus = pagination?.querySelector("[data-hr-page-status]");
+        const previousPage = pagination?.querySelector("[data-hr-previous-page]");
+        const nextPage = pagination?.querySelector("[data-hr-next-page]");
+        if (!filter || !decisionFilter || !fwsFilter || !search || !status || !rows || !template || !dialog || !pageSize || !pageStatus || !previousPage || !nextPage) {
             return;
         }
 
@@ -128,22 +144,31 @@
             }
             cycleTerm.textContent = `${data.term} ${data.year}`;
             renderProgress(review, data.progress);
+            const unsavedCount = review.querySelector("[data-hr-unsaved-count]");
+            if (unsavedCount) {
+                unsavedCount.hidden = false;
+                unsavedCount.textContent = "0 unsaved applicants";
+            }
             if (data.applicants.length === 0) {
                 status.textContent = "No applications have been submitted for this cycle.";
                 return;
             }
 
             const types = { undergrad: "Undergraduate", masters: "Master’s", phd: "PhD" };
+            const fws = { yes: "Yes", no: "No", not_applicable: "N/A" };
             const entries = data.applicants.map((applicant, index) => {
-                const { submission_id, name, student_type, gpa, english_test_score, country_code, advisor_name, decision, version, comment } = applicant;
+                const { submission_id, student_ufid, name, student_type, fws_eligibility, gpa, english_test_score, country_code, advisor_name, advisor_email, decision, version, comment } = applicant;
                 const fragment = template.content.cloneNode(true);
                 const [row, commentRow] = fragment.children;
                 row.querySelector("[data-name]").textContent = name ?? "—";
+                row.querySelector("[data-ufid]").textContent = student_ufid ?? "—";
                 row.querySelector("[data-student-type]").textContent = types[student_type] ?? "—";
+                row.querySelector("[data-fws-eligibility]").textContent = student_type === "undergrad"
+                    ? fws[fws_eligibility] ?? "-"
+                    : "-";
                 row.querySelector("[data-gpa]").textContent = gpa ?? "—";
                 row.querySelector("[data-score]").textContent = english_test_score ?? "—";
                 row.querySelector("[data-country]").textContent = countryName(country_code) ?? "—";
-                row.querySelector(".phd-only").textContent = advisor_name || "—";
                 const button = row.querySelector(".view-button");
                 const radios = Array.from(row.querySelectorAll('input[type="radio"]'));
                 const commentToggle = row.querySelector(".hr-comment-toggle");
@@ -156,7 +181,17 @@
                     radio.name = `hr-decision-${index}`;
                     radio.checked = radio.value === decision;
                 }
-                const entry = { row, button, name, searchName: normalizeSearch(row.querySelector("[data-name]").textContent), type: student_type, submissionId: submission_id, decision, version, radios, commentRow, commentToggle, commentInput, comment: comment ?? null };
+                const entry = { row, button, name, ufid: student_ufid, searchName: normalizeSearch(row.querySelector("[data-name]").textContent), type: student_type, fwsEligibility: student_type === "undergrad" ? fws_eligibility : null, submissionId: submission_id, decision, version, radios, commentRow, commentToggle, commentInput, comment: comment ?? null };
+                const advisorCell = row.querySelector(".phd-only");
+                if (student_type === "phd") {
+                    entry.advisorEditor = createAdvisorEditor(advisor_name ?? null, submission_id, () => {
+                        review.hidden = true;
+                        cycleStatus.textContent = "HR review is closed.";
+                    }, undefined, advisor_email ?? null);
+                    advisorCell.replaceChildren(entry.advisorEditor.element);
+                } else {
+                    advisorCell.textContent = "—";
+                }
                 commentToggle.addEventListener("click", () => {
                     setCommentOpen(entry, commentToggle.getAttribute("aria-expanded") === "false");
                     if (!commentRow.hidden) {
@@ -167,11 +202,16 @@
                 return entry;
             });
 
+            const ordered = [...entries].sort((first, second) =>
+                (first.ufid ?? "").localeCompare(second.ufid ?? "", "en", { numeric: true }));
+            let currentPage = 1;
+            const columnCount = table.querySelectorAll("thead th").length;
+
             function orderApplicants() {
-                const ordered = [...entries].sort((first, second) =>
-                    Number(first.decision !== null) - Number(second.decision !== null));
                 let next = rows.firstElementChild;
+                let rowNumber = 0;
                 for (const { row, commentRow } of ordered) {
+                    row.querySelector("[data-row-number]").textContent = ++rowNumber;
                     for (const item of [row, commentRow]) {
                         if (item === next) {
                             next = next.nextElementSibling;
@@ -197,7 +237,7 @@
                     title.textContent = entry.name ? `${entry.name} – Application` : "Application details";
                     entry.button.focus();
                     dialog.showModal();
-                    loadApplicantDetails(entry.submissionId, dialog, review, cycleStatus, detailsRequest.signal);
+                    loadApplicantDetails(entry.submissionId, dialog, review, cycleStatus, detailsRequest.signal, entry.advisorEditor);
                 });
             }
 
@@ -205,46 +245,69 @@
                 const query = normalizeSearch(search.value);
                 const hideAdvisor = filter.value === "masters" || filter.value === "undergrad";
                 table.classList.toggle("hide-advisor", hideAdvisor);
-                let hasMatches = false;
-                for (const entry of entries) {
+                const matches = ordered.filter(entry => {
                     const matchesType = filter.value === "all" || entry.type === filter.value;
                     const matchesDecision = decisionFilter.value === "all" || (entry.decision ?? "none") === decisionFilter.value;
+                    const matchesFws = fwsFilter.value === "all" || entry.fwsEligibility === fwsFilter.value;
                     const matchesName = entry.searchName.includes(query);
-                    entry.row.hidden = !matchesType || !matchesDecision || !matchesName;
-                    entry.commentRow.cells[0].colSpan = hideAdvisor ? 7 : 8;
+                    return matchesType && matchesDecision && matchesFws && matchesName;
+                });
+                const size = Number(pageSize.value);
+                const pageCount = Math.max(1, Math.ceil(matches.length / size));
+                currentPage = Math.max(1, Math.min(currentPage, pageCount));
+                const start = (currentPage - 1) * size;
+                const visible = new Set(matches.slice(start, start + size));
+                for (const entry of entries) {
+                    entry.row.hidden = !visible.has(entry);
+                    entry.commentRow.cells[0].colSpan = columnCount - Number(hideAdvisor);
                     entry.commentRow.hidden = entry.row.hidden || entry.commentToggle.getAttribute("aria-expanded") === "false";
-                    hasMatches ||= !entry.row.hidden;
                 }
+                const hasMatches = matches.length > 0;
                 table.hidden = !hasMatches;
+                pagination.hidden = !hasMatches;
+                previousPage.disabled = currentPage === 1;
+                nextPage.disabled = currentPage === pageCount;
+                pageStatus.textContent = hasMatches
+                    ? `${start + 1}–${Math.min(start + size, matches.length)} of ${matches.length} applicants · Page ${currentPage} of ${pageCount}`
+                    : "";
                 status.textContent = hasMatches ? "" : query
                     ? "No applicants match your search and filters."
                     : "No applicants match the selected filters.";
             }
 
-            function refreshApplicants() {
-                orderApplicants();
-                filterApplicants();
-            }
-
-            refreshApplicants();
+            orderApplicants();
+            filterApplicants();
             filter.disabled = false;
             decisionFilter.disabled = false;
+            fwsFilter.disabled = false;
             search.disabled = false;
-            const updateSubmitButton = initializeReviewSave(review, entries, cycleStatus, dialog, refreshApplicants);
+            const updateSubmitButton = initializeReviewSave(review, entries, cycleStatus, dialog, filterApplicants);
             function onFilterChange() {
+                currentPage = 1;
                 filterApplicants();
                 updateSubmitButton();
             }
 
+            function changePage(offset) {
+                currentPage += offset;
+                filterApplicants();
+                updateSubmitButton();
+            }
+
+            pageSize.addEventListener("change", onFilterChange);
+            previousPage.addEventListener("click", () => changePage(-1));
+            nextPage.addEventListener("click", () => changePage(1));
+
             filter.addEventListener("change", onFilterChange);
             decisionFilter.addEventListener("change", onFilterChange);
+            fwsFilter.addEventListener("change", onFilterChange);
             search.addEventListener("input", onFilterChange);
         } catch {
             status.textContent = "The applicant list could not be loaded. Reload the page to try again.";
         }
     }
 
-    async function loadApplicantDetails(submissionId, dialog, review, cycleStatus, signal) {
+    async function loadApplicantDetails(submissionId, dialog, review, cycleStatus, signal, tableAdvisorEditor) {
         const status = dialog.querySelector("[data-details-status]");
         const content = dialog.querySelector("[data-details-content]");
         status.textContent = "Loading application details…";
@@ -274,6 +337,16 @@
                 throw new Error("Invalid applicant detail response.");
             }
             renderApplicantDetails(content, data.details);
+            if (data.details.profile.enrollment_status === 3) {
+                tableAdvisorEditor?.setValue(data.details.profile.advisor_name ?? null, data.details.profile.advisor_email ?? null);
+                const advisorLabel = Array.from(content.querySelectorAll("dt")).find(term => term.textContent === "Advisor name");
+                const editor = createAdvisorEditor(data.details.profile.advisor_name ?? null, submissionId, () => {
+                    dialog.close();
+                    review.hidden = true;
+                    cycleStatus.textContent = "HR review is closed.";
+                }, (name, email) => tableAdvisorEditor?.setValue(name, email), data.details.profile.advisor_email ?? null);
+                advisorLabel.nextElementSibling.replaceChildren(editor.element);
+            }
             status.textContent = content.childElementCount ? "" : "No application details are available.";
         } catch {
             if (!signal.aborted) {
@@ -282,8 +355,159 @@
         }
     }
 
+    function createAdvisorEditor(initialName, submissionId, onStageClosed, onSaved = () => {}, initialEmail = null) {
+        const element = document.createElement("div");
+        element.className = "hr-advisor-editor";
+        const value = document.createElement("span");
+        value.dataset.advisorName = "";
+        const contact = document.createElement("span");
+        contact.dataset.advisorEmail = "";
+        contact.className = "hr-advisor-email";
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.textContent = "Edit";
+        edit.setAttribute("aria-label", "Edit advisor name");
+        edit.setAttribute("aria-haspopup", "dialog");
+        const message = document.createElement("span");
+        message.setAttribute("role", "status");
+        element.append(value, edit, contact, message);
+        let currentName = initialName;
+        let currentEmail = initialEmail;
+
+        function setValue(name, email = null) {
+            currentName = name;
+            currentEmail = email;
+            value.textContent = name || "N/A";
+            contact.textContent = email ?? "";
+            contact.hidden = !email;
+        }
+
+        setValue(initialName, initialEmail);
+        edit.addEventListener("click", () => {
+            message.textContent = "";
+            const expectedName = currentName;
+            const expectedEmail = currentEmail;
+            const popup = document.createElement("dialog");
+            popup.className = "hr-advisor-dialog hr-details-dialog";
+            popup.setAttribute("aria-label", "Edit advisor");
+            popup.tabIndex = -1;
+            const heading = document.createElement("h3");
+            heading.textContent = "Edit advisor";
+            const current = document.createElement("p");
+            current.textContent = `Current advisor: ${currentName || "N/A"}${currentEmail ? ` (${currentEmail})` : ""}`;
+            const form = document.createElement("form");
+            const customLabel = document.createElement("label");
+            customLabel.textContent = "Advisor name";
+            const customName = document.createElement("input");
+            customName.type = "text";
+            customName.maxLength = 255;
+            customLabel.append(customName);
+            const emailLabel = document.createElement("label");
+            emailLabel.textContent = "Advisor email";
+            const customEmail = document.createElement("input");
+            customEmail.type = "email";
+            customEmail.maxLength = 255;
+            emailLabel.append(customEmail);
+            const status = document.createElement("p");
+            status.setAttribute("role", "status");
+            const save = document.createElement("button");
+            save.type = "submit";
+            save.textContent = "Save";
+            save.disabled = true;
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.textContent = "Cancel";
+            const actions = document.createElement("div");
+            actions.className = "hr-advisor-actions";
+            actions.append(save, cancel);
+            form.append(customLabel, emailLabel, status, actions);
+            popup.append(heading, current, form);
+            document.body.append(popup);
+            let saving = false;
+            customName.value = currentName === "N/A" ? "" : currentName ?? "";
+            customEmail.value = currentEmail ?? "";
+            customName.required = customEmail.required = true;
+
+            function updateControls() {
+                customName.disabled = customEmail.disabled = cancel.disabled = saving;
+                save.disabled = saving || !customName.value.trim() || !customEmail.value.trim() || !customEmail.validity.valid;
+            }
+
+            customName.addEventListener("input", updateControls);
+            customEmail.addEventListener("input", updateControls);
+            cancel.addEventListener("click", () => popup.close());
+            popup.addEventListener("cancel", event => {
+                if (saving) {
+                    event.preventDefault();
+                }
+            });
+            popup.addEventListener("keydown", event => {
+                if (event.key === "Escape") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!saving) {
+                        popup.close();
+                    }
+                }
+            });
+            popup.addEventListener("close", () => {
+                popup.remove();
+                edit.focus();
+            }, { once: true });
+            form.addEventListener("submit", async event => {
+                event.preventDefault();
+                if (saving || save.disabled) {
+                    return;
+                }
+                saving = true;
+                const selection = { advisor_name: customName.value.trim(), advisor_email: customEmail.value.trim() };
+                updateControls();
+                status.textContent = "Saving advisor name…";
+                try {
+                    const endpoint = window.TAASHrPage.advisorEndpoint?.replace("__submission_id__", submissionId);
+                    const { response, data } = await request(endpoint, {
+                        body: { ...selection, expected_advisor_name: expectedName, expected_advisor_email: expectedEmail }
+                    });
+                    if (response.status === 403 && data?.code === "taas_stage_closed") {
+                        popup.close();
+                        onStageClosed();
+                        return;
+                    }
+                    if (!response.ok || typeof data?.advisor_name !== "string") {
+                        const validationMessage = response.status === 400
+                            ? Object.values(data?.data?.params ?? {}).find(value => typeof value === "string")
+                            : null;
+                        status.textContent = data?.code === "taas_advisor_conflict"
+                            ? "The advisor name has changed. Reload the page before editing it again."
+                            : validationMessage ?? "Advisor name could not be saved. Try again.";
+                        return;
+                    }
+                    setValue(data.advisor_name, data.advisor_email ?? null);
+                    onSaved(data.advisor_name, data.advisor_email ?? null);
+                    popup.close();
+                    message.textContent = "Advisor name saved.";
+                } catch {
+                    status.textContent = "The save could not be confirmed. Reload the page to check the advisor name.";
+                } finally {
+                    saving = false;
+                    updateControls();
+                }
+            });
+            updateControls();
+            popup.showModal();
+            customName.focus();
+        });
+        return { element, setValue };
+    }
+
     function renderApplicantDetails(content, details) {
-        const { student_name, student_email, profile, academic_background } = details;
+        const { student_name, student_ufid, student_email, profile, academic_background } = details;
+        const reviewerHeading = document.createElement("h4");
+        reviewerHeading.textContent = "Reviewed by";
+        const reviewerEmail = document.createElement("p");
+        reviewerEmail.dataset.reviewedBy = "";
+        reviewerEmail.textContent = details.reviewed_by_email || "-";
+        content.append(reviewerHeading, reviewerEmail);
         const enrollment = ["Not enrolled", "Undergraduate", "Master’s", "PhD"];
         const eap = [null, "Taken", "Currently enrolled", "Not yet taken", "N/A"];
         const english = [null, "Under 45 SPEAK / Under 23 TOEFL iBT", "45–54 SPEAK / 23–27 TOEFL iBT", "55–60 SPEAK / 28–30 TOEFL iBT", "N/A"];
@@ -296,6 +520,7 @@
 
         appendDetailGroup(content, "Student information", [
             ["Name", student_name],
+            ["UFID", student_ufid],
             ["Email", student_email],
             ["Phone", profile.phone],
             ["Country of origin", countryName(profile.country_code)],
@@ -396,6 +621,7 @@
         const saveButton = review.querySelector(".save-button");
         const message = review.querySelector("#hr-save-message");
         const hiddenNotice = review.querySelector("#hr-hidden-decisions");
+        const unsavedCount = review.querySelector("[data-hr-unsaved-count]");
         const byId = new Map(entries.map(entry => [entry.submissionId, entry]));
         const radios = entries.flatMap(entry => entry.radios);
         let saving = false;
@@ -420,6 +646,10 @@
         function updateSubmitButton() {
             const pending = pendingDecisions();
             const count = pending.length;
+            if (unsavedCount) {
+                unsavedCount.hidden = false;
+                unsavedCount.textContent = `${count} unsaved ${count === 1 ? "applicant" : "applicants"}`;
+            }
             const hiddenCount = pending.filter(decision => byId.get(decision.submission_id).row.hidden).length;
             saveButton.textContent = count > 1 ? `Submit ${count} Applications` : "Submit Decision";
             saveButton.disabled = saving || count === 0;
@@ -429,8 +659,8 @@
             }
             if (hiddenNotice) {
                 hiddenNotice.textContent = hiddenCount === 0 ? "" : hiddenCount === 1
-                    ? "1 pending decision is hidden by your search or filters."
-                    : `${hiddenCount} pending decisions are hidden by your search or filters.`;
+                    ? "1 pending decision is hidden by your search, filters, or current page."
+                    : `${hiddenCount} pending decisions are hidden by your search, filters, or current page.`;
             }
             if (count) {
                 window.addEventListener("beforeunload", warnUnsavedDecisions);
@@ -453,7 +683,7 @@
             radios.forEach(radio => { radio.disabled = true; });
             message.textContent = "Saving decisions…";
             try {
-                const { response, data } = await request(window.TAASHrPage.decisionsEndpoint, { decisions });
+                const { response, data } = await request(window.TAASHrPage.decisionsEndpoint, { body: { decisions } });
                 if (response.status === 403 && data?.code === "taas_stage_closed") {
                     dialog.close();
                     review.hidden = true;

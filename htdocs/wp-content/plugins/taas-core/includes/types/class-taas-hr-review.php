@@ -20,6 +20,7 @@ final class TAAS_HR_Review {
 	 * @param int|null    $reviewed_by   WordPress user ID when available.
 	 * @param string|null $reviewed_at   UTC timestamp when available.
 	 * @param string|null $review_comment Private HR comment.
+	 * @param string|null $reviewed_email Reviewer's email when the latest decision was saved.
 	 */
 	public function __construct(
 		public readonly int $submission_id,
@@ -28,6 +29,7 @@ final class TAAS_HR_Review {
 		public readonly ?int $reviewed_by,
 		public readonly ?string $reviewed_at,
 		public readonly ?string $review_comment = null,
+		public readonly ?string $reviewed_email = null,
 	) {}
 
 	/**
@@ -44,14 +46,15 @@ final class TAAS_HR_Review {
 			(int) $data['version'],
 			TAAS_Cast::int_or_null( $data['reviewed_by'] ),
 			TAAS_Cast::string_or_null( $data['reviewed_at'] ),
-			TAAS_Cast::string_or_null( $data['review_comment'] ?? null )
+			TAAS_Cast::string_or_null( $data['review_comment'] ?? null ),
+			TAAS_Cast::string_or_null( $data['reviewed_email'] ?? null )
 		);
 	}
 
 	/**
 	 * Serialize a review for storage.
 	 *
-	 * @return array{submission_id: int, decision: string, version: int, reviewed_by: ?int, reviewed_at: ?string, review_comment: ?string}
+	 * @return array{submission_id: int, decision: string, version: int, reviewed_by: ?int, reviewed_at: ?string, review_comment: ?string, reviewed_email: ?string}
 	 */
 	public function to_row(): array {
 		return array(
@@ -61,6 +64,7 @@ final class TAAS_HR_Review {
 			'reviewed_by'    => $this->reviewed_by,
 			'reviewed_at'    => $this->reviewed_at,
 			'review_comment' => $this->review_comment,
+			'reviewed_email' => $this->reviewed_email,
 		);
 	}
 }

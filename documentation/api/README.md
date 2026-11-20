@@ -90,7 +90,8 @@ On routes where the term is optional, send both or neither. Sending neither uses
 | `enrollment_status` | `Not enrolled`, `Undergraduate`, `Masters`, `PhD` |
 | `degree_type` | `AA`, `BS`, `MS`, `PhD` |
 | `eap5836_status`, `eap5837_status` | `Taken`, `Currently Enrolled`, `Not Yet Taken`, `N/A` |
-| `stage` | `student_application`, `hr_review`, `professor_ranking`, `admin_matching` |
+| `stage` | Latest-starting active stage, or `null`; retained for older clients |
+| `stages` | Array of all open stages: `student_application`, `hr_review`, `professor_ranking`, `admin_matching` |
 
 **Timestamps** in the application cycle are UTC, in the form `2026-11-16T04:59:59Z`. Other formats are rejected, including UTC offsets. Convert to Eastern for display, and convert Eastern input to UTC before sending. **Dates** on student records are `YYYY-MM-DD`.
 
@@ -120,7 +121,7 @@ A user can hold several roles, such as an admin who also teaches, and can use th
 
 ## Stage access
 
-A cycle is one term's run through four stages, and at most one stage is active at a time. [The application cycle](common.md#application-cycle) explains how the dates decide the stage.
+A cycle is one term's run through four stages, and several stages may be active at once. [The application cycle](common.md#application-cycle) explains how the dates decide the stage.
 
 | Order | `stage` | What happens | Who has access |
 | --- | --- | --- | --- |
@@ -129,7 +130,7 @@ A cycle is one term's run through four stages, and at most one stage is active a
 | 3 | `professor_ranking` | Professors rank students and add notes | Professors and admin |
 | 4 | `admin_matching` | Admin handles final matches | Admin only |
 
-When `stage` is `null`, or no cycle has been set, only the admin has access.
+When `stages` is empty, or no cycle has been set, only the admin has access.
 
 A caller with several roles passes this check if any one of their stages is active, and an admin always passes it. The check doesn't look at which route is called, so such a caller can also use their other roles' routes in that stage. For example, a professor who is also a student can use `/professor` routes during `student_application`.
 
@@ -138,7 +139,7 @@ Admin routes work in every stage. Outside their stage, students, HR and professo
 - `GET /me` and `GET /application-cycle`, so pages can show a "closed" message
 - the student's own application routes, `GET /student/application`, `GET /student/application/terms` and `GET /student/application/{semester}/{year}`, so students can check their status after their stage
 
-The route's own role check still applies to these. `data.stage` is the current stage, or `null` if none is active:
+The route's own role check still applies to these. `data.stage` reports the latest-starting active stage for compatibility, or `null` if none is active:
 
 ```json
 {

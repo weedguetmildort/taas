@@ -1,6 +1,6 @@
 <?php
 /**
- * Limit non-admin access to the application cycle's current stage
+ * Limit non-admin access to the application cycle's independently open stages
  *
  * @package TAAS_Core
  */
@@ -107,7 +107,8 @@ class TAAS_Stage_Gate {
 		}
 
 		try {
-			$stage = ( new TAAS_Application_Cycle_Repository() )->current()?->active_stage();
+			$cycle = ( new TAAS_Application_Cycle_Repository() )->current();
+			$stage = $cycle?->active_stage();
 		} catch ( RuntimeException | InvalidArgumentException $e ) {
 			TAAS_Logger::error( $e->getMessage(), array( 'route' => 'stage-gate' ) );
 
@@ -120,7 +121,7 @@ class TAAS_Stage_Gate {
 
 		// Someone with several roles may continue if any one of their stages is active
 		foreach ( $user['roles'] as $role ) {
-			if ( null !== $stage && ( self::ROLE_STAGES[ $role ] ?? null ) === $stage ) {
+			if ( isset( self::ROLE_STAGES[ $role ] ) && $cycle?->is_stage_active( self::ROLE_STAGES[ $role ] ) ) {
 				return null;
 			}
 		}

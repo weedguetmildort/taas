@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * $stage_dates holds only the stages that have dates, keyed by stage label, as
  * array{start_at: ?DateTimeImmutable, end_at: ?DateTimeImmutable}. All dates are UTC.
- * The active stage is not stored: active_stage() works it out from these dates.
+ * Active stages are not stored: each stage is open according to its own dates.
  */
 final class TAAS_Application_Cycle {
 
@@ -106,32 +106,55 @@ final class TAAS_Application_Cycle {
 	}
 
 	/**
-	 * The stage active at a given time.
-	 *
-	 * That is the stage with the latest start_at to have come, unless its end_at
-	 * has also come. It is not "any stage whose dates contain now": an earlier
-	 * stage with no end_at would then reopen when a later stage ended.
+	 * All stages whose own start/end window contains the given time.
 	 *
 	 * @param DateTimeImmutable|null $now Time to check; null for the real clock.
-	 * @return TAAS_Cycle_Stage|null Null if no stage is active.
+	 * @return list<TAAS_Cycle_Stage>
+	 */
+	public function active_stages( ?DateTimeImmutable $now = null ): array {
+		$now = $now ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+		return array_values(
+			array_filter(
+				TAAS_Cycle_Stage::cases(),
+				function ( TAAS_Cycle_Stage $stage ) use ( $now ) {
+					$dates = $this->stage_dates[ $stage->label() ] ?? array();
+					$start = $dates['start_at'] ?? null;
+					$end = $dates['end_at'] ?? null;
+					return null !== $start && $start <= $now && ( null === $end || $now < $end );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Whether the requested stage's own window is open.
+	 *
+	 * @param TAAS_Cycle_Stage       $stage Stage to check.
+	 * @param DateTimeImmutable|null $now Time to check; null for the real clock.
+	 * @return bool
+	 */
+	public function is_stage_active( TAAS_Cycle_Stage $stage, ?DateTimeImmutable $now = null ): bool {
+		return in_array( $stage, $this->active_stages( $now ), true );
+	}
+
+	/**
+	 * Latest-starting active stage, retained for older API consumers.
+	 * Use is_stage_active() for access checks when stages overlap.
+	 *
+	 * @param DateTimeImmutable|null $now Time to check; null for the real clock.
+	 * @return TAAS_Cycle_Stage|null
 	 */
 	public function active_stage( ?DateTimeImmutable $now = null ): ?TAAS_Cycle_Stage {
-		$now    = $now ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 		$active = null;
 		$latest = null;
-
-		foreach ( TAAS_Cycle_Stage::cases() as $stage ) {
-			$start_at = $this->stage_dates[ $stage->label() ]['start_at'] ?? null;
-
-			if ( null !== $start_at && $start_at <= $now && ( null === $latest || $start_at > $latest ) ) {
+		foreach ( $this->active_stages( $now ) as $stage ) {
+			$start = $this->stage_dates[ $stage->label() ]['start_at'];
+			if ( null === $latest || $start > $latest ) {
 				$active = $stage;
-				$latest = $start_at;
+				$latest = $start;
 			}
 		}
-
-		$end_at = null === $active ? null : ( $this->stage_dates[ $active->label() ]['end_at'] ?? null );
-
-		return null !== $end_at && $end_at <= $now ? null : $active;
+		return $active;
 	}
 
 	/**
@@ -163,6 +186,7 @@ final class TAAS_Application_Cycle {
 	 * @return array<string, mixed>
 	 */
 	public function to_response( ?DateTimeImmutable $now = null ): array {
+		$now = $now ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 		$stage_dates = array();
 
 		foreach ( TAAS_Cycle_Stage::cases() as $stage ) {
@@ -178,6 +202,7 @@ final class TAAS_Application_Cycle {
 			'term'        => $this->cycle_semester->label(),
 			'year'        => $this->cycle_year,
 			'stage'       => $this->active_stage( $now )?->label(),
+			'stages'      => array_map( static fn( TAAS_Cycle_Stage $stage ) => $stage->label(), $this->active_stages( $now ) ),
 			'stage_dates' => $stage_dates,
 		);
 	}

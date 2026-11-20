@@ -382,7 +382,7 @@ final class TAAS_REST_Matching_Controller extends TAAS_REST_Controller {
 				$cycle = ( new TAAS_Application_Cycle_Repository() )->current();
 
 				$is_open = null !== $cycle
-					&& TAAS_Cycle_Stage::Admin_Matching === $cycle->active_stage()
+					&& $cycle->is_stage_active( TAAS_Cycle_Stage::Admin_Matching )
 					&& $semester === $cycle->cycle_semester
 					&& $year === $cycle->cycle_year;
 

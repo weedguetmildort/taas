@@ -102,6 +102,21 @@ class StageGateTest extends TestCase {
 		);
 	}
 
+	public function test_overlapping_stages_allow_each_roles_own_stage(): void {
+		$this->set_stage( TAAS_Cycle_Stage::Student_Application );
+		$this->db->row['hr_review_start_at'] = '2020-02-01 00:00:00';
+		$this->db->row['professor_ranking_start_at'] = '2020-03-01 00:00:00';
+		foreach ( array( 'student', 'hr', 'instructor' ) as $role ) {
+			$_GET['taas_role'] = $role;
+			$this->assertSame( 'untouched', self::enforce() );
+		}
+		$this->db->row['hr_review_end_at'] = '2020-04-01 00:00:00';
+		$_GET['taas_role'] = 'hr';
+		$this->assertSame( 'taas_stage_closed', self::enforce()->get_error_code() );
+		$_GET['taas_role'] = 'student';
+		$this->assertSame( 'untouched', self::enforce() );
+	}
+
 	public function test_non_admins_are_closed_out_when_no_stage_is_active(): void {
 		$_GET['taas_role'] = 'student';
 		$this->set_stage( null );

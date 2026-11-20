@@ -52,7 +52,7 @@
       'ufEmail', 'countryOfOrigin', 'startSemester', 'collegeStatus', 'phone',
       'eap5836Status', 'eap5837Status', 'taHours', 'firstName', 'lastName', 'englishTestScore'
     ];
-    const optional = ['ufid', 'additionalInfo', 'advisorName', 'resumeUrl', 'fwsEligibility', 'fwsAwardLetterUrl', 'phoneCallingCode'];
+    const optional = ['ufid', 'additionalInfo', 'advisorName', 'advisorEmail', 'resumeUrl', 'fwsEligibility', 'fwsAwardLetterUrl', 'phoneCallingCode'];
     const inputs = {};
     for (const name of [...required, ...optional]) {
       const matches = [...form.elements].filter(input => input.name === name);
@@ -160,7 +160,8 @@
         fwsEligibility: profile.enrollment_status === PROGRAMS.undergraduate ? profile.fws_eligibility || '' : '',
         fwsAwardLetterUrl: profile.fws_award_letter_url || '',
         additionalInfo: profile.additional_info || '',
-        advisorName: advisorName === 'N/A' && data.can_edit !== false ? '' : advisorName
+        advisorName: advisorName === 'N/A' && data.can_edit !== false ? '' : advisorName,
+        advisorEmail: (Object.hasOwn(data, 'advisor_email') ? data.advisor_email : profile.advisor_email) ?? ''
       };
       if (editing || typeof data.student_name === 'string') {
         // Only a full name is stored; students can correct this provisional split.
@@ -212,13 +213,17 @@
         setValue('fwsEligibility', '');
         setValue('fwsAwardLetterUrl', '');
       }
-      if (!isPhd()) setValue('advisorName', '');
+      if (!isPhd()) {
+        setValue('advisorName', '');
+        setValue('advisorEmail', '');
+      }
     }
 
     function updateProgramFields() {
       updateFws();
       if (advisorSection) advisorSection.hidden = !isPhd();
       if (inputs.advisorName) inputs.advisorName.disabled = !isPhd();
+      if (inputs.advisorEmail) inputs.advisorEmail.disabled = !isPhd();
     }
 
     function validateIdentity() {
@@ -289,7 +294,7 @@
           fws_award_letter_url: read('collegeStatus') === 'undergraduate' && !['no', 'not_applicable'].includes(read('fwsEligibility')) ? read('fwsAwardLetterUrl') || null : null,
           english_test_score: score('englishTestScore'),
           additional_info: read('additionalInfo'),
-          ...(isPhd() ? { advisor_name: read('advisorName') } : {})
+          ...(isPhd() ? { advisor_name: read('advisorName'), ...(inputs.advisorEmail ? { advisor_email: read('advisorEmail') || null } : {}) } : {})
         }
       };
     }

@@ -110,6 +110,7 @@ class ApplicationCycleTest extends TestCase {
 				'term'        => 'Summer A',
 				'year'        => 2027,
 				'stage'       => 'hr_review',
+				'stages'      => array( 'hr_review' ),
 				'stage_dates' => array(
 					'student_application' => null,
 					'hr_review'           => array(
@@ -178,7 +179,7 @@ class ApplicationCycleTest extends TestCase {
 		$this->assertSame( TAAS_Cycle_Stage::Hr_Review, self::stage_at( '2026-11-20 00:00:00', $dates ) );
 	}
 
-	public function test_a_stage_with_no_end_at_runs_until_a_later_stage_starts(): void {
+	public function test_open_ended_stages_remain_active_alongside_later_stages(): void {
 		$dates = array(
 			'hr_review_start_at'         => '2026-11-16 05:00:00',
 			'professor_ranking_start_at' => '2026-11-23 05:00:00',
@@ -189,14 +190,14 @@ class ApplicationCycleTest extends TestCase {
 		$this->assertSame( TAAS_Cycle_Stage::Professor_Ranking, self::stage_at( '2026-11-24 00:00:00', $dates ) );
 	}
 
-	public function test_an_earlier_stage_with_no_end_at_does_not_reopen_when_a_later_one_ends(): void {
+	public function test_an_earlier_open_ended_stage_remains_open_after_a_later_one_ends(): void {
 		$dates = array(
 			'hr_review_start_at'         => '2026-11-16 05:00:00',
 			'professor_ranking_start_at' => '2026-11-23 05:00:00',
 			'professor_ranking_end_at'   => '2026-12-07 04:59:59',
 		);
 
-		$this->assertNull( self::stage_at( '2026-12-08 00:00:00', $dates ) );
+		$this->assertSame( TAAS_Cycle_Stage::Hr_Review, self::stage_at( '2026-12-08 00:00:00', $dates ) );
 	}
 
 	public function test_a_stage_with_no_start_at_never_starts(): void {
@@ -267,18 +268,7 @@ class ApplicationCycleTest extends TestCase {
 			'not a date'    => array( array( 'hr_review' => self::future_dates( 'tomorrow' ) ) ),
 			'null byte'     => array( array( 'hr_review' => self::future_dates( "2126-01-01T00:00:00Z\0" ) ) ),
 			'end before'    => array( array( 'hr_review' => self::future_dates( '2126-02-01T00:00:00Z', '2126-01-01T00:00:00Z' ) ) ),
-			'overlap'       => array(
-				array(
-					'hr_review'         => self::future_dates( '2126-01-01T00:00:00Z', '2126-02-01T00:00:00Z' ),
-					'professor_ranking' => self::future_dates( '2126-01-15T00:00:00Z', '2126-03-01T00:00:00Z' ),
-				),
-			),
-			'shared moment' => array(
-				array(
-					'hr_review'         => self::future_dates( '2126-01-01T00:00:00Z', '2126-02-01T00:00:00Z' ),
-					'professor_ranking' => self::future_dates( '2126-02-01T00:00:00Z', '2126-03-01T00:00:00Z' ),
-				),
-			),
+
 		);
 	}
 
@@ -296,6 +286,45 @@ class ApplicationCycleTest extends TestCase {
 		);
 
 		$this->assertInstanceOf( WP_REST_Response::class, $result );
+	}
+
+	public function test_put_and_patch_allow_overlapping_touching_and_separate_stages(): void {
+		foreach ( array( '2126-01-15T00:00:00Z', '2126-02-01T00:00:00Z', '2126-03-01T00:00:00Z' ) as $start ) {
+			$dates = array(
+				'hr_review'         => self::future_dates(),
+				'professor_ranking' => self::future_dates( $start, '2126-04-01T00:00:00Z' ),
+			);
+			$this->assertInstanceOf( WP_REST_Response::class, $this->put( array( 'stage_dates' => $dates ) ) );
+			$this->db->row = self::row(
+				array(
+					'hr_review_start_at' => '2126-01-01 00:00:00',
+					'hr_review_end_at'   => '2126-02-01 00:00:00',
+				)
+			);
+			$this->assertInstanceOf( WP_REST_Response::class, $this->patch( array( 'stage_dates' => array( 'professor_ranking' => $dates['professor_ranking'] ) ) ) );
+		}
+	}
+
+	public function test_each_stage_uses_its_own_window_during_overlap(): void {
+		$cycle = TAAS_Application_Cycle::from_row(
+			self::row(
+				array(
+					'student_application_start_at' => '2026-11-01 00:00:00',
+					'student_application_end_at'   => '2026-12-01 00:00:00',
+					'hr_review_start_at'           => '2026-11-15 00:00:00',
+					'hr_review_end_at'             => '2026-11-25 00:00:00',
+					'professor_ranking_start_at'   => '2026-11-18 00:00:00',
+				)
+			)
+		);
+		$now = new DateTimeImmutable( '2026-11-20T00:00:00Z' );
+		$this->assertSame( array( 'student_application', 'hr_review', 'professor_ranking' ), $cycle->to_response( $now )['stages'] );
+		$this->assertTrue( $cycle->is_stage_active( TAAS_Cycle_Stage::Student_Application, $now ) );
+		$this->assertTrue( $cycle->is_stage_active( TAAS_Cycle_Stage::Hr_Review, $now ) );
+		$this->assertFalse( $cycle->is_stage_active( TAAS_Cycle_Stage::Admin_Matching, $now ) );
+		$boundary = new DateTimeImmutable( '2026-11-25T00:00:00Z' );
+		$this->assertFalse( $cycle->is_stage_active( TAAS_Cycle_Stage::Hr_Review, $boundary ) );
+		$this->assertTrue( $cycle->is_stage_active( TAAS_Cycle_Stage::Student_Application, $boundary ) );
 	}
 
 	public function test_patch_needs_dates(): void {
