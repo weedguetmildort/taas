@@ -362,9 +362,13 @@ function html(editing, redesigned) {
     }));
     assert(await open(false, false, { ...fixture, courses: fiveCourses }));
     const advisorName = page.locator('[name="advisorName"]');
+    const advisorEmail = page.locator('[name="advisorEmail"]');
+    assert(await advisorEmail.isHidden());
     assert(await advisorName.isHidden());
     await page.locator('[name="collegeStatus"]').selectOption('phd');
     assert(await advisorName.isVisible());
+    assert(await advisorEmail.isVisible());
+    assert.equal(await advisorEmail.getAttribute('required'), null);
     assert.equal(await advisorName.inputValue(), '');
     assert.equal(await page.evaluate(() => window.adapter.collect()), null);
     assert.match(await page.locator('#form-message').textContent(), /exactly five courses/);
@@ -376,6 +380,12 @@ function html(editing, redesigned) {
     assert.equal(await page.evaluate(() => window.adapter.collect().course_preferences.length), 5);
     await advisorName.fill('Dr. Morgan Rivera');
     assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.advisor_name), 'Dr. Morgan Rivera');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.advisor_email), null);
+    await advisorEmail.fill('advisor@example.invalid');
+    assert.equal(await page.evaluate(() => window.adapter.collect().details.profile.advisor_email), 'advisor@example.invalid');
+    const nameBox = await advisorName.boundingBox();
+    const emailBox = await advisorEmail.boundingBox();
+    assert(Math.abs(nameBox.y - emailBox.y) < 2 && emailBox.x > nameBox.x);
     console.log('PASS: The PhD selection requires five ranked courses');
 
     const replacementCourses = [...fiveCourses, { ...fixture.courses[0], course_id: '6' }];

@@ -13,7 +13,7 @@ async function run() {
         const term = page.locator('[data-hr-cycle-term]');
         const stageResponse = stage => ({ json: { term: 'Spring', year: 2026, stage } });
         const scenarios = [
-            { response: stageResponse('hr_review'), message: 'HR review is open.', term: 'Spring 2026', open: true },
+            { response: { json: { term: 'Spring', year: 2026, stage: 'student_application', stages: ['student_application', 'hr_review'], stage_dates: { hr_review: { end_at: '2026-11-27T17:13:45Z' } } } }, message: 'HR review is open until November 27, 2026 at 12:13 PM EST.', term: 'Spring 2026', open: true },
             { response: stageResponse('student_application'), message: 'HR review is closed.', term: 'Spring 2026' },
             { response: stageResponse('professor_ranking'), message: 'HR review is closed.', term: 'Spring 2026' },
             { response: stageResponse(null), message: 'HR review is closed.', term: 'Spring 2026' },
@@ -26,19 +26,7 @@ async function run() {
             { submission_id: '71', student_ufid: '01234567', name: '<b>PhD applicant</b>', student_type: 'phd', fws_eligibility: 'yes', gpa: 3.8, country_code: 'IN', advisor_name: 'Dr. Example', decision: null, version: 0 },
             { submission_id: '72', student_ufid: '76543210', name: 'José Álvarez', student_type: 'undergrad', fws_eligibility: 'yes', gpa: null, country_code: null, decision: null, version: 0 }
         ];
-        const professorOptions = [
-            { professor_id: '101', professor_name: 'Dr. Table', professor_email: 'table@example.invalid' },
-            { professor_id: '102', professor_name: 'Dr. Popup', professor_email: 'popup@example.invalid' }
-        ];
-        let professorListFails = true;
-        await page.route(url => (url.searchParams.get('rest_route') ?? url.pathname).endsWith('/taas/v1/hr/applicants/advisors'), route => {
-            if (professorListFails) {
-                return route.fulfill({ status: 503, json: { code: 'taas_server_error' } });
-            }
-            const pageNumber = Number(new URL(route.request().url()).searchParams.get('page'));
-            return route.fulfill({ json: { professors: [professorOptions[pageNumber - 1]], pages: 2 } });
-        });
-        const advisorPicker = page.getByRole('dialog', { name: 'Select advisor', exact: true });
+        const advisorPicker = page.getByRole('dialog', { name: 'Edit advisor', exact: true });
         let advisorName = 'Dr. Example';
         let advisorEmail = null;
         let advisorSaveFails = true;
@@ -54,8 +42,8 @@ async function run() {
             }
             assert.equal(body.expected_advisor_name, advisorName);
             assert.equal(body.expected_advisor_email, advisorEmail);
-            advisorName = body.advisor_name ?? professorOptions.find(professor => professor.professor_id === body.professor_id).professor_name;
-            advisorEmail = body.advisor_name ? body.advisor_email : professorOptions.find(professor => professor.professor_id === body.professor_id).professor_email;
+            advisorName = body.advisor_name;
+            advisorEmail = body.advisor_email;
             return route.fulfill({ json: { advisor_name: advisorName, advisor_email: advisorEmail } });
         });
         const applicantList = (rows, reviewed = 0, approved = 0) => ({
@@ -166,12 +154,11 @@ async function run() {
                 assert.equal(await rows.last().getByRole('button', { name: 'Edit advisor name' }).count(), 0);
                 const tableAdvisor = rows.first().locator('.hr-advisor-editor');
                 await tableAdvisor.getByRole('button', { name: 'Edit advisor name' }).click();
-                await advisorPicker.getByText('Professors could not be loaded. Try again.').waitFor();
-                professorListFails = false;
-                await advisorPicker.getByRole('button', { name: 'Retry' }).click();
-                await advisorPicker.getByRole('listbox', { name: 'Professor', exact: true }).selectOption('102');
+                assert.equal(await advisorPicker.getByRole('combobox').count(), 0);
+                assert.equal(await advisorPicker.getByRole('listbox').count(), 0);
+                assert.equal(await advisorPicker.getByRole('textbox', { name: 'Advisor name', exact: true }).inputValue(), 'Dr. Example');
                 await page.setViewportSize({ width: 375, height: 320 });
-                await advisorPicker.getByRole('heading', { name: 'Select advisor' }).hover();
+                await advisorPicker.getByRole('heading', { name: 'Edit advisor' }).hover();
                 await page.mouse.wheel(0, 500);
                 await page.waitForFunction(() => document.querySelector('.hr-advisor-dialog')?.scrollTop > 0);
                 await advisorPicker.getByRole('button', { name: 'Cancel' }).click();
@@ -181,12 +168,11 @@ async function run() {
                 assert.equal(advisorRequests.length, 0);
                 assert.equal(await tableAdvisor.locator('[data-advisor-name]').textContent(), 'Dr. Example');
                 await tableAdvisor.getByRole('button', { name: 'Edit advisor name' }).click();
-                await advisorPicker.getByRole('searchbox', { name: 'Search professors' }).fill('table@example');
-                await advisorPicker.getByRole('listbox', { name: 'Professor', exact: true }).selectOption('101');
-                assert.equal(await advisorPicker.getByRole('option', { name: /Dr. Popup/ }).count(), 0);
+                await advisorPicker.getByRole('textbox', { name: 'Advisor name', exact: true }).fill('Dr. Table');
+                await advisorPicker.getByRole('textbox', { name: 'Advisor email' }).fill('table@example.invalid');
                 await advisorPicker.getByRole('button', { name: 'Save', exact: true }).click();
                 await advisorPicker.getByText('Advisor name could not be saved. Try again.').waitFor();
-                assert.equal(await advisorPicker.getByRole('listbox').inputValue(), '101');
+                assert.equal(await advisorPicker.getByRole('textbox', { name: 'Advisor name', exact: true }).inputValue(), 'Dr. Table');
                 advisorSaveFails = false;
                 await advisorPicker.getByRole('button', { name: 'Save', exact: true }).click();
                 await tableAdvisor.getByText('Advisor name saved.', { exact: true }).waitFor();
@@ -221,23 +207,20 @@ async function run() {
                 await advisorPicker.waitFor({ state: 'hidden' });
                 assert.ok(await dialog.evaluate(node => node.matches(':modal')));
                 await popupAdvisor.getByRole('button', { name: 'Edit advisor name' }).click();
-                await advisorPicker.getByRole('listbox', { name: 'Professor', exact: true }).selectOption('102');
+                await advisorPicker.getByRole('textbox', { name: 'Advisor name', exact: true }).fill('Dr. Popup');
+                await advisorPicker.getByRole('textbox', { name: 'Advisor email' }).fill('popup@example.invalid');
                 await advisorPicker.getByRole('button', { name: 'Save', exact: true }).click();
                 await popupAdvisor.getByText('Advisor name saved.', { exact: true }).waitFor();
                 assert.equal(await rows.first().locator('[data-advisor-name]').textContent(), 'Dr. Popup');
                 assert.deepEqual(advisorRequests.map(body => body.expected_advisor_name), ['Dr. Example', 'Dr. Example', 'Dr. Remote']);
                 await popupAdvisor.getByRole('button', { name: 'Edit advisor name' }).click();
-                const customAdvisor = advisorPicker.getByRole('textbox', { name: 'Or enter a custom advisor name' });
-                const customEmail = advisorPicker.getByRole('textbox', { name: 'Custom advisor email' });
+                const customAdvisor = advisorPicker.getByRole('textbox', { name: 'Advisor name', exact: true });
+                const customEmail = advisorPicker.getByRole('textbox', { name: 'Advisor email' });
                 await customAdvisor.fill('Dr. Custom Álvarez');
+                await customEmail.fill('');
                 assert.ok(await advisorPicker.getByRole('button', { name: 'Save', exact: true }).isDisabled());
                 await customEmail.fill('invalid-email');
                 assert.ok(await advisorPicker.getByRole('button', { name: 'Save', exact: true }).isDisabled());
-                await customEmail.fill('custom-advisor@example.invalid');
-                assert.equal(await advisorPicker.getByRole('listbox').inputValue(), '');
-                await advisorPicker.getByRole('listbox').selectOption('101');
-                assert.equal(await customAdvisor.inputValue(), '');
-                assert.equal(await customEmail.inputValue(), '');
                 await customAdvisor.fill('  Dr. Custom Álvarez  ');
                 await customEmail.fill('advisor@localhost');
                 await advisorPicker.getByRole('button', { name: 'Save', exact: true }).click();
@@ -249,7 +232,6 @@ async function run() {
                 assert.deepEqual(advisorRequests.at(-1), { advisor_name: 'Dr. Custom Álvarez', advisor_email: 'custom-advisor@example.invalid', expected_advisor_name: 'Dr. Popup', expected_advisor_email: 'popup@example.invalid' });
                 assert.ok(await tableAdvisor.locator('[data-advisor-email]').isHidden());
                 assert.ok(await popupAdvisor.getByText('custom-advisor@example.invalid', { exact: true }).isVisible());
-                professorOptions[0] = { professor_id: '101', professor_name: 'Dr. Custom Álvarez', professor_email: 'different-person@example.invalid' };
                 await popupAdvisor.getByRole('button', { name: 'Edit advisor name' }).click();
                 await page.waitForFunction(() => document.querySelector('.hr-advisor-dialog input[type="email"]')?.value === 'custom-advisor@example.invalid');
                 assert.equal(await customAdvisor.inputValue(), 'Dr. Custom Álvarez');
@@ -388,6 +370,7 @@ async function run() {
         applicantResponse = applicantList(applicants.map((row, index) => ({ ...row, decision: 'approve', version: index === 0 ? 2 : 1 })), 2, 2);
         await page.goto(portal);
         await review.getByRole('radio', { name: 'Approve' }).first().waitFor();
+        assert.equal(await page.locator('[data-hr-cycle]').textContent(), 'HR review is open.');
         assert.ok(await review.getByRole('radio', { name: 'Approve' }).first().isChecked());
         assert.equal(await review.locator('#hr-approved-count').textContent(), '2');
         for (const eligibility of ['no', 'not_applicable']) {

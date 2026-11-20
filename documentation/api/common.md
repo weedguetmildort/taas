@@ -28,7 +28,7 @@ These flags only decide what a page shows, since the server still checks each re
 
 ## Application cycle
 
-A cycle is one term's run through four stages. The admin controls the stages by setting their dates in [admin.md](admin.md#put-set-application-cycle), and the current stage is worked out from those dates on each request. One stage ending never starts the next: a stage only starts when its own `start_at` comes.
+A cycle is one term's run through four stages. The admin controls the stages by setting their dates in [admin.md](admin.md#put-set-application-cycle), and each open stage is worked out independently from those dates on each request. One stage ending never starts the next: a stage only starts when its own `start_at` comes.
 
 ### GET: current application cycle
 
@@ -45,6 +45,7 @@ A cycle is one term's run through four stages. The admin controls the stages by 
   "term": "Spring",
   "year": 2027,
   "stage": "student_application",
+  "stages": ["student_application"],
   "stage_dates": {
     "student_application": {
       "start_at": "2026-10-15T04:00:00Z",
@@ -65,12 +66,12 @@ A cycle is one term's run through four stages. The admin controls the stages by 
 
 Returns 404 `taas_no_current_cycle` if no cycle has been set.
 
-`term` and `year` fill the `<TERM> <YEAR>` headings. `stage` decides who has access, and is `null` when no stage is active.
+`term` and `year` fill the `<TERM> <YEAR>` headings. `stages` lists every currently open stage and determines access. `stage` is retained for older clients as the latest-starting active stage, or `null` if none are open. Stages may overlap or have gaps.
 
 | Field | Meaning |
 | --- | --- |
-| `start_at` | From this time, that stage is the current stage. If several stages' `start_at` have come, the latest is current. `null` means the stage never starts |
-| `end_at` | From this time, if that stage is the current one, `stage` is `null` until another stage's `start_at` comes. An earlier stage doesn't reopen. `null` means the stage has no set end, and runs until a later stage starts |
+| `start_at` | From this time, that stage is open independently of the others. `null` means the stage never starts |
+| `end_at` | At this time that stage closes, without affecting other stages. `null` leaves the stage open until its dates are changed |
 
 `stage_dates` always has all four stages. A stage's entry is `null` if it has no dates.
 

@@ -82,62 +82,29 @@ try {
 					)
 				)
 			);
-			$professor_id = ( new TAAS_Professor_Repository() )->find_or_create( 'hr-advisor-fixture@example.invalid', 'Dr. Updated' );
 			$body = array(
-				'professor_id'          => (string) $professor_id,
+				'advisor_name'          => 'Dr. Updated',
+				'advisor_email'         => 'updated@example.invalid',
 				'expected_advisor_name' => 'Dr. Original',
 			);
-			taas_advisor_check( 403 === taas_advisor_save( 'student', $id, $body )->get_status(), 'Students must not edit advisor names.' );
+			taas_advisor_check( 403 === taas_advisor_save( 'student', $id, $body )->get_status(), 'Students must not edit advisor details.' );
 			taas_advisor_check( 404 === taas_advisor_save( 'hr', $other, $body )->get_status(), 'Other terms must not be editable.' );
-			foreach ( array(
-				array(),
-				array(
-					'professor_id'          => array(),
-					'expected_advisor_name' => null,
-				),
-				array(
-					'professor_id'          => '999999999999999999999',
-					'expected_advisor_name' => null,
-				),
-			) as $invalid ) {
-				taas_advisor_check( 400 === taas_advisor_save( 'hr', $id, $invalid )->get_status(), 'Invalid advisor input must be rejected.' );
-			}
-
-			$_GET['taas_role'] = 'student';
-			taas_advisor_check( 403 === rest_do_request( new WP_REST_Request( 'GET', '/taas/v1/hr/applicants/advisors' ) )->get_status(), 'Students cannot access the HR professor picker.' );
-			$_GET['taas_role'] = 'hr';
-			$options = array();
-			for ( $page = 1, $pages = 1; $page <= $pages; ++$page ) {
-				$request = new WP_REST_Request( 'GET', '/taas/v1/hr/applicants/advisors' );
-				$request->set_query_params( array( 'page' => $page ) );
-				$response = rest_do_request( $request );
-				taas_advisor_check( 200 === $response->get_status(), 'HR must be able to load professor options.' );
-				$data = $response->get_data();
-				$pages = $data['pages'];
-				$options = array_merge( $options, $data['professors'] );
-			}
-			$selected = array_column( $options, null, 'professor_id' );
-			$request = new WP_REST_Request( 'GET', '/taas/v1/hr/applicants/advisors' );
-			$request->set_query_params( array( 'page' => PHP_INT_MAX ) );
-			$response = rest_do_request( $request );
-			taas_advisor_check( 200 === $response->get_status() && array() === $response->get_data()['professors'], 'An out-of-range professor page must return an empty list without overflowing.' );
-			taas_advisor_check( 'Dr. Updated' === $selected[ $professor_id ]['professor_name'] && ! array_key_exists( 'professor_ufid', $selected[ $professor_id ] ), 'Professor choices must expose names and emails without UFIDs.' );
 			taas_advisor_check(
 				400 === taas_advisor_save(
 					'hr',
 					$id,
 					array(
-						'professor_id'          => (string) PHP_INT_MAX,
+						'professor_id'          => '1',
 						'expected_advisor_name' => 'Dr. Original',
 					)
 				)->get_status(),
-				'Unknown professor IDs must be rejected.'
+				'Professor selection is no longer supported.'
 			);
 			$response = taas_advisor_save( 'hr', $id, $body );
 			taas_advisor_check( 200 === $response->get_status() && 'Dr. Updated' === $response->get_data()['advisor_name'], 'HR must be able to correct an advisor name.' );
 			$expected = $details;
 			$expected['profile']['advisor_name'] = 'Dr. Updated';
-			$expected['profile']['advisor_email'] = 'hr-advisor-fixture@example.invalid';
+			$expected['profile']['advisor_email'] = 'updated@example.invalid';
 			$actual = $submissions->find( $id )->submitted_details;
 			ksort( $expected['profile'] );
 			ksort( $actual['profile'] );
@@ -146,18 +113,6 @@ try {
 			taas_advisor_check( $details === $submissions->find( $other )->submitted_details, 'Other term snapshots must remain intact.' );
 			taas_advisor_check( 409 === taas_advisor_save( 'admin', $id, $body )->get_status(), 'Stale edits must return a conflict.' );
 			taas_advisor_check( 'Dr. Updated' === $profiles->find( $ufid )->advisor_name, 'Conflicts must not change the shared advisor.' );
-			taas_advisor_check(
-				200 === taas_advisor_save(
-					'admin',
-					$id,
-					array(
-						'professor_id'          => null,
-						'expected_advisor_name' => 'Dr. Updated',
-					)
-				)->get_status(),
-				'Admins must be able to clear an advisor name.'
-			);
-			taas_advisor_check( 'N/A' === $profiles->find( $ufid )->advisor_name, 'Clearing the advisor must save N/A.' );
 			foreach ( array( '', '   ', str_repeat( 'x', 256 ), "Invalid\nName", "Invalid\0Name", array() ) as $invalid_name ) {
 				taas_advisor_check(
 					400 === taas_advisor_save(
@@ -165,28 +120,16 @@ try {
 						$id,
 						array(
 							'advisor_name'          => $invalid_name,
-							'expected_advisor_name' => 'N/A',
+							'expected_advisor_name' => 'Dr. Updated',
 						)
 					)->get_status(),
 					'Invalid custom advisor names must be rejected.'
 				);
 			}
-			taas_advisor_check(
-				400 === taas_advisor_save(
-					'hr',
-					$id,
-					array(
-						'professor_id'          => (string) $professor_id,
-						'advisor_name'          => 'Ambiguous name',
-						'expected_advisor_name' => 'N/A',
-					)
-				)->get_status(),
-				'A request must not specify both a professor and a custom name.'
-			);
 			$custom = array(
 				'advisor_name'          => '  Dr. Custom Álvarez  ',
 				'advisor_email'         => 'custom-advisor@example.invalid',
-				'expected_advisor_name' => 'N/A',
+				'expected_advisor_name' => 'Dr. Updated',
 			);
 			foreach ( array( null, '', 'invalid-email', "bad\n@example.invalid", array() ) as $invalid_email ) {
 				$invalid = $custom;

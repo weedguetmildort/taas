@@ -25,7 +25,6 @@ function taas_hr_page_assets(): void {
 		'applicantsEndpoint' => rest_url( 'taas/v1/hr/applicants' ),
 		'applicantEndpoint'  => rest_url( 'taas/v1/hr/applicants/__submission_id__' ),
 		'advisorEndpoint'    => rest_url( 'taas/v1/hr/applicants/__submission_id__/advisor' ),
-		'advisorsEndpoint'   => rest_url( 'taas/v1/hr/applicants/advisors' ),
 		'decisionsEndpoint'  => rest_url( 'taas/v1/hr/applicants/decisions' ),
 	);
 	if ( TAAS_Auth::is_local_dev() ) {

@@ -72,7 +72,7 @@ Only the stages named change, and the others keep their dates.
 | Start it now | `start_at` set to the current time |
 | End it early or pause it | `end_at` set to the current time |
 | Extend or reopen it | A later `end_at` |
-| Go back to it | New dates for it, and later dates for any stage after it, since a later stage that has started stays current |
+| Go back to it | New dates for it; other stages keep their own schedules |
 | Stop it from starting | `null`, or a different `start_at` |
 
 `stage` can't be set directly, and is ignored if sent. Ending a stage early replaces its planned `end_at`, so to resume on the original schedule after a pause, send that date again.
@@ -86,7 +86,7 @@ These apply to `stage_dates` on PUT and PATCH:
 - A stage's entry has both `start_at` and `end_at`, either of which can be `null`, or is `null` itself to clear its dates.
 - Timestamps must be UTC, like `2026-11-16T04:59:59Z`.
 - `end_at` can't be before `start_at`.
-- Two stages' dates can't overlap, and a moment shared by two stages counts as overlapping. Only stages with both dates are compared.
+- Stage windows may overlap, touch, or have gaps. Each stage opens at its own start and closes at its own end (exclusive). A missing end leaves it open; a missing start never opens it.
 
 ## Courses
 
@@ -730,7 +730,7 @@ Sets every `Pending` application in the term to `Rejected`. `Matched`, `Rejected
 | Status | `code` | When |
 | --- | --- | --- |
 | 404 | `taas_no_current_cycle` | No term was sent, and no cycle has been set |
-| 409 | `taas_matching_not_open` | The current stage isn't `admin_matching`, or the term isn't the current cycle's |
+| 409 | `taas_matching_not_open` | The `admin_matching` window is closed, or the term isn't the current cycle's |
 
 `stage` being `null` isn't enough, because it is also `null` between earlier stages, before HR or professors have seen the applications. To finalize after `admin_matching` has ended, first move its `end_at` later.
 

@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  *   PUT   /application-cycle   start a new cycle, replacing the current one
  *   PATCH /application-cycle   change the dates
  *
- * Only the admin may write. The dates alone decide the active stage, so the admin
+ * Only the admin may write. The dates alone decide each active stage, so the admin
  * starts, ends or reopens a stage by changing them. One stage ending never starts
  * the next: only that stage's own start_at does.
  */
@@ -245,17 +245,14 @@ final class TAAS_REST_Application_Cycle_Controller extends TAAS_REST_Controller 
 	}
 
 	/**
-	 * Check every stage ends after it starts and no two stages overlap.
+	 * Check each bounded stage ends no earlier than it starts; overlaps are allowed.
 	 *
-	 * Only stages with both dates can overlap, since a missing date states no
-	 * time to compare. A moment shared by two stages counts as overlapping.
+	 * Stages are independent; gaps, shared boundaries and overlapping windows are valid.
 	 *
 	 * @param array $dates Dates by stage label; null entries are skipped.
 	 * @return WP_Error|null
 	 */
 	private function schedule_error( array $dates ): ?WP_Error {
-		$bounded = array();
-
 		foreach ( array_filter( $dates ) as $label => $entry ) {
 			if ( null === $entry['start_at'] || null === $entry['end_at'] ) {
 				continue;
@@ -265,15 +262,6 @@ final class TAAS_REST_Application_Cycle_Controller extends TAAS_REST_Controller 
 				/* translators: %s: stage name. */
 				return $this->invalid_param( 'stage_dates', sprintf( __( '%s has an end_at before its start_at.', 'taas-core' ), $label ) );
 			}
-
-			foreach ( $bounded as $other_label => $other ) {
-				if ( $entry['start_at'] <= $other['end_at'] && $other['start_at'] <= $entry['end_at'] ) {
-					/* translators: 1: stage name, 2: stage name. */
-					return $this->invalid_param( 'stage_dates', sprintf( __( 'The dates of %1$s and %2$s overlap.', 'taas-core' ), $other_label, $label ) );
-				}
-			}
-
-			$bounded[ $label ] = $entry;
 		}
 
 		return null;

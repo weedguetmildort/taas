@@ -446,6 +446,16 @@ try {
 			$phd_edit['revision'] = $read_phd()['revision'];
 			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $phd_edit )->get_status(), 'Unrelated student edits still save after HR adds advisor contact details' );
 			taas_edit_check( 'advisor-contact@example.invalid' === $read_phd()['details']['profile']['advisor_email'] && 'advisor-contact@example.invalid' === $repos['profiles']->find( $owner )->advisor_email, 'Student edits preserve the saved advisor email when the advisor is unchanged' );
+			$email_edit = $phd_edit;
+			$email_edit['revision'] = $read_phd()['revision'];
+			$email_edit['details']['profile']['advisor_email'] = 'invalid-email';
+			taas_edit_check( 400 === taas_edit_request( 'POST', $phd_route, $email_edit )->get_status(), 'Student advisor emails are validated when provided' );
+			$email_edit['details']['profile']['advisor_email'] = 'student-advisor@example.invalid';
+			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $email_edit )->get_status(), 'Students can save their advisor email' );
+			taas_edit_check( 'student-advisor@example.invalid' === taas_edit_request( 'GET', '/student/application' )->get_data()['advisor_email'], 'The form prefills the saved advisor email' );
+			$email_edit['revision'] = $read_phd()['revision'];
+			$email_edit['details']['profile']['advisor_email'] = '';
+			taas_edit_check( 200 === taas_edit_request( 'POST', $phd_route, $email_edit )->get_status() && null === $repos['profiles']->find( $owner )->advisor_email, 'An optional advisor email can be cleared' );
 			$choices = array_column( $read_phd()['course_preferences'], null, 'course_id' );
 			$demoted['rank'] = null;
 			taas_edit_check( $demoted === $choices[ $phd_ids[5] ] && 5 === $choices[ $phd_ids[6] ]['rank'], 'A PhD course swap keeps the deselected row and clears only its rank' );

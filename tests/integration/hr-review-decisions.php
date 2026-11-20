@@ -42,8 +42,16 @@ try {
 				TAAS_Semester::Spring,
 				2150,
 				array(
-					'hr_review' => array(
+					'student_application' => array(
+						'start_at' => new DateTimeImmutable( '-2 days' ),
+						'end_at'   => null,
+					),
+					'hr_review'           => array(
 						'start_at' => new DateTimeImmutable( '-1 day' ),
+						'end_at'   => null,
+					),
+					'admin_matching'      => array(
+						'start_at' => new DateTimeImmutable( '-1 hour' ),
 						'end_at'   => null,
 					),
 				)

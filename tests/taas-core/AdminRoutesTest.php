@@ -382,6 +382,7 @@ class AdminRoutesTest extends TestCase {
 			'cycle_semester'          => '2',
 			'cycle_year'              => '2027',
 			'admin_matching_start_at' => '2020-01-01 00:00:00',
+			'hr_review_start_at'      => '2020-02-01 00:00:00',
 		);
 
 		$data = ( new TAAS_REST_Matching_Controller() )->finalize( new WP_REST_Request() )->get_data();

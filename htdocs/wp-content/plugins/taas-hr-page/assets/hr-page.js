@@ -62,8 +62,18 @@
             }
 
             term.textContent = `${cycle.term} ${cycle.year}`;
-            const isOpen = cycle.stage === "hr_review";
-            status.textContent = isOpen ? "HR review is open." : "HR review is closed.";
+            const isOpen = (cycle.stages ?? [cycle.stage]).includes("hr_review");
+            const endAt = cycle.stage_dates?.hr_review?.end_at;
+            const deadline = typeof endAt === "string" ? new Date(endAt) : null;
+            const closingTime = deadline && Number.isFinite(deadline.getTime())
+                ? new Intl.DateTimeFormat("en-US", {
+                    timeZone: "America/New_York", month: "long", day: "numeric", year: "numeric",
+                    hour: "numeric", minute: "2-digit", timeZoneName: "short"
+                }).format(deadline)
+                : null;
+            status.textContent = isOpen
+                ? closingTime ? `HR review is open until ${closingTime}.` : "HR review is open."
+                : "HR review is closed.";
             return isOpen;
         } catch {
             status.textContent = "The current application cycle could not be loaded. Reload the page to try again.";
@@ -379,34 +389,25 @@
             const expectedEmail = currentEmail;
             const popup = document.createElement("dialog");
             popup.className = "hr-advisor-dialog hr-details-dialog";
-            popup.setAttribute("aria-label", "Select advisor");
+            popup.setAttribute("aria-label", "Edit advisor");
             popup.tabIndex = -1;
             const heading = document.createElement("h3");
-            heading.textContent = "Select advisor";
+            heading.textContent = "Edit advisor";
             const current = document.createElement("p");
             current.textContent = `Current advisor: ${currentName || "N/A"}${currentEmail ? ` (${currentEmail})` : ""}`;
             const form = document.createElement("form");
-            const search = document.createElement("input");
-            search.type = "search";
-            search.placeholder = "Search by professor name or email";
-            search.setAttribute("aria-label", "Search professors");
-            const select = document.createElement("select");
-            select.size = 8;
-            select.setAttribute("aria-label", "Professor");
             const customLabel = document.createElement("label");
-            customLabel.textContent = "Or enter a custom advisor name";
+            customLabel.textContent = "Advisor name";
             const customName = document.createElement("input");
             customName.type = "text";
             customName.maxLength = 255;
             customLabel.append(customName);
             const emailLabel = document.createElement("label");
-            emailLabel.textContent = "Custom advisor email";
+            emailLabel.textContent = "Advisor email";
             const customEmail = document.createElement("input");
             customEmail.type = "email";
             customEmail.maxLength = 255;
             emailLabel.append(customEmail);
-            const listStatus = document.createElement("p");
-            listStatus.setAttribute("role", "status");
             const status = document.createElement("p");
             status.setAttribute("role", "status");
             const save = document.createElement("button");
@@ -416,113 +417,24 @@
             const cancel = document.createElement("button");
             cancel.type = "button";
             cancel.textContent = "Cancel";
-            const retry = document.createElement("button");
-            retry.type = "button";
-            retry.textContent = "Retry";
-            retry.hidden = true;
             const actions = document.createElement("div");
             actions.className = "hr-advisor-actions";
-            actions.append(save, cancel, retry);
-            form.append(search, select, listStatus, customLabel, emailLabel, status, actions);
+            actions.append(save, cancel);
+            form.append(customLabel, emailLabel, status, actions);
             popup.append(heading, current, form);
             document.body.append(popup);
-            let professors = [];
-            let loaded = false;
             let saving = false;
-            const controller = new AbortController();
+            customName.value = currentName === "N/A" ? "" : currentName ?? "";
+            customEmail.value = currentEmail ?? "";
+            customName.required = customEmail.required = true;
 
             function updateControls() {
-                select.disabled = search.disabled = saving || !loaded;
                 customName.disabled = customEmail.disabled = cancel.disabled = saving;
-                const custom = Boolean(customName.value.trim() || customEmail.value.trim());
-                customName.required = customEmail.required = custom;
-                save.disabled = saving || (custom
-                    ? !customName.value.trim() || !customEmail.value.trim() || !customEmail.validity.valid
-                    : !(loaded && select.value));
+                save.disabled = saving || !customName.value.trim() || !customEmail.value.trim() || !customEmail.validity.valid;
             }
 
-            function renderOptions(selected = select.value) {
-                const query = normalizeSearch(search.value);
-                const placeholder = new Option("Select a professor", "");
-                placeholder.disabled = true;
-                select.replaceChildren(placeholder, new Option("No advisor (N/A)", "none"));
-                for (const professor of professors) {
-                    const label = `${professor.professor_name} (${professor.professor_email})`;
-                    if (!normalizeSearch(label).includes(query)) {
-                        continue;
-                    }
-                    select.add(new Option(label, professor.professor_id));
-                }
-                select.value = !customName.value.trim() && !customEmail.value.trim() && Array.from(select.options).some(option => option.value === selected) ? selected : "";
-                updateControls();
-            }
-
-            async function loadProfessors() {
-                loaded = false;
-                updateControls();
-                popup.focus();
-                retry.hidden = true;
-                listStatus.textContent = "Loading professors…";
-                try {
-                    const list = [];
-                    for (let page = 1, pages = 1; page <= pages; page++) {
-                        const endpoint = new URL(window.TAASHrPage.advisorsEndpoint);
-                        endpoint.searchParams.set("page", page);
-                        const { response, data } = await request(endpoint.href, { signal: controller.signal });
-                        if (!popup.open) {
-                            return;
-                        }
-                        if (response.status === 403 && data?.code === "taas_stage_closed") {
-                            popup.close();
-                            onStageClosed();
-                            return;
-                        }
-                        if (!response.ok || !Array.isArray(data?.professors) || !Number.isSafeInteger(data.pages) || data.pages < 1 ||
-                            !data.professors.every(professor => typeof professor.professor_id === "string" && /^[1-9][0-9]*$/.test(professor.professor_id) &&
-                                typeof professor.professor_name === "string" && typeof professor.professor_email === "string")) {
-                            throw new Error("Invalid professor list.");
-                        }
-                        list.push(...data.professors);
-                        pages = data.pages;
-                    }
-                    professors = list;
-                    loaded = true;
-                    const matching = professors.filter(professor => professor.professor_name === currentName &&
-                        (!currentEmail || professor.professor_email.toLowerCase() === currentEmail.toLowerCase()));
-                    if (matching.length !== 1 && currentName && currentName !== "N/A" && !customName.value && !customEmail.value) {
-                        customName.value = currentName;
-                        customEmail.value = currentEmail ?? "";
-                    }
-                    renderOptions(matching.length === 1 ? matching[0].professor_id : currentName === "N/A" || !currentName ? "none" : "");
-                    listStatus.textContent = professors.length ? "" : "No professors are available.";
-                } catch {
-                    if (popup.open && !controller.signal.aborted) {
-                        listStatus.textContent = "Professors could not be loaded. Try again.";
-                        retry.hidden = false;
-                    }
-                } finally {
-                    updateControls();
-                    if (popup.open && document.activeElement === popup) {
-                        (loaded ? search : retry).focus();
-                    }
-                }
-            }
-
-            search.addEventListener("input", () => renderOptions());
-            select.addEventListener("change", () => {
-                customName.value = "";
-                customEmail.value = "";
-                updateControls();
-            });
-            function onCustomInput() {
-                if (customName.value.trim() || customEmail.value.trim()) {
-                    select.value = "";
-                }
-                updateControls();
-            }
-            customName.addEventListener("input", onCustomInput);
-            customEmail.addEventListener("input", onCustomInput);
-            retry.addEventListener("click", loadProfessors);
+            customName.addEventListener("input", updateControls);
+            customEmail.addEventListener("input", updateControls);
             cancel.addEventListener("click", () => popup.close());
             popup.addEventListener("cancel", event => {
                 if (saving) {
@@ -539,7 +451,6 @@
                 }
             });
             popup.addEventListener("close", () => {
-                controller.abort();
                 popup.remove();
                 edit.focus();
             }, { once: true });
@@ -549,9 +460,7 @@
                     return;
                 }
                 saving = true;
-                const selection = customName.value.trim()
-                    ? { advisor_name: customName.value.trim(), advisor_email: customEmail.value.trim() }
-                    : { professor_id: select.value === "none" ? null : select.value };
+                const selection = { advisor_name: customName.value.trim(), advisor_email: customEmail.value.trim() };
                 updateControls();
                 status.textContent = "Saving advisor name…";
                 try {
@@ -584,10 +493,9 @@
                     updateControls();
                 }
             });
-            renderOptions("");
+            updateControls();
             popup.showModal();
-            search.focus();
-            loadProfessors();
+            customName.focus();
         });
         return { element, setValue };
     }

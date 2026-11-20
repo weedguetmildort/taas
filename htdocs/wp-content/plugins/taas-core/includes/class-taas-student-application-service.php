@@ -67,7 +67,7 @@ final class TAAS_Student_Application_Service {
 	 *             phone: string, country_code: string, admitted_semester: string,
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
-	 *             resume_url: ?string, additional_info: string, advisor_name: string,
+	 *             resume_url: ?string, additional_info: string, advisor_name: string, advisor_email?: string|null,
 	 *             fws_eligibility: string, fws_award_letter_url?: string|null,
 	 *             english_test_score: int
 	 *         },
@@ -100,7 +100,7 @@ final class TAAS_Student_Application_Service {
 	 *             phone: string, country_code: string, admitted_semester: string,
 	 *             available_hours: int, enrollment_status: int,
 	 *             eap5836_status: int, eap5837_status: int,
-	 *             resume_url: ?string, additional_info: string, advisor_name: string,
+	 *             resume_url: ?string, additional_info: string, advisor_name: string, advisor_email?: string|null,
 	 *             fws_eligibility: string, fws_award_letter_url?: string|null,
 	 *             english_test_score: int
 	 *         },
@@ -413,6 +413,9 @@ final class TAAS_Student_Application_Service {
 	 * @return array Details with the saved email when the advisor is unchanged.
 	 */
 	private function preserve_advisor_email( array $details, ?TAAS_Student_Submission $submission, string $ufid ): array {
+		if ( array_key_exists( 'advisor_email', $details['profile'] ) ) {
+			return $details;
+		}
 		$previous = $submission?->submitted_details['profile'] ?? $this->profiles->find( $ufid )?->to_row() ?? array();
 		if ( self::is_phd( $details ) && ( $details['profile']['advisor_name'] ?? null ) === ( $previous['advisor_name'] ?? null ) && array_key_exists( 'advisor_email', $previous ) ) {
 			$details['profile']['advisor_email'] = $previous['advisor_email'];

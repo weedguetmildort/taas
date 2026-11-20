@@ -40,7 +40,7 @@ final class TAAS_Student_Application_Input {
 	 *       phone: string, country_code: string, admitted_semester: string,
 	 *       available_hours: int, enrollment_status: int,
 	 *       eap5836_status: int, eap5837_status: int,
-	 *       resume_url: string|null, additional_info: string, advisor_name: string,
+	 *       resume_url: string|null, additional_info: string, advisor_name: string, advisor_email?: string|null,
 	 *       fws_eligibility: string, fws_award_letter_url?: string|null,
 	 *       english_test_score: int
 	 *     },
@@ -122,6 +122,7 @@ final class TAAS_Student_Application_Input {
 				'english_test_score',
 				'additional_info',
 				'advisor_name',
+				'advisor_email',
 			)
 		);
 		$country_code = strtoupper( self::read_text( $profile, 'country_code', 2 ) );
@@ -141,6 +142,14 @@ final class TAAS_Student_Application_Input {
 		$advisor_name = TAAS_Enrollment_Status::Phd->value === $enrollment_status
 			? self::read_text( $profile, 'advisor_name', 255, false )
 			: '';
+		$advisor_contact = array();
+		if ( array_key_exists( 'advisor_email', $profile ) ) {
+			$advisor_email = TAAS_Enrollment_Status::Phd->value === $enrollment_status ? self::read_text( $profile, 'advisor_email', 255, false ) : '';
+			if ( '' !== $advisor_email && ( preg_match( '/[\r\n\x00]/', (string) $profile['advisor_email'] ) || ! filter_var( $advisor_email, FILTER_VALIDATE_EMAIL ) ) ) {
+				throw new InvalidArgumentException( 'Provide a valid advisor email address.' );
+			}
+			$advisor_contact['advisor_email'] = '' === $advisor_email ? null : $advisor_email;
+		}
 		$english_test_score = $profile['english_test_score'] ?? null;
 		if ( ! is_int( $english_test_score ) || null === TAAS_English_Test_Score::tryFrom( $english_test_score ) ) {
 			throw new InvalidArgumentException( 'english_test_score has an invalid value.' );
@@ -164,7 +173,7 @@ final class TAAS_Student_Application_Input {
 			'english_test_score' => $english_test_score,
 			'additional_info'    => self::read_text( $profile, 'additional_info', 1000, false ),
 			'advisor_name'       => '' === $advisor_name ? 'N/A' : $advisor_name,
-		) + self::parse_fws( $profile, $enrollment_status );
+		) + $advisor_contact + self::parse_fws( $profile, $enrollment_status );
 	}
 
 	/**
