@@ -1,8 +1,8 @@
 # Professor Routes
 
-Routes for a signed-in professor to list their courses, review applicants, and submit a ranking plus notes for matching. The base path, sign-in and shared errors are in the [API overview](README.md).
+Routes for a signed-in professor to list their courses, review applicants, submit a ranking plus notes for matching, and see the students matched to their courses. The base path, sign-in and shared errors are in the [API overview](README.md).
 
-**Access:** every route here needs the `taas_instructor` role, during the `professor_ranking` stage. A signed-in user without it gets 403, even a `taas_admin`; holding it alongside other roles is fine. WordPress administrators hold it, but only see courses where they are the professor. Reads are closed outside the stage too, with 403 `taas_stage_closed`.
+**Access:** every route here needs the `taas_instructor` role, during the `professor_ranking` stage. A signed-in user without it gets 403, even a `taas_admin`; holding it alongside other roles is fine. WordPress administrators hold it, but only see courses where they are the professor. Reads are closed outside the stage too, with 403 `taas_stage_closed`. The exceptions are GET: a professor's courses and GET: matched students, which open in every stage once the admin releases the current cycle's matches.
 
 **Ownership:** the professor is identified by their session, never by anything in the request. A course or application that doesn't exist, isn't this professor's, or (applications only) was withdrawn all return the same 404 `taas_not_found`, so the API never reveals which ids exist.
 
@@ -187,6 +187,74 @@ The ranking and the notes are saved together: either both are saved or neither i
 
 WordPress's own validation usually catches the last three first, and returns `rest_invalid_param` or `rest_missing_callback_param`. Handle both error shapes.
 
+## GET: matched students
+
+`GET /professor/courses/{course_id}/matches`
+
+The students the admin matched to this course. Each one has everything GET: one applicant's details returns, plus their assigned hours, so the page doesn't need that route.
+
+**Access:** open in every stage once the admin releases the current cycle's matches, and closed before that, even during `professor_ranking`. Only courses in the current cycle's term have released matches.
+
+**Paginated:** no, ordered by student name. Only matched applications are listed.
+
+**Response body:**
+
+```json
+{
+  "course_id": 12345,
+  "course_code": "COP4930",
+  "course_name": "Yet Another SWE Course",
+  "weekly_hours": 20,
+  "assigned_hours": 10,
+  "matches": [
+    {
+      "application_id": 6,
+      "student_email": "praman@ufl.edu",
+      "student_name": "Priya Raman",
+      "major": "Computer Science",
+      "gpa": 3.85,
+      "enrollment_status": "PhD",
+      "has_taken_course": false,
+      "has_ta_experience": false,
+      "has_ta_for_course": false,
+      "academic_background": [
+        {
+          "university": "University of Florida",
+          "degree_type": "MS",
+          "major": "Computer Science",
+          "minor": null,
+          "grad_date": "2026-12-01"
+        }
+      ],
+      "country_code": "IN",
+      "eap5836_status": "Taken",
+      "eap5837_status": "Currently Enrolled",
+      "resume_url": null,
+      "student_statement": null,
+      "english_test_score": 2,
+      "fws_eligibility": "no",
+      "fws_award_letter_url": null,
+      "assigned_hours": 10
+    }
+  ]
+}
+```
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `weekly_hours` | integer, *nullable* | Total TA hours the course needs |
+| `assigned_hours` | integer | Sum of `matches[].assigned_hours` |
+| `matches` | array | `[]` if no one is matched |
+| `matches[].assigned_hours` | integer | Weekly TA hours for this course |
+
+Every other field in `matches[]` has the same type and meaning as in GET: one applicant's details. They show what the student submitted for this course's term, not their latest profile, so a past term's matches still show what the student said then. The one exception is `has_ta_experience`, which isn't saved per term and is always the student's current answer. The detail route still reads most fields from the current profile, so the two can differ for the same student.
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 403 | `taas_matches_not_released` | The admin hasn't released matches, or the course isn't in the current cycle's term |
+| 403 | `taas_stage_closed` | Matches aren't released and `professor_ranking` isn't active. See [Stage access](README.md#stage-access) |
+| 404 | `taas_not_found` | See Ownership at the top of this page |
+
 ## GET: one applicant's details
 
 `GET /professor/applications/{application_id}`
@@ -255,5 +323,7 @@ Changes to these routes, newest first.
 
 | Date | Route | Change |
 | --- | --- | --- |
+| 2026-11-19 | `GET /professor/courses/{course_id}/matches` | New route for a course's matched students |
+| 2026-11-19 | `GET /professor/courses` | Also open in every stage once matches are released |
 | 2026-11-17 | `GET /professor/courses/{course_id}/applications` | Added `fws_eligibility` to each applicant |
 | 2026-11-17 | `GET /professor/applications/{application_id}` | Added `fws_eligibility` and `fws_award_letter_url` |

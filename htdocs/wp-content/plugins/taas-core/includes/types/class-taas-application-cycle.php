@@ -135,6 +135,21 @@ final class TAAS_Application_Cycle {
 	}
 
 	/**
+	 * Whether the admin has released this cycle's matches to professors.
+	 *
+	 * Once released, professors can read their courses and matches in any stage.
+	 *
+	 * TODO: Wire this to the admin's release trigger once it exists, such as a
+	 * release timestamp on this row that the trigger sets. Until then matches are
+	 * never released, so professors cannot see them.
+	 *
+	 * @return bool
+	 */
+	public function matches_released(): bool {
+		return false;
+	}
+
+	/**
 	 * Return the row as column => value, ready for $wpdb->replace().
 	 *
 	 * @return array<string, mixed>
