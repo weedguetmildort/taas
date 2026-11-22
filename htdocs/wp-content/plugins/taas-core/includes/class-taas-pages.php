@@ -23,7 +23,7 @@ class TAAS_Pages {
 	private const CONTENT_DIR = 'pages/';
 
 	/** Plain HTML pages imported as a single editable Custom HTML block. */
-	private const RAW_HTML_PAGES = array( 'front-page', 'student-application', 'check-application-status', 'hr-page' );
+	private const RAW_HTML_PAGES = array( 'front-page', 'student-application', 'check-application-status', 'hr-page', 'application-cycle-admin' );
 
 	/**
 	 * Declare the pages, keyed by slug
@@ -62,6 +62,10 @@ class TAAS_Pages {
 			),
 			'admin-page'                     => array(
 				'title'  => 'Admin Home Page',
+				'parent' => null,
+			),
+			'application-cycle-admin'        => array(
+				'title'  => 'Application Cycle',
 				'parent' => null,
 			),
 			'manage-course-listings-admin'   => array(
