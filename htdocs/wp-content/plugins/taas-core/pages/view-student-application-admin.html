@@ -16,39 +16,35 @@
     </div>
 
     <!-- TA APPROVAL PROGRESS -->
-    <div class="ta-approval-progress">
+    <section class="ta-approval-progress" aria-labelledby="approval-progress-title">
 
         <div class="approval-progress-header">
-            <h3>TA Match Approval Progress</h3>
-            <span class="approval-progress-label">
-                Demo Progress
-            </span>
+            <h3 id="approval-progress-title">TA Match Approval Progress</h3>
+            <span id="approval-progress-term" class="approval-progress-label"></span>
         </div>
 
-        <div class="approval-progress-count">
-            <span id="approved-count">15</span>
-            <span class="progress-divider">/</span>
-            <span id="total-applicants">200</span>
-            <span class="progress-description">
-                Matches Approved
-            </span>
-        </div>
+        <p id="approval-progress-message" role="status">Approval progress is available to administrators.</p>
 
-        <div class="approval-progress-bar">
-            <div id="approval-progress-fill" class="approval-progress-fill" style="width: 7.5%;">
+        <div id="approval-progress-metrics" hidden>
+            <div class="approval-progress-count">
+                <span id="reviewed-count"></span>
+                <span class="progress-divider">/</span>
+                <span id="total-applications"></span>
+                <span class="progress-description">Applications Reviewed</span>
+            </div>
+
+            <div class="approval-progress-bar" role="progressbar" aria-labelledby="approval-progress-title">
+                <div id="approval-progress-fill" class="approval-progress-fill"></div>
+            </div>
+
+            <div class="approval-progress-footer" aria-live="polite">
+                <span id="approval-percentage"></span>
+                <span id="approval-decisions"></span>
+                <span id="remaining-count"></span>
             </div>
         </div>
 
-        <div class="approval-progress-footer">
-            <span id="approval-percentage">
-                7.5% Completed
-            </span>
-            <span id="remaining-count">
-                185 Remaining
-            </span>
-        </div>
-
-    </div>
+    </section>
 
     <h3 id="admin-matching-view-title">Course Recommendations</h3>
     <div class="admin-applications-toolbar">
@@ -126,392 +122,29 @@
 
     </div>
 
-   
-
-<!-- STUDENT VIEW -->
-<div id="admin-student-view" hidden>
-
-    <div class="admin-applications-table-wrapper">
-
-        <table class="admin-applications-table">
-
-            <thead>
-                <tr>
-                    <th>Student Name</th>
-                    <th>UFID</th>
-                    <th>Email</th>
-                    <th>Top Ranked Course</th>
-                    <th>Match Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                <!-- STUDENT 1 -->
-                <tr>
-                    <td>Jane Doe</td>
-                    <td>12345678</td>
-                    <td>
-                        <a href="mailto:jane@example.edu">
-                            jane@example.edu
-                        </a>
-                    </td>
-                    <td>COP3502C</td>
-                    <td>
-                        <span class="match-status approved">
-                            Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 2 -->
-                <tr>
-                    <td>John Smith</td>
-                    <td>87654321</td>
-                    <td>
-                        <a href="mailto:john@example.edu">
-                            john@example.edu
-                        </a>
-                    </td>
-                    <td>COP3530</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 3 -->
-                <tr>
-                    <td>Leonardo Rey</td>
-                    <td>23456789</td>
-                    <td>
-                        <a href="mailto:leonardo@example.edu">
-                            leonardo@example.edu
-                        </a>
-                    </td>
-                    <td>CIS4301</td>
-                    <td>
-                        <span class="match-status unmatched">
-                            Not Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 4 -->
-                <tr>
-                    <td>Emily Davis</td>
-                    <td>34567890</td>
-                    <td>
-                        <a href="mailto:emily@example.edu">
-                            emily@example.edu
-                        </a>
-                    </td>
-                    <td>COP4600</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
+    <!-- STUDENT VIEW -->
+    <div id="admin-student-view" hidden>
+        <p class="admin-matching-scroll-hint">Scroll the table sideways to see all columns.</p>
+        <div class="admin-applications-table-wrapper" tabindex="0" role="region" aria-label="Student applications">
+            <table class="admin-applications-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Student Name</th>
+                        <th scope="col">UFID</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Top Ranked Course</th>
+                        <th scope="col">Application Course</th>
+                        <th scope="col">Match Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" role="status">Student applications are available to administrators.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-
-</div>
-
-<!-- STUDENT VIEW -->
-<div id="admin-student-view" hidden>
-
-    <div class="admin-applications-table-wrapper">
-
-        <table class="admin-applications-table">
-
-            <thead>
-                <tr>
-                    <th>Student Name</th>
-                    <th>UFID</th>
-                    <th>Email</th>
-                    <th>Top Ranked Course</th>
-                    <th>Match Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                <!-- STUDENT 1 -->
-                <tr>
-                    <td>Jane Doe</td>
-                    <td>12345678</td>
-                    <td>
-                        <a href="mailto:jane@example.edu">
-                            jane@example.edu
-                        </a>
-                    </td>
-                    <td>COP3502C</td>
-                    <td>
-                        <span class="match-status approved">
-                            Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 2 -->
-                <tr>
-                    <td>John Smith</td>
-                    <td>87654321</td>
-                    <td>
-                        <a href="mailto:john@example.edu">
-                            john@example.edu
-                        </a>
-                    </td>
-                    <td>COP3530</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 3 -->
-                <tr>
-                    <td>Leonardo Rey</td>
-                    <td>23456789</td>
-                    <td>
-                        <a href="mailto:leonardo@example.edu">
-                            leonardo@example.edu
-                        </a>
-                    </td>
-                    <td>CIS4301</td>
-                    <td>
-                        <span class="match-status unmatched">
-                            Not Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 4 -->
-                <tr>
-                    <td>Emily Davis</td>
-                    <td>34567890</td>
-                    <td>
-                        <a href="mailto:emily@example.edu">
-                            emily@example.edu
-                        </a>
-                    </td>
-                    <td>COP4600</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
-
-<!-- STUDENT VIEW -->
-<div id="admin-student-view" hidden>
-
-    <div class="admin-applications-table-wrapper">
-
-        <table class="admin-applications-table">
-
-            <thead>
-                <tr>
-                    <th>Student Name</th>
-                    <th>UFID</th>
-                    <th>Email</th>
-                    <th>Top Ranked Course</th>
-                    <th>Match Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                <!-- STUDENT 1 -->
-                <tr>
-                    <td>Jane Doe</td>
-                    <td>12345678</td>
-                    <td>
-                        <a href="mailto:jane@example.edu">
-                            jane@example.edu
-                        </a>
-                    </td>
-                    <td>COP3502C</td>
-                    <td>
-                        <span class="match-status approved">
-                            Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 2 -->
-                <tr>
-                    <td>John Smith</td>
-                    <td>87654321</td>
-                    <td>
-                        <a href="mailto:john@example.edu">
-                            john@example.edu
-                        </a>
-                    </td>
-                    <td>COP3530</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 3 -->
-                <tr>
-                    <td>Leonardo Rey</td>
-                    <td>23456789</td>
-                    <td>
-                        <a href="mailto:leonardo@example.edu">
-                            leonardo@example.edu
-                        </a>
-                    </td>
-                    <td>CIS4301</td>
-                    <td>
-                        <span class="match-status unmatched">
-                            Not Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 4 -->
-                <tr>
-                    <td>Emily Davis</td>
-                    <td>34567890</td>
-                    <td>
-                        <a href="mailto:emily@example.edu">
-                            emily@example.edu
-                        </a>
-                    </td>
-                    <td>COP4600</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
-
-<!-- STUDENT VIEW -->
-<div id="admin-student-view" hidden>
-
-    <div class="admin-applications-table-wrapper">
-
-        <table class="admin-applications-table">
-
-            <thead>
-                <tr>
-                    <th>Student Name</th>
-                    <th>UFID</th>
-                    <th>Email</th>
-                    <th>Top Ranked Course</th>
-                    <th>Match Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                <!-- STUDENT 1 -->
-                <tr>
-                    <td>Jane Doe</td>
-                    <td>12345678</td>
-                    <td>
-                        <a href="mailto:jane@example.edu">
-                            jane@example.edu
-                        </a>
-                    </td>
-                    <td>COP3502C</td>
-                    <td>
-                        <span class="match-status approved">
-                            Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 2 -->
-                <tr>
-                    <td>John Smith</td>
-                    <td>87654321</td>
-                    <td>
-                        <a href="mailto:john@example.edu">
-                            john@example.edu
-                        </a>
-                    </td>
-                    <td>COP3530</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 3 -->
-                <tr>
-                    <td>Leonardo Rey</td>
-                    <td>23456789</td>
-                    <td>
-                        <a href="mailto:leonardo@example.edu">
-                            leonardo@example.edu
-                        </a>
-                    </td>
-                    <td>CIS4301</td>
-                    <td>
-                        <span class="match-status unmatched">
-                            Not Matched
-                        </span>
-                    </td>
-                </tr>
-
-                <!-- STUDENT 4 -->
-                <tr>
-                    <td>Emily Davis</td>
-                    <td>34567890</td>
-                    <td>
-                        <a href="mailto:emily@example.edu">
-                            emily@example.edu
-                        </a>
-                    </td>
-                    <td>COP4600</td>
-                    <td>
-                        <span class="match-status proposed">
-                            Pending Match
-                        </span>
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
-
-
-    <p class="admin-applications-note">
-        Note: The approval progress panel displays demo data.
-    </p>
 
 </div>
 
