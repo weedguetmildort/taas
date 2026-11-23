@@ -258,6 +258,7 @@ class RepositoryTest extends TestCase {
 		$this->assertStringContainsString( 'INNER JOIN `wp_taas_core_courses` c ON c.course_id = a.applied_course_id', $sql );
 		$this->assertStringContainsString( 'LEFT JOIN `wp_taas_core_student_submissions` s ON s.student_ufid = a.student_ufid AND s.semester = c.course_semester AND s.year = c.course_year', $sql );
 		$this->assertStringContainsString( '$.academic_background[0].gpa', $sql );
+		$this->assertStringContainsString( 'a.student_preference_rank', $sql );
 		$this->assertStringNotContainsString( 'student_profiles', $sql );
 		$this->assertStringContainsString( 'WHERE a.applied_course_id = 12345 AND a.match_status <> 4', $sql );
 		$this->assertStringEndsWith( 'ORDER BY student_name, a.application_id', $sql );
@@ -269,16 +270,17 @@ class RepositoryTest extends TestCase {
 	public function test_applicants_for_course_casts_values(): void {
 		$this->db->rows = array(
 			array(
-				'application_id'    => '7',
-				'submission_id'     => '20',
-				'student_ufid'      => '20000002',
-				'student_name'      => 'Priya Raman',
-				'major'             => 'Computer Science',
-				'gpa'               => '3.85',
-				'enrollment_status' => '3',
-				'has_taken_course'  => '0',
-				'has_ta_for_course' => '1',
-				'fws_eligibility'   => 'not_applicable',
+				'application_id'          => '7',
+				'submission_id'           => '20',
+				'student_ufid'            => '20000002',
+				'student_name'            => 'Priya Raman',
+				'major'                   => 'Computer Science',
+				'gpa'                     => '3.85',
+				'enrollment_status'       => '3',
+				'has_taken_course'        => '0',
+				'has_ta_for_course'       => '1',
+				'fws_eligibility'         => 'not_applicable',
+				'student_preference_rank' => '2',
 			),
 			array(
 				'application_id'    => '8',
@@ -297,14 +299,15 @@ class RepositoryTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'application_id'    => 7,
-				'student_name'      => 'Priya Raman',
-				'major'             => 'Computer Science',
-				'gpa'               => 3.85,
-				'enrollment_status' => TAAS_Enrollment_Status::Phd,
-				'has_taken_course'  => false,
-				'has_ta_for_course' => true,
-				'fws_eligibility'   => 'not_applicable',
+				'application_id'          => 7,
+				'student_name'            => 'Priya Raman',
+				'major'                   => 'Computer Science',
+				'gpa'                     => 3.85,
+				'enrollment_status'       => TAAS_Enrollment_Status::Phd,
+				'has_taken_course'        => false,
+				'has_ta_for_course'       => true,
+				'fws_eligibility'         => 'not_applicable',
+				'student_preference_rank' => 2,
 			),
 			$rows[0]
 		);
@@ -313,6 +316,7 @@ class RepositoryTest extends TestCase {
 		$this->assertNull( $rows[1]['enrollment_status'] );
 		$this->assertTrue( $rows[1]['has_taken_course'] );
 		$this->assertSame( 'no', $rows[1]['fws_eligibility'] );
+		$this->assertNull( $rows[1]['student_preference_rank'] );
 	}
 
 	/**
