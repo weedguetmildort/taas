@@ -194,7 +194,8 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 	 *     enrollment_status: ?TAAS_Enrollment_Status,
 	 *     has_taken_course: bool,
 	 *     has_ta_for_course: bool,
-	 *     fws_eligibility: string
+	 *     fws_eligibility: string,
+	 *     student_preference_rank: ?int
 	 * }>
 	 * @throws RuntimeException If the query fails or an applicant has no snapshot.
 	 * @throws UnexpectedValueException If the stored enrollment status is invalid.
@@ -211,7 +212,7 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.academic_background[0].gpa')), 'null') AS gpa,"
 				. " JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.enrollment_status')) AS enrollment_status,"
 				. " NULLIF(JSON_UNQUOTE(JSON_EXTRACT(s.submitted_details, '$.profile.fws_eligibility')), 'null') AS fws_eligibility,"
-				. ' a.has_taken_course, a.has_ta_for_course'
+				. ' a.has_taken_course, a.has_ta_for_course, a.student_preference_rank'
 				. ' FROM %i a'
 				. ' INNER JOIN %i c ON c.course_id = a.applied_course_id'
 				. ' LEFT JOIN %i s ON s.student_ufid = a.student_ufid'
@@ -234,14 +235,15 @@ final class TAAS_Application_Repository extends TAAS_Repository {
 
 		return array_map(
 			static fn( array $r ) => array(
-				'application_id'    => TAAS_Cast::int( $r['application_id'] ),
-				'student_name'      => (string) $r['student_name'],
-				'major'             => TAAS_Cast::string_or_null( $r['major'] ?? null ),
-				'gpa'               => TAAS_Cast::float_or_null( $r['gpa'] ?? null ),
-				'enrollment_status' => TAAS_Cast::enum_or_null( TAAS_Enrollment_Status::class, $r['enrollment_status'] ?? null ),
-				'has_taken_course'  => TAAS_Cast::bool( $r['has_taken_course'] ?? 0 ),
-				'has_ta_for_course' => TAAS_Cast::bool( $r['has_ta_for_course'] ?? 0 ),
-				'fws_eligibility'   => TAAS_Cast::string_or_null( $r['fws_eligibility'] ?? null ) ?? 'no',
+				'application_id'          => TAAS_Cast::int( $r['application_id'] ),
+				'student_name'            => (string) $r['student_name'],
+				'major'                   => TAAS_Cast::string_or_null( $r['major'] ?? null ),
+				'gpa'                     => TAAS_Cast::float_or_null( $r['gpa'] ?? null ),
+				'enrollment_status'       => TAAS_Cast::enum_or_null( TAAS_Enrollment_Status::class, $r['enrollment_status'] ?? null ),
+				'has_taken_course'        => TAAS_Cast::bool( $r['has_taken_course'] ?? 0 ),
+				'has_ta_for_course'       => TAAS_Cast::bool( $r['has_ta_for_course'] ?? 0 ),
+				'fws_eligibility'         => TAAS_Cast::string_or_null( $r['fws_eligibility'] ?? null ) ?? 'no',
+				'student_preference_rank' => TAAS_Cast::int_or_null( $r['student_preference_rank'] ?? null ),
 			),
 			$rows
 		);

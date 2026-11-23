@@ -398,16 +398,16 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 				);
 
 				return array(
-					'application_id'       => $application->application_id,
-					'student_email'        => $student->student_email,
-					'student_name'         => $student->student_name,
-					'major'                => $profile?->major,
-					'gpa'                  => $profile?->gpa,
-					'enrollment_status'    => $profile?->enrollment_status?->label(),
-					'has_taken_course'     => $application->has_taken_course,
-					'has_ta_experience'    => $profile?->has_ta_experience ?? false,
-					'has_ta_for_course'    => $application->has_ta_for_course,
-					'academic_background'  => array_map(
+					'application_id'          => $application->application_id,
+					'student_email'           => $student->student_email,
+					'student_name'            => $student->student_name,
+					'major'                   => $profile?->major,
+					'gpa'                     => $profile?->gpa,
+					'enrollment_status'       => $profile?->enrollment_status?->label(),
+					'has_taken_course'        => $application->has_taken_course,
+					'has_ta_experience'       => $profile?->has_ta_experience ?? false,
+					'has_ta_for_course'       => $application->has_ta_for_course,
+					'academic_background'     => array_map(
 						static fn( TAAS_Academic_Background $background ) => array(
 							'university'  => $background->university,
 							'degree_type' => $background->degree_type->label(),
@@ -417,14 +417,15 @@ final class TAAS_REST_Professor_Page_Controller extends TAAS_REST_Controller {
 						),
 						$backgrounds
 					),
-					'country_code'         => $profile?->country_code,
-					'eap5836_status'       => $profile?->eap5836_status?->label(),
-					'eap5837_status'       => $profile?->eap5837_status?->label(),
-					'resume_url'           => $profile?->resume_url,
-					'english_test_score'   => $profile?->english_test_score?->value,
-					'student_statement'    => $application->student_statement,
-					'fws_eligibility'      => TAAS_Cast::string_or_null( $snapshot['fws_eligibility'] ?? null ) ?? 'no',
-					'fws_award_letter_url' => TAAS_Cast::string_or_null( $snapshot['fws_award_letter_url'] ?? null ),
+					'country_code'            => $profile?->country_code,
+					'eap5836_status'          => $profile?->eap5836_status?->label(),
+					'eap5837_status'          => $profile?->eap5837_status?->label(),
+					'resume_url'              => $profile?->resume_url,
+					'english_test_score'      => $profile?->english_test_score?->value,
+					'student_statement'       => $application->student_statement,
+					'fws_eligibility'         => TAAS_Cast::string_or_null( $snapshot['fws_eligibility'] ?? null ) ?? 'no',
+					'fws_award_letter_url'    => TAAS_Cast::string_or_null( $snapshot['fws_award_letter_url'] ?? null ),
+					'student_preference_rank' => $application->student_preference_rank,
 				);
 			}
 		);
